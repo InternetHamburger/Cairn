@@ -17,6 +17,15 @@ typedef enum{
     BlackKing = 0b1110,
 } Piece;
 
+typedef enum{
+    Pawn = 0b0001,
+    Knight = 0b0010,
+    Bishop = 0b0011,
+    Rook = 0b0100,
+    Queen = 0b0101,
+    King = 0b0110,
+} PieceType;
+
 typedef struct{
     Piece squares[64];
     bool white_to_move;

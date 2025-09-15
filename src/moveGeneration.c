@@ -19,7 +19,7 @@ void GetRookMoves(Board *board, Move *moves, int *num_moves, int square){
             curr_rank += rank_directions[direction];
             curr_file += file_directions[direction];
 
-            int target_square = 8 * curr_rank + curr_file;
+            const int target_square = 8 * curr_rank + curr_file;
 
             if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
                 break;
@@ -75,8 +75,27 @@ Move* GetMoves(Board *board, int *num_moves){
 
     for (int square = 0; square < 64; square++){
         if (board->squares[square] && IsColor(board->white_to_move, board->squares[square])){
-            GetRookMoves(board, moves, num_moves, square);
-            GetBishopMoves(board, moves, num_moves, square);
+            switch (GetType(board->squares[square])) {
+                case Pawn:
+                    break;
+                case Knight:
+                    break;
+                case Bishop:
+                    GetBishopMoves(board, moves, num_moves, square);
+                    break;
+                case Rook:
+                    GetRookMoves(board, moves, num_moves, square);
+                    break;
+                case Queen:
+                    GetRookMoves(board, moves, num_moves, square);
+                    GetBishopMoves(board, moves, num_moves, square);
+                    break;
+                case King:
+                    break;
+                default:
+                    exit(-1);
+            }
+
         }
     }
 
