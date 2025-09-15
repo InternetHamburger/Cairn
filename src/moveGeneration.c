@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "preComputedData.h"
 #include "moveGeneration.h"
-#include "boardUtility.h"
+#include "utility.h"
 #include "board.h"
 #include "move.h"
 
@@ -69,6 +70,56 @@ void GetBishopMoves(Board *board, Move *moves, int *num_moves, int square){
     }
 }
 
+void GetKnightMoves(Board *board, Move *moves, int *num_moves, int square){
+    unsigned long long bitboard = knight_moves[square];
+
+    while(bitboard){
+        const int target_square = poplsb(&bitboard);
+
+        if (board->squares[target_square]){
+            if (IsOppositeColor(board->white_to_move, board->squares[target_square])){
+                moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
+            }
+            break;
+        }
+
+        moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
+    }
+}
+
+void GetKingMoves(Board *board, Move *moves, int *num_moves, int square){
+    unsigned long long bitboard = king_moves[square];
+
+    while(bitboard){
+        const int target_square = poplsb(&bitboard);
+
+        if (board->squares[target_square]){
+            if (IsOppositeColor(board->white_to_move, board->squares[target_square])){
+                moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
+            }
+            break;
+        }
+
+        moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
+    }
+
+    if (board->white_to_move){
+        if (board->white_kingside && !board->squares[62] && !board->squares[61]){
+            moves[(*num_moves)++] = MoveConstructor(square, 62, Castle);
+        }
+        if (board->white_queenside && !board->squares[57] && !board->squares[58] && !board->squares[59]){
+            moves[(*num_moves)++] = MoveConstructor(square, 57, Castle);
+        }
+    }else{
+        if (board->black_kingside && !board->squares[6] && !board->squares[5]){
+            moves[(*num_moves)++] = MoveConstructor(square, 6, Castle);
+        }
+        if (board->black_queenside && !board->squares[1] && !board->squares[2] && !board->squares[3]){
+            moves[(*num_moves)++] = MoveConstructor(square, 1, Castle);
+        }
+    }
+}
+
 /// Pseudolegal moves
 Move* GetMoves(Board *board, int *num_moves){
     Move* moves = (Move*)malloc(sizeof(Move) * 256);
@@ -79,6 +130,7 @@ Move* GetMoves(Board *board, int *num_moves){
                 case Pawn:
                     break;
                 case Knight:
+                    GetKnightMoves(board, moves, num_moves, square);
                     break;
                 case Bishop:
                     GetBishopMoves(board, moves, num_moves, square);
@@ -91,11 +143,11 @@ Move* GetMoves(Board *board, int *num_moves){
                     GetBishopMoves(board, moves, num_moves, square);
                     break;
                 case King:
+                    GetKingMoves(board, moves, num_moves, square);
                     break;
                 default:
                     exit(-1);
             }
-
         }
     }
 

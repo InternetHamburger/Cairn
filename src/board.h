@@ -29,6 +29,10 @@ typedef enum{
 typedef struct{
     Piece squares[64];
     bool white_to_move;
+    bool white_kingside;
+    bool white_queenside;
+    bool black_kingside;
+    bool black_queenside;
 } Board;
 
 

@@ -2,7 +2,7 @@
 #include "src/board.h"
 #include "src/move.h"
 #include "src/moveGeneration.h"
-#include "src/boardUtility.h"
+#include "src/utility.h"
 
 int main(void) {
 

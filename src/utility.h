@@ -1,10 +1,11 @@
-#ifndef CAIRN_BOARDUTILITY_H
-#define CAIRN_BOARDUTILITY_H
+#ifndef CAIRN_UTILITY_H
+#define CAIRN_UTILITY_H
 
 #include "board.h"
 
 bool IsOppositeColor(bool white_to_move, int piece);
 bool IsColor(bool white_to_move, int piece);
 PieceType GetType(Piece piece);
+int poplsb(unsigned long long *bb);
 
-#endif //CAIRN_BOARDUTILITY_H
+#endif //CAIRN_UTILITY_H

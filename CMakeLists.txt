@@ -10,5 +10,7 @@ add_executable(Cairn main.c
         src/moveGeneration.h
         src/move.c
         src/move.h
-        src/boardUtility.c
-        src/boardUtility.h)
+        src/utility.c
+        src/utility.h
+        src/preComputedData.c
+        src/preComputedData.h)
