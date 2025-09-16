@@ -1,15 +1,23 @@
 #include "move.h"
 
-int StartSquare(Move move){
+int StartSquare(const Move move){
     return (move.value >> 6) & 0b111111;
 }
 
-int TargetSquare(Move move){
+int TargetSquare(const Move move){
     return move.value & 0b111111;
 }
 
-Move MoveConstructor(int start_square, int target_square, MoveFlag flag){
-    Move move = {
+int GetFlag(const Move move) {
+    return (move.value >> 12) & 0b1111;
+}
+
+bool IsPromotion(const Move move) {
+    return GetFlag(move) > 0b0011;
+}
+
+Move MoveConstructor(const int start_square, const int target_square, const MoveFlag flag){
+    const Move move = {
             .value = ((short)(flag) << (short)12) | (start_square << 6) | target_square
     };
     return move;

@@ -1,18 +1,47 @@
 #include "utility.h"
-#include "move.h"
 #include "board.h"
 #include <assert.h>
+#include <stdlib.h>
 
 bool IsOppositeColor(bool white_to_move, int piece){
-    return white_to_move == (piece >> 3);
+    return white_to_move == (piece >> 3) && !piece;
 }
 
 bool IsColor(bool white_to_move, int piece){
     return white_to_move != (piece >> 3);
 }
 
-char* MoveToChar(Move move){
-
+char PieceToChar(const Piece piece) {
+    switch (piece) {
+        case None:
+            return ' ';
+        case WhitePawn:
+            return 'P';
+        case WhiteKnight:
+            return 'N';
+        case WhiteBishop:
+            return 'B';
+        case WhiteRook:
+            return 'R';
+        case WhiteQueen:
+            return 'Q';
+        case WhiteKing:
+            return 'K';
+        case BlackPawn:
+            return 'p';
+        case BlackKnight:
+            return 'n';
+        case BlackBishop:
+            return 'b';
+        case BlackRook:
+            return 'r';
+        case BlackQueen:
+            return 'q';
+        case BlackKing:
+            return 'k';
+        default:
+            exit(-1);
+    }
 }
 
 PieceType GetType(Piece piece) {

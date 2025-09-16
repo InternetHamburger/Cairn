@@ -64,8 +64,6 @@ void GetBishopMoves(Board *board, Move *moves, int *num_moves, int square){
                 break;
             }
             moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
-
-
         }
     }
 }
@@ -75,12 +73,11 @@ void GetKnightMoves(Board *board, Move *moves, int *num_moves, int square){
 
     while(bitboard){
         const int target_square = poplsb(&bitboard);
-
         if (board->squares[target_square]){
             if (IsOppositeColor(board->white_to_move, board->squares[target_square])){
                 moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
             }
-            break;
+            continue;
         }
 
         moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
@@ -92,12 +89,11 @@ void GetKingMoves(Board *board, Move *moves, int *num_moves, int square){
 
     while(bitboard){
         const int target_square = poplsb(&bitboard);
-
         if (board->squares[target_square]){
             if (IsOppositeColor(board->white_to_move, board->squares[target_square])){
                 moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
             }
-            break;
+            continue;
         }
 
         moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
@@ -120,14 +116,130 @@ void GetKingMoves(Board *board, Move *moves, int *num_moves, int square){
     }
 }
 
+void GetPawnMoves(Board *board, Move *moves, int *num_moves, int square) {
+    const bool can_en_passant = board->en_passant_square != -1;
+
+    const int rank = square / 8;
+    const int file = square % 8;
+
+    // Left, right
+    const int capture_file_change[] = {-1, 1};
+    if (board->white_to_move) {
+        const int new_rank = rank - 1;
+        const bool can_capture_left = (file + capture_file_change[0]) >= 0 && IsOppositeColor(board->white_to_move, board->squares[square - 9]) && board->squares[square - 9];
+        const bool can_capture_right = (file + capture_file_change[1]) < 8 && IsOppositeColor(board->white_to_move, board->squares[square - 7]) && board->squares[square - 7];
+        if (rank == 1) {
+            if (!board->squares[square + 8]) {
+                moves[(*num_moves)++] = MoveConstructor(square, square - 8, PromoteQueen);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 8, PromoteKnight);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 8, PromoteRook);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 8, PromoteBishop);
+            }
+            if (can_capture_left) {
+                moves[(*num_moves)++] = MoveConstructor(square, square - 9, PromoteQueen);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 9, PromoteKnight);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 9, PromoteRook);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 9, PromoteBishop);
+            }
+            if (can_capture_right) {
+                moves[(*num_moves)++] = MoveConstructor(square, square - 7, PromoteQueen);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 7, PromoteKnight);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 7, PromoteRook);
+                moves[(*num_moves)++] = MoveConstructor(square, square - 7, PromoteBishop);
+            }
+        }else {
+            if (new_rank >= 0 && !board->squares[square - 8]) {
+                moves[(*num_moves)++] = MoveConstructor(square, square - 8, 0);
+                if (rank == 6 && !board->squares[square - 16]) {
+                    moves[(*num_moves)++] = MoveConstructor(square, square - 16, DoublePush);
+                }
+            }
+            if (can_capture_left) {
+                moves[(*num_moves)++] = MoveConstructor(square, square - 9, 0);
+            }
+            if (can_capture_right) {
+                moves[(*num_moves)++] = MoveConstructor(square, square - 7, 0);
+            }
+            if (rank == 3 && can_en_passant) {
+                const int en_passant_file = board->en_passant_square % 8;
+
+                // Capture left
+                if (file - 1 == en_passant_file ) {
+                    moves[(*num_moves)++] = MoveConstructor(square, square - 9, EnPassant);
+                }
+
+                // Capture right
+                if (file + 1 == en_passant_file ) {
+                    moves[(*num_moves)++] = MoveConstructor(square, square - 7, EnPassant);
+                }
+            }
+        }
+
+    }else {
+        const int new_rank = rank + 1;
+        const bool can_capture_left = (file + capture_file_change[0]) >= 0 && IsOppositeColor(board->white_to_move, board->squares[square + 7]) && board->squares[square + 7];
+        const bool can_capture_right = (file + capture_file_change[1]) < 8 && IsOppositeColor(board->white_to_move, board->squares[square + 9]) && board->squares[square + 9];
+        if (rank == 6) {
+            if (!board->squares[square + 8]) {
+                moves[(*num_moves)++] = MoveConstructor(square, square + 8, PromoteQueen);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 8, PromoteKnight);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 8, PromoteRook);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 8, PromoteBishop);
+            }
+            if (can_capture_left) {
+                moves[(*num_moves)++] = MoveConstructor(square, square + 7, PromoteQueen);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 7, PromoteKnight);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 7, PromoteRook);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 7, PromoteBishop);
+            }
+            if (can_capture_right) {
+                moves[(*num_moves)++] = MoveConstructor(square, square + 9, PromoteQueen);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 9, PromoteKnight);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 9, PromoteRook);
+                moves[(*num_moves)++] = MoveConstructor(square, square + 9, PromoteBishop);
+            }
+        }else {
+            if (new_rank < 8 && !board->squares[square + 8]) {
+                moves[(*num_moves)++] = MoveConstructor(square, square + 8, 0);
+                if (rank == 1 && !board->squares[square + 16]) {
+                    moves[(*num_moves)++] = MoveConstructor(square, square + 16, DoublePush);
+                }
+            }
+            if (can_capture_left) {
+                moves[(*num_moves)++] = MoveConstructor(square, square + 7, 0);
+            }
+            if (can_capture_right) {
+                moves[(*num_moves)++] = MoveConstructor(square, square + 9, 0);
+            }
+            if (rank == 4 && can_en_passant) {
+                const int en_passant_file = board->en_passant_square % 8;
+
+                // Capture left
+                if (file - 1 == en_passant_file ) {
+                    moves[(*num_moves)++] = MoveConstructor(square, square + 7, EnPassant);
+                }
+
+                // Capture right
+                if (file + 1 == en_passant_file ) {
+                    moves[(*num_moves)++] = MoveConstructor(square, square + 9, EnPassant);
+                }
+            }
+        }
+    }
+
+}
+
 /// Pseudolegal moves
 Move* GetMoves(Board *board, int *num_moves){
-    Move* moves = (Move*)malloc(sizeof(Move) * 256);
+
+    // Max number of moves in a position is 218
+    Move* moves = malloc(sizeof(Move) * 256);
 
     for (int square = 0; square < 64; square++){
         if (board->squares[square] && IsColor(board->white_to_move, board->squares[square])){
             switch (GetType(board->squares[square])) {
                 case Pawn:
+                    GetPawnMoves(board, moves, num_moves, square);
                     break;
                 case Knight:
                     GetKnightMoves(board, moves, num_moves, square);

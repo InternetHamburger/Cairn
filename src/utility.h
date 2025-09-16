@@ -5,6 +5,7 @@
 
 bool IsOppositeColor(bool white_to_move, int piece);
 bool IsColor(bool white_to_move, int piece);
+char PieceToChar(Piece piece);
 PieceType GetType(Piece piece);
 int poplsb(unsigned long long *bb);
 

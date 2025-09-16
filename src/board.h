@@ -1,6 +1,8 @@
 #ifndef CAIRN_BOARD_H
 #define CAIRN_BOARD_H
 
+#include "move.h"
+
 typedef enum{
     None = 0b0000,
     WhitePawn = 0b0001,
@@ -33,7 +35,20 @@ typedef struct{
     bool white_queenside;
     bool black_kingside;
     bool black_queenside;
+    int en_passant_square;
+    int white_king_square;
+    int black_king_square;
 } Board;
 
+void MakeMove(Board *board, Move move);
+void PrintBoard(const Board* board);
+bool IsAttackedBySideToMove(const Board *board, int square);
+void BoardConstructor(char fen, int fen_length,
+    bool white_to_move,
+    bool white_kingside,
+    bool white_queenside,
+    bool black_kingside,
+    bool black_queenside,
+    int en_passant_square);
 
 #endif //CAIRN_BOARD_H
