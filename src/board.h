@@ -42,13 +42,8 @@ typedef struct{
 
 void MakeMove(Board *board, Move move);
 void PrintBoard(const Board* board);
-bool IsAttackedBySideToMove(const Board *board, int square);
-void BoardConstructor(char fen, int fen_length,
-    bool white_to_move,
-    bool white_kingside,
-    bool white_queenside,
-    bool black_kingside,
-    bool black_queenside,
-    int en_passant_square);
+bool InCheck(const Board *board);
+bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
+Board BoardConstructor(char* fen, int fen_length);
 
 #endif //CAIRN_BOARD_H

@@ -3,5 +3,6 @@
 #include "board.h"
 
 unsigned long long perft(Board *board, int depth);
+unsigned long long splitPerft(Board *board, int depth);
 
 #endif //CAIRN_PERFT_H

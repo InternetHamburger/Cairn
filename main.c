@@ -2,30 +2,34 @@
 #include <time.h>
 #include "src/board.h"
 #include "src/perft.h"
-
+#include "src/utility.h"
+#include "src/moveGeneration.h"
+#include <stdlib.h>
 
 int main(void) {
+    char line[200];
+    scanf(" %199s ", line);
+    printf("hmm");
 
-    Board board = {
-        .squares = {12, 10, 11, 13, 14, 11, 10, 12,
-                        9, 9, 9, 9, 9, 9, 9, 9,
-                        0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 0, 0, 0, 0,
-                        0, 0, 0, 0, 1, 0, 0, 0,
-                        1, 1, 1, 1, 0, 1, 1, 1,
-                        4, 2, 3, 5, 6, 3, 2, 4},
-        .white_to_move = true,
-        .white_kingside = true,
-        .white_queenside = true,
-        .black_kingside = true,
-        .black_queenside = true,
-        .en_passant_square = -1
-    };
+
+    int empty_encounters = 0;
+    int fen_length = 0;
+    for (int i = 0; i < 0; i++){
+        if (line[i] == ' ') empty_encounters++;
+        if (empty_encounters == 5) {
+            fen_length = i + 1;
+            break;
+        }
+    }
+
+    Board board = BoardConstructor(line, fen_length);
+
     const double start = clock();
+    PrintBoard(&board);
 
-    printf("%llu\n", perft(&board, 1));
+    splitPerft(&board, 6);
     const double end = clock();
     printf("Time taken: %lf", (end - start) / CLOCKS_PER_SEC);
+    free(line);
     return 0;
 }

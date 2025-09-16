@@ -1,5 +1,5 @@
 #include "board.h"
-
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "move.h"
@@ -36,22 +36,28 @@ void MakeMove(Board *board, const Move move) {
     if (moved_piece == WhiteKing) {
         board->white_kingside = false;
         board->white_queenside = false;
+        board->white_king_square = target_square;
     }
     if (moved_piece == BlackKing) {
         board->black_kingside = false;
         board->black_queenside = false;
+        board->black_king_square = target_square;
     }
 
     if (IsPromotion(move)) {
         switch (flag) {
             case PromoteQueen:
                 board->squares[target_square] = board->white_to_move ? WhiteQueen : BlackQueen;
+                break;
             case PromoteKnight:
                 board->squares[target_square] = board->white_to_move ? WhiteKnight : BlackKnight;
+                break;
             case PromoteBishop:
                 board->squares[target_square] = board->white_to_move ? WhiteBishop : BlackBishop;
+                break;
             case PromoteRook:
                 board->squares[target_square] = board->white_to_move ? WhiteRook : BlackRook;
+                break;
             default:
                 exit(-1);
         }
@@ -77,22 +83,18 @@ void MakeMove(Board *board, const Move move) {
         if (target_square == 62) {
             board->squares[63] = 0;
             board->squares[61] = WhiteRook;
-            board->white_kingside = false;
         }
-        if (target_square == 57) {
+        if (target_square == 58) {
             board->squares[56] = 0;
-            board->squares[58] = WhiteRook;
-            board->white_queenside = false;
+            board->squares[59] = WhiteRook;
         }
         if (target_square == 6) {
             board->squares[7] = 0;
             board->squares[5] = BlackRook;
-            board->black_kingside = false;
         }
-        if (target_square == 1) {
+        if (target_square == 2) {
             board->squares[0] = 0;
-            board->squares[2] = BlackRook;
-            board->black_queenside = false;
+            board->squares[3] = BlackRook;
         }
     }
     board->white_to_move = !board->white_to_move;
@@ -123,23 +125,39 @@ void PrintBoard(const Board* board) {
     printf(" +---+---+---+---+---+---+---+---+\n");
 }
 
-bool IsAttackedBySideToMove(const Board *board, const int square) {
+bool InCheck(const Board *board){
+    return IsAttackedBySideToMove(board, !board->white_to_move, board->white_to_move ? board->white_king_square : board->black_king_square);
+}
+
+bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int square) {
+
 
     const int rank = square / 8;
     const int file = square % 8;
 
     const int left_file = file - 1;
     const int right_file = file + 1;
-    if (right_file < 8 && left_file >= 0) {
-        if (board->white_to_move) {
-            const int new_rank = rank - 1;
-
-            if (board->squares[new_rank * 8 + left_file] == BlackPawn || board->squares[new_rank * 8 + left_file] == BlackPawn)
-                return true;
-        }else {
+    if (right_file < 8){
+        if (white_to_move) {
             const int new_rank = rank + 1;
 
-            if (board->squares[new_rank * 8 + left_file] == WhitePawn || board->squares[new_rank * 8 + left_file] == WhitePawn)
+            if (board->squares[new_rank * 8 + right_file] == WhitePawn)
+                return true;
+        }else {
+            const int new_rank = rank - 1;
+            if (board->squares[new_rank * 8 + right_file] == BlackPawn)
+                return true;
+        }
+    }
+    if (left_file >= 0){
+        if (white_to_move) {
+            const int new_rank = rank + 1;
+
+            if (board->squares[new_rank * 8 + left_file] == WhitePawn)
+                return true;
+        }else {
+            const int new_rank = rank - 1;
+            if (board->squares[new_rank * 8 + left_file] == BlackPawn)
                 return true;
         }
     }
@@ -147,20 +165,7 @@ bool IsAttackedBySideToMove(const Board *board, const int square) {
     unsigned long long knight_attacks = knight_moves[square];
     unsigned long long king_attacks = king_moves[square];
 
-    if (board->white_to_move) {
-        while(knight_attacks){
-            const int target_square = poplsb(&knight_attacks);
-            if (board->squares[target_square] == BlackKnight){
-                return true;
-            }
-        }
-        while(king_attacks){
-            const int target_square = poplsb(&king_attacks);
-            if (board->squares[target_square] == BlackKing){
-                return true;
-            }
-        }
-    }else {
+    if (white_to_move) {
         while(knight_attacks){
             const int target_square = poplsb(&knight_attacks);
             if (board->squares[target_square] == WhiteKnight){
@@ -170,6 +175,19 @@ bool IsAttackedBySideToMove(const Board *board, const int square) {
         while(king_attacks){
             const int target_square = poplsb(&king_attacks);
             if (board->squares[target_square] == WhiteKing){
+                return true;
+            }
+        }
+    }else {
+        while(knight_attacks){
+            const int target_square = poplsb(&knight_attacks);
+            if (board->squares[target_square] == BlackKnight){
+                return true;
+            }
+        }
+        while(king_attacks){
+            const int target_square = poplsb(&king_attacks);
+            if (board->squares[target_square] == BlackKing){
                 return true;
             }
         }
@@ -192,7 +210,7 @@ bool IsAttackedBySideToMove(const Board *board, const int square) {
                 break; // Outside board
             }
             if (board->squares[target_square]){
-                if (IsColor(board->white_to_move, board->squares[target_square])){
+                if (IsColor(white_to_move, board->squares[target_square])){
                     if (target_type == Queen) return true;
                     if (direction < 4 && target_type == Bishop) return true;
                     if (direction > 3 && target_type == Rook) return true;
@@ -207,4 +225,92 @@ bool IsAttackedBySideToMove(const Board *board, const int square) {
 
 
     return false;
+}
+
+// Start fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+Board BoardConstructor(char* fen, int fen_length){
+    int i = 0;
+    int main_length;
+    int empty_encountered = 0;
+
+    Piece squares[64];
+    bool white_to_move;
+    bool white_kingside = false;
+    bool white_queenside = false;
+    bool black_kingside = false;
+    bool black_queenside = false;
+    int en_passant_square;
+    int white_king_square;
+    int black_king_square;
+
+    while (i < fen_length && empty_encountered < 3){
+        if (fen[i] == ' '){
+            switch (empty_encountered) {
+                case 0:
+                    main_length = i + 1;
+                    white_to_move = fen[i + 1] == 'w';
+                    break;
+                case 1:
+                    if (fen[i + 1] != '-') {
+                        if (fen[i + 1] == 'K') white_kingside = true; else break;
+                        if (fen[i + 2] == 'Q') white_queenside = true; else break;
+                        if (fen[i + 3] == 'k') black_kingside = true; else break;
+                        if (fen[i + 4] == 'q') black_queenside = true; else break;
+                    }
+                    break;
+                case 2:
+                    if (fen[i + 1] != '-') {
+                        char* char_square = malloc(sizeof(char) * 2);
+                        char_square[0] = fen[i + 1];
+                        char_square[1] = fen[i + 2];
+                        en_passant_square = StringToSquare(char_square);
+                    }
+                    break;
+            }
+            empty_encountered++;
+        }
+        i++;
+    }
+    int square_index = 0;
+    int fen_index = 0;
+    while (fen_index < main_length){
+        char c = fen[i];
+
+        if (isdigit((unsigned char)c))
+        {
+            int num = c - '0';
+            square_index += num;
+            fen_index++;
+            continue;
+        }
+
+        Piece piece = CharToPiece(c);
+
+        if (piece == None)
+        {
+            fen_index++;
+        }
+        else
+        {
+            if (piece == WhiteKing) white_king_square = square_index;
+            if (piece == BlackKing) black_king_square = square_index;
+            squares[square_index] = piece;
+            square_index++;
+            fen_index++;
+        }
+    }
+
+    Board board = {
+            .white_to_move = white_to_move,
+            .white_kingside = white_kingside,
+            .white_queenside = white_queenside,
+            .black_kingside = black_kingside,
+            .black_queenside = black_queenside,
+            .en_passant_square = en_passant_square,
+            .black_king_square = black_king_square,
+            .white_king_square = white_king_square
+    };
+    for (i = 0; i < 64; i++) board.squares[i] = squares[i];
+
+    return board;
 }

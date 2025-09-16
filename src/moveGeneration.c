@@ -104,14 +104,14 @@ void GetKingMoves(Board *board, Move *moves, int *num_moves, int square){
             moves[(*num_moves)++] = MoveConstructor(square, 62, Castle);
         }
         if (board->white_queenside && !board->squares[57] && !board->squares[58] && !board->squares[59]){
-            moves[(*num_moves)++] = MoveConstructor(square, 57, Castle);
+            moves[(*num_moves)++] = MoveConstructor(square, 58, Castle);
         }
     }else{
         if (board->black_kingside && !board->squares[6] && !board->squares[5]){
             moves[(*num_moves)++] = MoveConstructor(square, 6, Castle);
         }
         if (board->black_queenside && !board->squares[1] && !board->squares[2] && !board->squares[3]){
-            moves[(*num_moves)++] = MoveConstructor(square, 1, Castle);
+            moves[(*num_moves)++] = MoveConstructor(square, 2, Castle);
         }
     }
 }
@@ -129,7 +129,7 @@ void GetPawnMoves(Board *board, Move *moves, int *num_moves, int square) {
         const bool can_capture_left = (file + capture_file_change[0]) >= 0 && IsOppositeColor(board->white_to_move, board->squares[square - 9]) && board->squares[square - 9];
         const bool can_capture_right = (file + capture_file_change[1]) < 8 && IsOppositeColor(board->white_to_move, board->squares[square - 7]) && board->squares[square - 7];
         if (rank == 1) {
-            if (!board->squares[square + 8]) {
+            if (!board->squares[square - 8]) {
                 moves[(*num_moves)++] = MoveConstructor(square, square - 8, PromoteQueen);
                 moves[(*num_moves)++] = MoveConstructor(square, square - 8, PromoteKnight);
                 moves[(*num_moves)++] = MoveConstructor(square, square - 8, PromoteRook);
