@@ -15,4 +15,11 @@ add_executable(Cairn main.c
         src/preComputedData.c
         src/preComputedData.h
         src/perft.c
-        src/perft.h)
+        src/perft.h
+        src/uci.c
+        src/uci.h
+        src/uci.c
+        src/search.c
+        src/search.h
+        src/evaluation.c
+        src/evaluation.h)

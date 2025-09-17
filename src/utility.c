@@ -3,13 +3,14 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 bool IsOppositeColor(bool white_to_move, int piece){
     return (white_to_move == (piece >> 3)) && piece;
 }
 
 bool IsColor(bool white_to_move, int piece){
-    return white_to_move != (piece >> 3);
+    return (white_to_move != (piece >> 3)) && piece;
 }
 
 
@@ -44,21 +45,89 @@ int StringToSquare(char* square){
     return rank * 8 + file;
 }
 
-char* MoveToString(Move move){
+char* MoveToString(const Move move){
     char* from = SquareToString(StartSquare(move));
     char* to = SquareToString(TargetSquare(move));
 
-    char* string_move = malloc(sizeof(char) * 4);
+    char* string_move = malloc(5);
 
     string_move[0] = from[0];
     string_move[1] = from[1];
     string_move[2] = to[0];
     string_move[3] = to[1];
+    string_move[4] = '\0';  // null-terminate
 
     free(from);
     free(to);
 
     return string_move;
+}
+
+Move StringToMove(char* move, Board *board) {
+    const int startSquare = StringToSquare(move);
+    const int targetSquare = StringToSquare(move + 2);
+    int promotionRank = board->white_to_move ? 1 : 6; // Rank for promotion
+    Piece piece = board->squares[startSquare];
+
+    const int start_file = startSquare % 8;
+    const int start_rank = startSquare / 8;
+
+    const int target_file = startSquare % 8;
+    const int target_rank = startSquare / 8;
+
+    int MoveFlag = none;
+
+
+            if (GetType(piece) == Pawn)
+            {
+                if (start_file != target_file)
+                {
+                    if (board->squares[targetSquare] == 0)
+                    {
+                        MoveFlag = EnPassant;
+                    }
+                }
+                if (Math.Abs(start_rank - target_rank) == 2)
+                {
+                    MoveFlag = Move.PawnTwoUpFlag;
+                }
+                if (BoardUtility.Rank(startSquare) == promotionRank)
+                {
+                    byte? promotionPieceType = Piece.GetType(move[4]) ?? throw new NotImplementedException();
+                    promotionPieceType = (byte)promotionPieceType;
+
+                    byte pievce = promotionPieceType.Value;
+
+                    switch (Piece.PieceType(pievce))
+                    {
+                        case Piece.Queen:
+                            MoveFlag = Move.PromoteToQueenFlag;
+                            break;
+                        case Piece.Rook:
+                            MoveFlag = Move.PromoteToRookFlag;
+                            break;
+                        case Piece.Knight:
+                            MoveFlag = Move.PromoteToKnightFlag;
+                            break;
+                        case Piece.Bishop:
+                            MoveFlag = Move.PromoteToBishopFlag;
+                            break;
+
+                    }
+                }
+
+            }
+            else if (Piece.PieceType(piece) == Piece.King)
+            {
+                if ((startSquare == 60 && (targetSquare == 62 || targetSquare == 58)) ||
+                    (startSquare == 4 && (targetSquare == 6 || targetSquare == 2)))
+                {
+                    MoveFlag = Move.CastleFlag;
+                }
+
+            }
+
+            return new Move(startSquare, targetSquare, MoveFlag);
 }
 
 char PieceToChar(const Piece piece) {
