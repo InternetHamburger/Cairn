@@ -46,12 +46,11 @@ unsigned long long splitPerft(Board *board, const int depth) {
         }
         MakeMove(board, moves[i]);
         if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
-            //printf("%.4s\n", MoveToString(moves[i]));
             *board = copy;
             continue;
         }
         const unsigned long long u = perft(board, depth - 1);
-        printf("%.4s: %llu\n", MoveToString(moves[i]), u);
+        printf("%s: %llu\n", MoveToString(moves[i]), u);
         nodes += u;
         *board = copy;
     }

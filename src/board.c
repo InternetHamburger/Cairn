@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "move.h"
 #include "utility.h"
 #include "preComputedData.h"
@@ -131,8 +132,6 @@ bool InCheck(const Board *board){
 }
 
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int square) {
-
-
     const int rank = square / 8;
     const int file = square % 8;
 
@@ -229,7 +228,8 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
 }
 
 // Start fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
-Board BoardConstructor(const char* fen, const int fen_length){
+Board BoardConstructor(const char* fen){
+    const int fen_length = strlen(fen);
     int i = 0;
     int main_length;
     int empty_encountered = 0;
@@ -277,6 +277,7 @@ Board BoardConstructor(const char* fen, const int fen_length){
     }
     int square_index = 0;
     int fen_index = 0;
+
     while (fen_index < main_length){
         char c = fen[fen_index];
         if (isdigit((unsigned char)c))
@@ -288,7 +289,6 @@ Board BoardConstructor(const char* fen, const int fen_length){
         }
 
         Piece piece = CharToPiece(c);
-
         if (piece == None)
         {
             fen_index++;

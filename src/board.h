@@ -44,6 +44,6 @@ void MakeMove(Board *board, Move move);
 void PrintBoard(const Board* board);
 bool InCheck(const Board *board);
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
-Board BoardConstructor(const char* fen, int fen_length);
+Board BoardConstructor(const char* fen);
 
 #endif //CAIRN_BOARD_H

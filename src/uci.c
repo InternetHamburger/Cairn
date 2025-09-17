@@ -1,6 +1,8 @@
 #include "uci.h"
 #include "board.h"
 #include "search.h"
+#include "utility.h"
+#include "perft.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,14 +20,51 @@ int MatchPatterns(char* string, const char* patterns[], int num_patterns, int *p
     return matched_pattern;
 }
 
-void SetPosition(char* line, int patlength, int len, Board *board) {
+int MatchPattern(char* string, const char* pattern, int *patlength) {
+    int matched_pattern = -1;
+    const size_t patlen = strlen(pattern);
+    if (strncmp(string, pattern, patlen) == 0) {
+        matched_pattern = 0;
+        *patlength = (int)patlen;
+    }
+    return matched_pattern;
+}
+
+void ParseMoves(Board *board, char* moves){
+    printf("Line: %s+n", moves);
+    while (1){
+        moves++;
+        char* move = malloc(4 + 1);
+
+        for (int i = 0; i < 4; i++){
+            move[i] = moves[0];
+            moves++;
+        }
+        move[4] = '\0';
+        if (moves[0] == 'q' || moves[0] == 'r' || moves[0] == 'b' || moves[0] == 'n'){
+
+            move = realloc(move, 6);
+            move[4] = moves[0];
+            moves++;
+            move[5] = '\0';
+        }
+        printf("Move: %s\n", move);
+        MakeMove(board, StringToMove(move, board));
+        free(move);
+        if (moves[0] == '\n') break;
+    }
+}
+
+void SetPosition(char* line, int patlength, Board *board) {
     line += 8 + 1;
     const char* position_types[] = {
         "fen",
         "startpos"
     };
+
     int num;
     const int pos_type = MatchPatterns(line, position_types, 2, &num);
+    line += num + 1;
     if (pos_type == -1) {
         printf("Invalid position type\n");
     }else if (pos_type == 0) {
@@ -33,20 +72,25 @@ void SetPosition(char* line, int patlength, int len, Board *board) {
         // Extract fen
         int empty_encounters = 0;
         int fen_length = 0;
-        for (int i = num; i < len; i++){
-            if (line[i] == ' ') empty_encounters++;
-            if (empty_encounters == 5) {
-                fen_length = i + 1 - patlength - num;
-
-                break;
-            }
+        char* copy = line;
+        while (copy[0] != '\0'){
+            if (copy[0] == ' ') empty_encounters++;
+            fen_length++;
+            copy++;
+            if (empty_encounters == 6) break;
         }
-        line += 1 + num;
-        printf("%.*s  %d\n", fen_length, line, fen_length);
 
-        *board = BoardConstructor(line, fen_length);
+        printf("%d %llu\n", fen_length, strlen(line));
+        *board = BoardConstructor(line);
+        line += fen_length + 1;
     }else if (pos_type == 1) {
-        *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 55);
+        *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    }
+    const int parse_moves = MatchPattern(line, "moves", &num);
+    line += num;
+
+    if (parse_moves != -1){
+        ParseMoves(board, line);
     }
 }
 
@@ -55,11 +99,12 @@ void GoCommand(char* line, Board *board) {
         "movetime",
         "nodes",
         "depth",
-        "wtime" // Assumes btime winc and binc follow
+        "wtime", // Assumes btime winc and binc follow
+        "perft"
     };
     line += 2 + 1;
     int patlength;
-    int go_type = MatchPatterns(line, go_types, 3, &patlength);
+    int go_type = MatchPatterns(line, go_types, 5, &patlength);
     line += 1 + patlength;
     switch (go_type) {
         case -1:
@@ -87,44 +132,48 @@ void GoCommand(char* line, Board *board) {
             int black_inc;
             sscanf(line, "%d", &white_time);
             while (line[0] != ' ') line++;
-            line++;
+            line += 2 + 5;
             sscanf(line, "%d", &black_time);
             while (line[0] != ' ') line++;
-            line++;
+            line += 2 + 4;
             sscanf(line, "%d", &white_inc);
             while (line[0] != ' ') line++;
-            line++;
+            line += 2 + 4;
             sscanf(line, "%d", &black_inc);
 
             int time_left = board->white_to_move ? white_time : black_time;
             int increment = board->white_to_move ? white_inc : black_inc;
 
             int time_limit = time_left / 20 + increment / 2;
-
             search(board, -1, -1, time_limit);
+            break;
+        case 4:
+            int perft_depth;
+            sscanf(line, "%d", &perft_depth);
+            splitPerft(board, perft_depth);
             break;
     }
 }
 
-void ReciveCommand(char* line, const int len, Board *board) {
+void ReciveCommand(char* line, Board *board) {
     const char* commands[] = {
         "position",
         "go",
         "isready",
         "quit",
+        "ucinewgame",
         "uci",
-        "ucinewgame"
+        "d"
     };
 
     int patlength = 0;
-    const int matched_pattern = MatchPatterns(line, commands, 3, &patlength);
-    printf("%d\n", matched_pattern);
+    const int matched_pattern = MatchPatterns(line, commands, 7, &patlength);
     switch (matched_pattern) {
         case -1:
             printf("Invalid command\n");
             return;
         case 0:
-            SetPosition(line, patlength, len, board); // Note! position <fen/startpos> moves not supported
+            SetPosition(line, patlength, board);
             break;
         case 1:
             GoCommand(line, board);
@@ -135,10 +184,13 @@ void ReciveCommand(char* line, const int len, Board *board) {
         case 3:
             exit(0);
         case 4:
-            printf("id name Cairn\nuciok\n");
+            *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
             break;
         case 5:
-            *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 55);
+            printf("id name Cairn\noption name Hash type spin default 16 min 1 max 33554432\nuciok\n");
+            break;
+        case 6:
+            PrintBoard(board);
             break;
     }
 }

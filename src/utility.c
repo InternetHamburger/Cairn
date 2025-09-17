@@ -32,8 +32,8 @@ int StringToSquare(char* square){
     const char rank_char = square[1];
     const char file_char = square[0];
 
-    const char ranks[] = "12345678";
-    const char files[] = "hgfedcba";
+    const char ranks[] = "87654321";
+    const char files[] = "abcdefgh";
 
     int rank;
     int file;
@@ -43,6 +43,19 @@ int StringToSquare(char* square){
     }
 
     return rank * 8 + file;
+}
+
+Piece GetPromotionPiece(Move move){
+    switch (GetFlag(move)) {
+        case PromoteQueen:
+            return BlackQueen;
+        case PromoteKnight:
+            return BlackKnight;
+        case PromoteRook:
+            return BlackRook;
+        case PromoteBishop:
+            return BlackBishop;
+    }
 }
 
 char* MoveToString(const Move move){
@@ -56,6 +69,11 @@ char* MoveToString(const Move move){
     string_move[2] = to[0];
     string_move[3] = to[1];
     string_move[4] = '\0';  // null-terminate
+    if (IsPromotion(move)){
+        string_move = realloc(string_move, 6);
+        string_move[4] = PieceToChar(GetPromotionPiece(move));
+        string_move[5] = '\0';  // null-terminate
+    }
 
     free(from);
     free(to);
@@ -66,7 +84,7 @@ char* MoveToString(const Move move){
 Move StringToMove(char* move, Board *board) {
     const int startSquare = StringToSquare(move);
     const int targetSquare = StringToSquare(move + 2);
-    int promotionRank = board->white_to_move ? 1 : 6; // Rank for promotion
+    int promotionRank = board->white_to_move ? 1 : 6;
     Piece piece = board->squares[startSquare];
 
     const int start_file = startSquare % 8;
@@ -78,56 +96,53 @@ Move StringToMove(char* move, Board *board) {
     int MoveFlag = none;
 
 
-            if (GetType(piece) == Pawn)
+    if (GetType(piece) == Pawn)
+    {
+        if (start_file != target_file)
+        {
+            if (board->squares[targetSquare] == 0)
             {
-                if (start_file != target_file)
-                {
-                    if (board->squares[targetSquare] == 0)
-                    {
-                        MoveFlag = EnPassant;
-                    }
-                }
-                if (Math.Abs(start_rank - target_rank) == 2)
-                {
-                    MoveFlag = Move.PawnTwoUpFlag;
-                }
-                if (BoardUtility.Rank(startSquare) == promotionRank)
-                {
-                    byte? promotionPieceType = Piece.GetType(move[4]) ?? throw new NotImplementedException();
-                    promotionPieceType = (byte)promotionPieceType;
+                MoveFlag = EnPassant;
+            }
+        }
+        if (abs(start_rank - target_rank) == 2)
+        {
+            MoveFlag = DoublePush;
+        }
+        if (start_rank == promotionRank)
+        {
+            PieceType promotionPieceType = GetType(CharToPiece(move[4]));
 
-                    byte pievce = promotionPieceType.Value;
-
-                    switch (Piece.PieceType(pievce))
-                    {
-                        case Piece.Queen:
-                            MoveFlag = Move.PromoteToQueenFlag;
-                            break;
-                        case Piece.Rook:
-                            MoveFlag = Move.PromoteToRookFlag;
-                            break;
-                        case Piece.Knight:
-                            MoveFlag = Move.PromoteToKnightFlag;
-                            break;
-                        case Piece.Bishop:
-                            MoveFlag = Move.PromoteToBishopFlag;
-                            break;
-
-                    }
-                }
+            switch (promotionPieceType)
+            {
+                case Queen:
+                    MoveFlag = PromoteQueen;
+                    break;
+                case Rook:
+                    MoveFlag = PromoteRook;
+                    break;
+                case Knight:
+                    MoveFlag = PromoteKnight;
+                    break;
+                case Bishop:
+                    MoveFlag = PromoteBishop;
+                    break;
 
             }
-            else if (Piece.PieceType(piece) == Piece.King)
-            {
-                if ((startSquare == 60 && (targetSquare == 62 || targetSquare == 58)) ||
-                    (startSquare == 4 && (targetSquare == 6 || targetSquare == 2)))
-                {
-                    MoveFlag = Move.CastleFlag;
-                }
+        }
 
-            }
+    }
+    else if (GetType(piece) == King)
+    {
+        if ((startSquare == 60 && (targetSquare == 62 || targetSquare == 58)) ||
+            (startSquare == 4 && (targetSquare == 6 || targetSquare == 2)))
+        {
+            MoveFlag = Castle;
+        }
 
-            return new Move(startSquare, targetSquare, MoveFlag);
+    }
+
+    return MoveConstructor(startSquare, targetSquare, MoveFlag);
 }
 
 char PieceToChar(const Piece piece) {
