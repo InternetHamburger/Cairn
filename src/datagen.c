@@ -16,7 +16,8 @@ void PseudorandomNumber(unsigned long long *seed) {
 Board GenerateRandomPosition(unsigned long long *seed) {
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     Board prev_copy = board;
-    for (int num_deep = 0; num_deep < 7; num_deep++) {
+    int num_rand_moves = ((*seed >> 43) & 1ULL) == 1 ? 8 : 9;
+    for (int num_deep = 0; num_deep < num_rand_moves; num_deep++) {
         int num_moves = 0;
         Move* moves = GetMoves(&board, &num_moves);
 
