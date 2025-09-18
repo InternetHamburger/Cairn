@@ -1,15 +1,13 @@
 #include "search.h"
-
 #include <limits.h>
-
 #include "utility.h"
 #include "board.h"
 #include "evaluation.h"
 #include "move.h"
 #include "moveGeneration.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
-#include <string.h>
 
 
 int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
@@ -18,7 +16,7 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
     int num_legal_moves = 0;
 
     int num_moves = 0;
-    const Move* moves = GetMoves(board, &num_moves);
+    Move* moves = GetMoves(board, &num_moves);
     const Board copy = *board;
 
     int best_score = NEG_INF;
@@ -38,6 +36,7 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
         *board = copy;
 
         if (stack->nodes > stack->node_limit || clock() - stack->start_time > stack->time_limit) {
+            free(moves);
             return NEG_INF;
         }
 
@@ -47,10 +46,8 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
                 *move = moves[i];
             }
         }
-
-
     }
-
+    free(moves);
     if (num_legal_moves == 0) {
         if (InCheck(board)) return CHECKMATE;
         return 0; // Stalemate
@@ -94,8 +91,6 @@ int search(Board *board, int depth_limit, int node_limit, int time_limit) {
         printf(" nps %llu", stack.nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
         printf(" time %d", time_elapsed);
         printf(" pv %s\n", MoveToString(best_move));
-
-
     }
     printf("bestmove %s\n", MoveToString(best_move));
     return best_score;

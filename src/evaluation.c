@@ -1,9 +1,5 @@
 #include "evaluation.h"
-
-#include <stdio.h>
-
 #include "utility.h"
-
 #include "board.h"
 
 const int PIECE_VALUES[] = {0, 100, 300, 300, 500, 900, 0};

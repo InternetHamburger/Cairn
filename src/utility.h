@@ -5,8 +5,9 @@
 
 bool IsOppositeColor(bool white_to_move, int piece);
 bool IsColor(bool white_to_move, int piece);
+int FlipSquare(int square);
 char PieceToChar(Piece piece);
-Piece CharToPiece(const char piece);
+Piece CharToPiece(char piece);
 char* SquareToString(int square);
 int StringToSquare(char* square);
 char* MoveToString(Move move);

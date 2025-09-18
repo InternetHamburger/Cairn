@@ -1,16 +1,10 @@
 #include <stdio.h>
-#include <time.h>
 #include "src/board.h"
-#include "src/perft.h"
 #include "src/uci.h"
-#include "src/utility.h"
-#include "src/moveGeneration.h"
 #include <stdlib.h>
 #include <string.h>
 
 int main(void) {
-
-
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
     while (1) {
@@ -22,7 +16,7 @@ int main(void) {
             input[i] = line[i];
         }
         input[strlen(line)] = '\0';
-        ReciveCommand(input, &board);
+        ReceiveCommand(input, &board);
     }
     return 0;
 }

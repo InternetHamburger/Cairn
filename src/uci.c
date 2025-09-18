@@ -31,7 +31,6 @@ int MatchPattern(char* string, const char* pattern, int *patlength) {
 }
 
 void ParseMoves(Board *board, char* moves){
-    printf("Line: %s+n", moves);
     while (1){
         moves++;
         char* move = malloc(4 + 1);
@@ -48,7 +47,6 @@ void ParseMoves(Board *board, char* moves){
             moves++;
             move[5] = '\0';
         }
-        printf("Move: %s\n", move);
         MakeMove(board, StringToMove(move, board));
         free(move);
         if (moves[0] == '\n') break;
@@ -80,7 +78,6 @@ void SetPosition(char* line, int patlength, Board *board) {
             if (empty_encounters == 6) break;
         }
 
-        printf("%d %llu\n", fen_length, strlen(line));
         *board = BoardConstructor(line);
         line += fen_length + 1;
     }else if (pos_type == 1) {
@@ -155,7 +152,7 @@ void GoCommand(char* line, Board *board) {
     }
 }
 
-void ReciveCommand(char* line, Board *board) {
+void ReceiveCommand(char* line, Board *board) {
     const char* commands[] = {
         "position",
         "go",

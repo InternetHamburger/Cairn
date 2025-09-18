@@ -3,6 +3,8 @@ project(Cairn C)
 
 set(CMAKE_C_STANDARD 23)
 
+set(CMAKE_CXX_FLAGS_RELEASE -flto)
+
 add_executable(Cairn main.c
         src/board.c
         src/board.h
@@ -22,4 +24,6 @@ add_executable(Cairn main.c
         src/search.c
         src/search.h
         src/evaluation.c
-        src/evaluation.h)
+        src/evaluation.h
+        src/datagen.c
+        src/datagen.h)

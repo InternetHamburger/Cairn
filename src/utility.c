@@ -13,6 +13,10 @@ bool IsColor(bool white_to_move, int piece){
     return (white_to_move != (piece >> 3)) && piece;
 }
 
+int FlipSquare(int square) {
+    return square ^ 0b111000;
+}
+
 
 char* SquareToString(int square){
     const int rank = square / 8;
