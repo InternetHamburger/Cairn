@@ -6,6 +6,56 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+Piece ConvertPiece(Piece piece) {
+    return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
+}
+
+Move ConvertMove(Move move) {
+    int flag = GetFlag(move);
+
+    int new_flag = 0;
+    int new_start_square = 0;
+    int new_target_square = 0;
+
+    if (flag == Castle) {
+        switch (TargetSquare(move)) {
+            case 62:
+                new_target_square = 7;
+            case 57:
+                new_target_square = 0;
+            case 6:
+                new_target_square = 63;
+            case 1:
+                new_target_square = 56;
+        }
+        new_flag = 0b1000;
+    }
+    else {
+        new_target_square = FlipSquare(TargetSquare(move));
+        if (flag == EnPassant) {
+            new_flag = 0b0100;
+        }
+        else if (IsPromotion(move)) {
+            new_flag = 0b1100;
+            switch (flag) {
+                PromoteQueen:
+                    new_flag |= 0b0011;
+                PromoteKnight:
+                    new_flag |= 0b0000;
+                PromoteBishop:
+                    new_flag |= 0b0001;
+                PromoteRook:
+                    new_flag |= 0b0010;
+            }
+        }
+    }
+    new_start_square = FlipSquare(StartSquare(move));
+
+    return MoveConstructor(new_target_square, new_start_square, new_flag);
+
+
+}
+
 void PseudorandomNumber(unsigned long long *seed) {
     *seed ^= *seed >> 12;
     *seed ^= *seed << 25;
@@ -74,10 +124,25 @@ Board PrepareGame(Thread *this) {
     Board rand_pos = GenerateRandomPosition(seed);
     this->game.occupied = GetOccupied(&rand_pos);
 
-    for (int i = 0; i < 32; i++) {
-        this->game.pieces_0 |= ()
+    this->game.pieces_0 = 0;
+    for (unsigned long long i = 0; i < 32; i++) {
+        const int square = FlipSquare((int)i);
+        this->game.pieces_0 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << (i * 4);
     }
 
+    this->game.pieces_1 = 1;
+    for (unsigned long long i = 32; i < 64; i++) {
+        const int square = FlipSquare((int)i);
+        this->game.pieces_1 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << (i * 4);
+    }
+
+    this->game.stm_enPassant_hm = 0;
+    this->game.stm_enPassant_hm |= rand_pos.en_passant_square == -1 ? 64 : rand_pos.en_passant_square;
+    this->game.stm_enPassant_hm |= (!rand_pos.white_to_move) << 7;
+
+    this->game.fm_score = 0;
+
+    this->game.result = 3;
     return rand_pos;
 }
 

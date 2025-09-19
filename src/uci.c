@@ -110,17 +110,17 @@ void GoCommand(char* line, Board *board) {
         case 0:
             int time;
             sscanf(line, "%d", &time);
-            search(board, -1, -1, time);
+            search(board, -1, -1, -1, time);
             break;
         case 1:
             int nodes;
             sscanf(line, "%d", &nodes);
-            search(board, -1, nodes, -1);
+            search(board, -1, nodes, -1, -1);
             break;
         case 2:
             int depth;
             sscanf(line, "%d", &depth);
-            search(board, depth, -1, -1);
+            search(board, depth, -1, -1, -1);
             break;
         case 3:
             int white_time;
@@ -142,7 +142,7 @@ void GoCommand(char* line, Board *board) {
             int increment = board->white_to_move ? white_inc : black_inc;
 
             int time_limit = time_left / 20 + increment / 2;
-            search(board, -1, -1, time_limit);
+            search(board, -1, -1, -1, time_limit);
             break;
         case 4:
             int perft_depth;

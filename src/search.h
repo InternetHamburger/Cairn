@@ -6,7 +6,7 @@
 #define NEG_INF (-32767)
 #define CHECKMATE (-32567)
 
-int search(Board *board, int depth_limit, int node_limit, int time_limit);
+int search(Board *board, int depth_limit, int node_limit, int soft_node_limit, int time_limit);
 
 typedef struct {
     unsigned long long nodes;

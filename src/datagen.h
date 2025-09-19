@@ -21,6 +21,7 @@ typedef struct {
     unsigned long long thread_id;
 } Thread;
 
+Piece ConvertPiece(Piece piece);
 Board GenerateRandomPosition(unsigned long long *seed);
 
 #endif //CAIRN_DATAGEN_H

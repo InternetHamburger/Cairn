@@ -56,9 +56,10 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
     return best_score;
 }
 
-int search(Board *board, int depth_limit, int node_limit, int time_limit) {
+int search(Board *board, int depth_limit, int node_limit, int soft_node_limit, int time_limit) {
     if (depth_limit == -1) depth_limit = 255;
     if (node_limit == -1) node_limit = INT_MAX;
+    if (soft_node_limit == -1) node_limit = INT_MAX;
     if (time_limit == -1) time_limit = INT_MAX;
     Stack stack = {
         .nodes = 0,
