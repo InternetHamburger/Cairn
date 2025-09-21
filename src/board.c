@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "move.h"
+#include "zobrist.h"
 #include "utility.h"
 #include "preComputedData.h"
 
@@ -12,7 +13,16 @@ void MakeMove(Board *board, const Move move) {
     const int target_square = TargetSquare(move);
 
     const int moved_piece = board->squares[start_square];
-    const int captured_piece = board->squares[target_square]; // None in case of en passant
+    const int captured_piece = board->squares[target_square];
+
+    if (board->en_passant_square != -1){
+        board->zobrist_hash ^= zobrist_ep_squares[board->en_passant_square];
+    }
+
+    const bool init_white_kingside = board->white_kingside;
+    const bool init_white_queenside = board->white_queenside;
+    const bool init_black_kingside = board->black_kingside;
+    const bool init_black_queenside = board->black_queenside;
 
     board->en_passant_square = -1;
 
@@ -20,6 +30,13 @@ void MakeMove(Board *board, const Move move) {
     board->squares[start_square] = 0;
 
     const int flag = GetFlag(move);
+
+    board->zobrist_hash ^= zobrist_squares[start_square][moved_piece];
+    board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
+
+    if (captured_piece != None){
+        board->zobrist_hash ^= zobrist_squares[target_square][captured_piece];
+    }
 
     if (target_square == 63 || start_square == 63) {
         board->white_kingside = false;
@@ -46,18 +63,23 @@ void MakeMove(Board *board, const Move move) {
     }
 
     if (IsPromotion(move)) {
+        board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
         switch (flag) {
             case PromoteQueen:
                 board->squares[target_square] = board->white_to_move ? WhiteQueen : BlackQueen;
+                board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteQueen : BlackQueen];
                 break;
             case PromoteKnight:
                 board->squares[target_square] = board->white_to_move ? WhiteKnight : BlackKnight;
+                board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteKnight : BlackKnight];
                 break;
             case PromoteBishop:
                 board->squares[target_square] = board->white_to_move ? WhiteBishop : BlackBishop;
+                board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteBishop : BlackBishop];
                 break;
             case PromoteRook:
                 board->squares[target_square] = board->white_to_move ? WhiteRook : BlackRook;
+                board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteRook : BlackRook];
                 break;
             default:
                 exit(-1);
@@ -66,6 +88,7 @@ void MakeMove(Board *board, const Move move) {
 
     if (flag == DoublePush) {
         board->en_passant_square = start_square + (board->white_to_move ? 8 : -8);
+        board->zobrist_hash ^= zobrist_ep_squares[board->en_passant_square];
     }
 
     if (flag == EnPassant) {
@@ -73,10 +96,12 @@ void MakeMove(Board *board, const Move move) {
         if (captures_left) {
             const int new_square = start_square - 1;
             board->squares[new_square] = 0;
+            board->zobrist_hash ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
         }
         else {
             const int new_square = start_square + 1;
             board->squares[new_square] = 0;
+            board->zobrist_hash ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
         }
     }
 
@@ -84,21 +109,36 @@ void MakeMove(Board *board, const Move move) {
         if (target_square == 62) {
             board->squares[63] = 0;
             board->squares[61] = WhiteRook;
+            board->zobrist_hash ^= zobrist_squares[61][WhiteRook];
+            board->zobrist_hash ^= zobrist_squares[63][WhiteRook];
         }
         if (target_square == 58) {
             board->squares[56] = 0;
             board->squares[59] = WhiteRook;
+            board->zobrist_hash ^= zobrist_squares[56][WhiteRook];
+            board->zobrist_hash ^= zobrist_squares[59][WhiteRook];
         }
         if (target_square == 6) {
             board->squares[7] = 0;
             board->squares[5] = BlackRook;
+            board->zobrist_hash ^= zobrist_squares[7][BlackRook];
+            board->zobrist_hash ^= zobrist_squares[5][BlackRook];
         }
         if (target_square == 2) {
             board->squares[0] = 0;
             board->squares[3] = BlackRook;
+            board->zobrist_hash ^= zobrist_squares[0][BlackRook];
+            board->zobrist_hash ^= zobrist_squares[3][BlackRook];
         }
     }
+    if (board->white_kingside != init_white_kingside) board->zobrist_hash ^= zobrist_white_kingside;
+    if (board->white_queenside != init_white_queenside) board->zobrist_hash ^= zobrist_white_queenside;
+    if (board->black_kingside != init_black_kingside) board->zobrist_hash ^= zobrist_black_kingside;
+    if (board->black_queenside != init_black_queenside) board->zobrist_hash ^= zobrist_black_queenside;
+
+
     board->white_to_move = !board->white_to_move;
+    board->zobrist_hash ^= zobrist_stm;
 }
 
 void PrintBoard(const Board* board) {
@@ -243,7 +283,7 @@ Board BoardConstructor(const char* fen){
     bool white_queenside = false;
     bool black_kingside = false;
     bool black_queenside = false;
-    int en_passant_square;
+    int en_passant_square = - 1;
     int white_king_square;
     int black_king_square;
 
@@ -313,7 +353,33 @@ Board BoardConstructor(const char* fen){
             .black_king_square = black_king_square,
             .white_king_square = white_king_square
     };
-    for (i = 0; i < 64; i++) board.squares[i] = squares[i];
+
+    board.zobrist_hash = 958761493876598375ULL; // Initial hash
+    for (i = 0; i < 64; i++) {
+        board.squares[i] = squares[i];
+
+        if (board.squares[i] != None)
+            board.zobrist_hash ^= zobrist_squares[i][squares[i]];
+    }
+
+    if (en_passant_square != -1) board.zobrist_hash ^= zobrist_ep_squares[en_passant_square];
+
+    if (white_to_move) board.zobrist_hash ^= zobrist_stm;
+    if (white_kingside) board.zobrist_hash ^= zobrist_white_kingside;
+    if (white_queenside) board.zobrist_hash ^= zobrist_white_queenside;
+    if (black_kingside) board.zobrist_hash ^= zobrist_black_kingside;
+    if (black_queenside) board.zobrist_hash ^= zobrist_black_queenside;
+
 
     return board;
+}
+
+bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx){
+    unsigned long long curr_hash = hashes[idx];
+    int num_occasions = 1; // Already seen board once (right now)
+    for (int i = idx; i >= 0; i--){
+        if (hashes[i] == curr_hash) num_occasions++;
+        if (num_occasions > 2) return true;
+    }
+    return false;
 }

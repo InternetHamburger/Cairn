@@ -12,6 +12,10 @@
 
 int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
     if (depth == 0) return eval(board);
+    stack->hashes[stack->hash_index] = board->zobrist_hash;
+    if (IsRepetition(stack->hashes, stack->hash_index)){
+        return 0;
+    }
 
     int num_legal_moves = 0;
 
@@ -21,7 +25,6 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
 
     int best_score = NEG_INF;
     for (int i = 0; i < num_moves; i++) {
-
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
         }
@@ -32,7 +35,9 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
         }
         stack->nodes++;
         num_legal_moves++;
+        stack->hash_index++;
         const int score = -Negamax(stack, board, depth - 1, false, move);
+        stack->hash_index--;
         *board = copy;
 
         if (stack->nodes > stack->node_limit || clock() - stack->start_time > stack->time_limit) {
@@ -56,43 +61,43 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
     return best_score;
 }
 
-int search(Board *board, int depth_limit, int node_limit, int soft_node_limit, int time_limit) {
-    if (depth_limit == -1) depth_limit = 255;
-    if (node_limit == -1) node_limit = INT_MAX;
-    if (soft_node_limit == -1) node_limit = INT_MAX;
-    if (time_limit == -1) time_limit = INT_MAX;
-    Stack stack = {
-        .nodes = 0,
-        .start_time = clock(),
-        .time_limit = time_limit,
-        .node_limit = node_limit
-    };
+SearchResult search(Board *board, Stack *stack) {
+
     Move best_move;
     int best_score;
     bool quit = false;
-    for (int depth = 1; depth <= depth_limit && !quit; depth++) {
+    stack->start_time = clock();
+    for (int depth = 1; depth <= stack->depth_limit && !quit; depth++) {
 
         Move move;
 
-        int score = Negamax(&stack, board, depth, true, &move);
+        int score = Negamax(stack, board, depth, true, &move);
 
-        if (!(stack.nodes > node_limit || (clock() - stack.start_time) > time_limit)) {
+        if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
             best_score = score;
             best_move = move;
         }
-        else {
+        else if (depth > 1) {
             quit = true;
         }
 
 
-        const int time_elapsed = (int)(clock() - stack.start_time);
+        const int time_elapsed = (int)(clock() - stack->start_time);
+        if (stack->print_info){
         printf("info depth %d", depth);
         printf(" score cp %d", best_score);
-        printf(" nodes %llu", stack.nodes);
-        printf(" nps %llu", stack.nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
+        printf(" nodes %llu", stack->nodes);
+        printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
         printf(" time %d", time_elapsed);
         printf(" pv %s\n", MoveToString(best_move));
+        }
     }
-    printf("bestmove %s\n", MoveToString(best_move));
-    return best_score;
+    if (stack->print_info)
+        printf("bestmove %s\n", MoveToString(best_move));
+
+    SearchResult result = {
+            .best_move = best_move,
+            .score = best_score
+    };
+    return result;
 }

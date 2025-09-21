@@ -2,9 +2,11 @@
 #include "board.h"
 #include "utility.h"
 #include "search.h"
+#include "zobrist.h"
 #include "moveGeneration.h"
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 Piece ConvertPiece(Piece piece) {
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
@@ -54,13 +56,6 @@ Move ConvertMove(Move move) {
     return MoveConstructor(new_target_square, new_start_square, new_flag);
 
 
-}
-
-void PseudorandomNumber(unsigned long long *seed) {
-    *seed ^= *seed >> 12;
-    *seed ^= *seed << 25;
-    *seed ^= *seed >> 27;
-    *seed *= 0x2545F4914F6CDD1DULL;
 }
 
 Board GenerateRandomPosition(unsigned long long *seed) {
@@ -140,10 +135,35 @@ Board PrepareGame(Thread *this) {
     this->game.stm_enPassant_hm |= rand_pos.en_passant_square == -1 ? 64 : rand_pos.en_passant_square;
     this->game.stm_enPassant_hm |= (!rand_pos.white_to_move) << 7;
 
-    this->game.fm_score = 0;
+    this->game.full_move = 0;
+    this->game.score = 0;
 
     this->game.result = 3;
     return rand_pos;
+}
+
+bool IsCheckmate(Board* board){
+    int num_moves = 0;
+    Move* moves = GetMoves(board, &num_moves);
+
+    int num_legal_moves = 0;
+    const Board copy = *board;
+    for (int i = 0; i < num_moves; i++) {
+        if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
+            continue;
+        }
+        MakeMove(board, moves[i]);
+        if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
+            *board = copy;
+            continue;
+        }
+
+
+        *board = copy;
+
+        return false;
+    }
+    return true;
 }
 
 void* PlayGame(void* arg) {
@@ -151,7 +171,42 @@ void* PlayGame(void* arg) {
 
     Board board = PrepareGame(this);
 
+    Stack stack = {
+            .nodes = 0,
+            .node_limit = 50000,
+            .print_info = false,
+            .depth_limit = 255,
+            .soft_node_limit = 5000,
+            .time_limit = INT_MAX,
+            .hash_index = 0
+    };
 
+    while (1){
+
+        stack.hashes[stack.hash_index] = board.zobrist_hash;
+        if (IsCheckmate(&board)){
+            this->game.result = board.white_to_move ? 0 : 2;
+            break;
+        }
+        else if (IsRepetition(stack.hashes, stack.hash_index)){
+            this->game.result = 1;
+            break;
+        }
+
+        SearchResult result = search(&board, &stack);
+
+        stack.nodes = 0;
+
+        MakeMove(&board, result.best_move);
+        Move converted_move = ConvertMove(result.best_move);
+        this->game.moves[stack.hash_index] = 0;
+        this->game.moves[stack.hash_index] |= converted_move.value;
+        this->game.moves[stack.hash_index] |= result.score << 16;
+
+        stack.hash_index++;
+    }
+
+    this->game.full_move = stack.hash_index / 2;
 
     return NULL;
 }

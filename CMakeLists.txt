@@ -26,4 +26,7 @@ add_executable(Cairn main.c
         src/evaluation.c
         src/evaluation.h
         src/datagen.c
-        src/datagen.h)
+        src/datagen.h
+        src/zobrist.c
+        src/zobrist.h
+)

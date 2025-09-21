@@ -3,6 +3,8 @@
 
 #include "move.h"
 
+#define MAX_NUM_PLY 17697
+
 typedef enum{
     None = 0b0000,
     WhitePawn = 0b0001,
@@ -38,6 +40,7 @@ typedef struct{
     int en_passant_square;
     int white_king_square;
     int black_king_square;
+    unsigned long long zobrist_hash;
 } Board;
 
 void MakeMove(Board *board, Move move);
@@ -45,5 +48,6 @@ void PrintBoard(const Board* board);
 bool InCheck(const Board *board);
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
 Board BoardConstructor(const char* fen);
+bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx);
 
 #endif //CAIRN_BOARD_H

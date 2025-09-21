@@ -6,13 +6,23 @@
 #define NEG_INF (-32767)
 #define CHECKMATE (-32567)
 
-int search(Board *board, int depth_limit, int node_limit, int soft_node_limit, int time_limit);
-
 typedef struct {
     unsigned long long nodes;
     double start_time;
     int time_limit;
     int node_limit;
+    int depth_limit;
+    int soft_node_limit;
+    bool print_info;
+    unsigned long long hashes[MAX_NUM_PLY]; // For threefold repetition
+    int hash_index;
 } Stack;
+
+typedef struct{
+    Move best_move;
+    int score;
+} SearchResult;
+
+SearchResult search(Board *board, Stack *stack);
 
 #endif //CAIRN_SEARCH_H

@@ -53,8 +53,7 @@ void ParseMoves(Board *board, char* moves){
     }
 }
 
-void SetPosition(char* line, int patlength, Board *board) {
-    line += 8 + 1;
+void SetPosition(char* line, Board *board) {
     const char* position_types[] = {
         "fen",
         "startpos"
@@ -99,10 +98,20 @@ void GoCommand(char* line, Board *board) {
         "wtime", // Assumes btime winc and binc follow
         "perft"
     };
-    line += 2 + 1;
     int patlength;
     int go_type = MatchPatterns(line, go_types, 5, &patlength);
     line += 1 + patlength;
+
+    Stack stack = {
+            .nodes = 0,
+            .node_limit = INT_MAX,
+            .print_info = true,
+            .depth_limit = 255,
+            .soft_node_limit = INT_MAX,
+            .time_limit = INT_MAX,
+            .hash_index = 0
+    };
+
     switch (go_type) {
         case -1:
             // Go infinite
@@ -110,17 +119,20 @@ void GoCommand(char* line, Board *board) {
         case 0:
             int time;
             sscanf(line, "%d", &time);
-            search(board, -1, -1, -1, time);
+            stack.time_limit = time;
+            search(board, &stack);
             break;
         case 1:
             int nodes;
             sscanf(line, "%d", &nodes);
-            search(board, -1, nodes, -1, -1);
+            stack.node_limit = nodes;
+            search(board, &stack);
             break;
         case 2:
             int depth;
             sscanf(line, "%d", &depth);
-            search(board, depth, -1, -1, -1);
+            stack.depth_limit = depth;
+            search(board, &stack);
             break;
         case 3:
             int white_time;
@@ -142,7 +154,8 @@ void GoCommand(char* line, Board *board) {
             int increment = board->white_to_move ? white_inc : black_inc;
 
             int time_limit = time_left / 20 + increment / 2;
-            search(board, -1, -1, -1, time_limit);
+            stack.time_limit = time_limit;
+            search(board, &stack);
             break;
         case 4:
             int perft_depth;
@@ -150,6 +163,12 @@ void GoCommand(char* line, Board *board) {
             splitPerft(board, perft_depth);
             break;
     }
+}
+
+void RunDatagen(char* line){
+
+
+
 }
 
 void ReceiveCommand(char* line, Board *board) {
@@ -160,17 +179,19 @@ void ReceiveCommand(char* line, Board *board) {
         "quit",
         "ucinewgame",
         "uci",
-        "d"
+        "d",
+        "datagen"
     };
 
     int patlength = 0;
-    const int matched_pattern = MatchPatterns(line, commands, 7, &patlength);
+    const int matched_pattern = MatchPatterns(line, commands, 8, &patlength);
+    line += patlength + 1;
     switch (matched_pattern) {
         case -1:
             printf("Invalid command\n");
             return;
         case 0:
-            SetPosition(line, patlength, board);
+            SetPosition(line, board);
             break;
         case 1:
             GoCommand(line, board);
@@ -188,6 +209,9 @@ void ReceiveCommand(char* line, Board *board) {
             break;
         case 6:
             PrintBoard(board);
+            break;
+        case 7:
+            RunDatagen(line);
             break;
     }
 }

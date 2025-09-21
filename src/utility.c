@@ -240,7 +240,6 @@ PieceType GetType(Piece piece) {
     return piece & 0b0111;
 }
 
-
 int getlsb(unsigned long long bb) {
     assert(bb);  // lsb(0) is undefined
     return __builtin_ctzll(bb);
@@ -250,4 +249,67 @@ int poplsb(unsigned long long *bb) {
     int lsb = getlsb(*bb);
     *bb &= *bb - 1;
     return lsb;
+}
+
+char* BoardToFen(const Board *board){
+    char* fen = malloc(256);
+    int fen_index = 0;
+
+    int squares_since_last_piece;
+    for (int rank = 0; rank < 8; rank++){
+        for (int file = 0; file < 8; file++){
+            const int square = rank * 8 + file;
+
+            if (board->squares[square] == None){
+                squares_since_last_piece++;
+            }
+            else{
+                if (squares_since_last_piece != 0){
+                    fen[fen_index++] = squares_since_last_piece + '0';
+                    squares_since_last_piece = 0;
+                }
+                fen[fen_index++] = PieceToChar(board->squares[square]);
+            }
+        }
+        if (squares_since_last_piece != 0){
+            fen[fen_index++] = squares_since_last_piece + '0';
+            squares_since_last_piece = 0;
+        }
+        if (rank != 7)
+            fen[fen_index++] = '/';
+    }
+
+    fen[fen_index++] = ' ';
+    fen[fen_index++] = board->white_to_move ? 'w' : 'b';
+    fen[fen_index++] = ' ';
+
+    if (board->white_kingside) fen[fen_index++] = 'K';
+    if (board->white_queenside) fen[fen_index++] = 'Q';
+    if (board->black_kingside) fen[fen_index++] = 'k';
+    if (board->black_queenside) fen[fen_index++] = 'q';
+
+    if (!(board->white_kingside || board->white_queenside || board->black_kingside || board->black_queenside)){
+        fen[fen_index++] = '-';
+    }
+    fen[fen_index++] = ' ';
+
+    if (board->en_passant_square == -1){
+        fen[fen_index++] = '-';
+    }
+    else{
+        char* en_passant_square = SquareToString(board->en_passant_square);
+
+        fen[fen_index++] = en_passant_square[0];
+        fen[fen_index++] = en_passant_square[1];
+
+        free(en_passant_square);
+    }
+
+    fen[fen_index++] = ' ';
+    fen[fen_index++] = '0';
+    fen[fen_index++] = ' ';
+    fen[fen_index++] = '1';
+    fen[fen_index++] = '\0';
+
+    return fen;
 }

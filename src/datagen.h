@@ -8,12 +8,13 @@ typedef struct { // In viriformat: https://github.com/cosmobobak/viriformat
     unsigned long long occupied;
     unsigned long long pieces_0;
     unsigned long long pieces_1;
-    short stm_enPassant_hm;
-    int fm_score;
+    unsigned short stm_enPassant_hm;
+    unsigned short full_move;
+    unsigned short score;
     short result;
 
     // Combined moves and scores
-    unsigned long moves[17697]; // Longest possible game;
+    unsigned long moves[MAX_NUM_PLY]; // Longest possible game;
 } Game;
 
 typedef struct {
@@ -23,5 +24,6 @@ typedef struct {
 
 Piece ConvertPiece(Piece piece);
 Board GenerateRandomPosition(unsigned long long *seed);
+void* PlayGame(void* arg);
 
 #endif //CAIRN_DATAGEN_H
