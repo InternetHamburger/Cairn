@@ -4,4 +4,9 @@
 
 void ReceiveCommand(char* line, Board *board);
 
+typedef struct {
+    void (*function)(void *arg);
+    void *arg;
+} task_t;
+
 #endif //CAIRN_UCI_H

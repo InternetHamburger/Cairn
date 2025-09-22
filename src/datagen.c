@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+int finished_games = 0;
+
 Piece ConvertPiece(Piece piece) {
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
 }
@@ -166,8 +169,7 @@ bool IsCheckmate(Board* board){
     return true;
 }
 
-void* PlayGame(void* arg) {
-    Thread* this = (Thread*)arg;
+void PlayGame(Thread *this) {
 
     Board board = PrepareGame(this);
 
@@ -193,12 +195,12 @@ void* PlayGame(void* arg) {
             break;
         }
 
-        SearchResult result = search(&board, &stack);
+        const SearchResult result = search(&board, &stack);
 
         stack.nodes = 0;
 
         MakeMove(&board, result.best_move);
-        Move converted_move = ConvertMove(result.best_move);
+        const Move converted_move = ConvertMove(result.best_move);
         this->game.moves[stack.hash_index] = 0;
         this->game.moves[stack.hash_index] |= converted_move.value;
         this->game.moves[stack.hash_index] |= result.score << 16;
@@ -208,5 +210,40 @@ void* PlayGame(void* arg) {
 
     this->game.full_move = stack.hash_index / 2;
 
+    this->thread_id = PseudorandomNumber(&this->thread_id);
+}
+
+void WriteGame(Game *game, FILE *file) {
+
+}
+
+void* GameLoop(void* arg) {
+    Thread *this = (Thread *)arg;
+    const int origin_id = this->thread_id;
+    while (1) {
+        PlayGame(this);
+
+        pthread_mutex_lock(&mutex);
+
+        finished_games++;
+        WriteGame(&this->game, this->file);
+        printf("Games finished %d from thread %d\n", finished_games, this->thread_id);
+        pthread_mutex_unlock(&mutex);
+
+    }
     return NULL;
+}
+
+void Datagen(FILE *file, int num_threads) {
+    Thread states[num_threads];
+    pthread_t threads[num_threads];
+
+    for (int i = 0; i < num_threads; i++) {
+        const Thread state = {
+            .thread_id = i + 1,
+            .file = file
+        };
+        states[i] = state;
+        pthread_create(&threads[i], NULL, GameLoop, &states[i]);
+    }
 }

@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "datagen.h"
+
 int MatchPatterns(char* string, const char* patterns[], int num_patterns, int *patlength) {
     int matched_pattern = -1;
     for (size_t i = 0; i < num_patterns; i++) {
@@ -166,9 +168,18 @@ void GoCommand(char* line, Board *board) {
 }
 
 void RunDatagen(char* line){
+    int num_threads;
+    line += strlen("threads ");
+    sscanf(line, "%d", &num_threads);
 
+    line += num_threads > 9 ? 3 : 2;
+    line += strlen("output ");
+    line[strlen(line) - 1] = '\0';
+    printf("%s", line);
 
+    FILE *file = fopen(line, "wb");
 
+    Datagen(file, num_threads);
 }
 
 void ReceiveCommand(char* line, Board *board) {
@@ -179,8 +190,9 @@ void ReceiveCommand(char* line, Board *board) {
         "quit",
         "ucinewgame",
         "uci",
+        "datagen",
         "d",
-        "datagen"
+
     };
 
     int patlength = 0;
@@ -208,10 +220,10 @@ void ReceiveCommand(char* line, Board *board) {
             printf("id name Cairn\noption name Hash type spin default 16 min 1 max 33554432\nuciok\n");
             break;
         case 6:
-            PrintBoard(board);
+            RunDatagen(line);
             break;
         case 7:
-            RunDatagen(line);
+            PrintBoard(board);
             break;
     }
 }

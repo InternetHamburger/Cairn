@@ -2,6 +2,7 @@
 #define CAIRN_DATAGEN_H
 
 #include "board.h"
+#include <stdio.h>
 
 typedef struct { // In viriformat: https://github.com/cosmobobak/viriformat
     // Packed board
@@ -20,10 +21,11 @@ typedef struct { // In viriformat: https://github.com/cosmobobak/viriformat
 typedef struct {
     Game game;
     unsigned long long thread_id;
+    FILE *file;
 } Thread;
 
 Piece ConvertPiece(Piece piece);
 Board GenerateRandomPosition(unsigned long long *seed);
-void* PlayGame(void* arg);
+void Datagen(FILE *file, int num_threads);
 
 #endif //CAIRN_DATAGEN_H
