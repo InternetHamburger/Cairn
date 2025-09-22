@@ -175,7 +175,6 @@ void RunDatagen(char* line){
     line += num_threads > 9 ? 3 : 2;
     line += strlen("output ");
     line[strlen(line) - 1] = '\0';
-    printf("%s", line);
 
     FILE *file = fopen(line, "wb");
 

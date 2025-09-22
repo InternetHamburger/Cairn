@@ -107,8 +107,8 @@ unsigned long long GetOccupied(Board *board) {
     unsigned long long occupied = 0;
 
     for (int i = 0; i < 64; i++) {
-        if (board->squares[i]) {
-            occupied |= 1ULL << FlipSquare(i);
+        if (board->squares[FlipSquare(i)]) {
+            occupied |= 1ULL << i;
         }
     }
 
@@ -121,17 +121,27 @@ Board PrepareGame(Thread *this) {
 
     Board rand_pos = GenerateRandomPosition(seed);
     this->game.occupied = GetOccupied(&rand_pos);
-
+    PrintBoard(&rand_pos);
     this->game.pieces_0 = 0;
-    for (unsigned long long i = 0; i < 32; i++) {
+    this->game.pieces_1 = 0;
+    this->game.pieces_2 = 0;
+    this->game.pieces_3 = 0;
+    unsigned long long i = 0;
+    for (; i < 16; i++) {
         const int square = FlipSquare((int)i);
-        this->game.pieces_0 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << (i * 4);
+        this->game.pieces_0 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << ((i % 16) * 4);
     }
-
-    this->game.pieces_1 = 1;
-    for (unsigned long long i = 32; i < 64; i++) {
+    for (; i < 32; i++) {
         const int square = FlipSquare((int)i);
-        this->game.pieces_1 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << (i * 4);
+        this->game.pieces_1 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << ((i % 16) * 4);
+    }
+    for (; i < 48; i++) {
+        const int square = FlipSquare((int)i);
+        this->game.pieces_2 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << ((i % 16) * 4);
+    }
+    for (; i < 64; i++) {
+        const int square = FlipSquare((int)i);
+        this->game.pieces_3 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << ((i % 16) * 4);
     }
 
     this->game.stm_enPassant_hm = 0;
@@ -209,16 +219,29 @@ void PlayGame(Thread *this) {
     }
 
     this->game.full_move = stack.hash_index / 2;
+    this->game.ply = stack.hash_index;
 
     this->thread_id = PseudorandomNumber(&this->thread_id);
 }
 
 void WriteGame(Game *game, FILE *file) {
+    fwrite(&game->occupied, sizeof(unsigned long long), 1, file);
+    fwrite(&game->pieces_0, sizeof(unsigned long long), 1, file);
+    fwrite(&game->pieces_1, sizeof(unsigned long long), 1, file);
+    fwrite(&game->pieces_2, sizeof(unsigned long long), 1, file);
+    fwrite(&game->pieces_3, sizeof(unsigned long long), 1, file);
+    fwrite(&game->stm_enPassant_hm, sizeof(unsigned short), 1, file);
+    fwrite(&game->full_move, sizeof(unsigned short), 1, file);
+    fwrite(&game->score, sizeof(unsigned short), 1, file);
+    fwrite(&game->result, sizeof(short), 1, file);
 
+    fwrite(&game->moves, sizeof(unsigned long), game->ply, file);
+    fflush(file);
 }
 
 void* GameLoop(void* arg) {
     Thread *this = (Thread *)arg;
+    this->thread_id = 1973982;
     const int origin_id = this->thread_id;
     while (1) {
         PlayGame(this);
@@ -227,9 +250,9 @@ void* GameLoop(void* arg) {
 
         finished_games++;
         WriteGame(&this->game, this->file);
-        printf("Games finished %d from thread %d\n", finished_games, this->thread_id);
+        printf("Games finished %d from thread %d\n", finished_games, origin_id);
         pthread_mutex_unlock(&mutex);
-
+        break;
     }
     return NULL;
 }
