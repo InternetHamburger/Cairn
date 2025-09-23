@@ -121,34 +121,26 @@ Board PrepareGame(Thread *this) {
 
     Board rand_pos = GenerateRandomPosition(seed);
     this->game.occupied = GetOccupied(&rand_pos);
-    PrintBoard(&rand_pos);
-    this->game.pieces_0 = 0;
-    this->game.pieces_1 = 0;
-    this->game.pieces_2 = 0;
-    this->game.pieces_3 = 0;
-    unsigned long long i = 0;
-    for (; i < 16; i++) {
-        const int square = FlipSquare((int)i);
-        this->game.pieces_0 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << ((i % 16) * 4);
-    }
-    for (; i < 32; i++) {
-        const int square = FlipSquare((int)i);
-        this->game.pieces_1 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << ((i % 16) * 4);
-    }
-    for (; i < 48; i++) {
-        const int square = FlipSquare((int)i);
-        this->game.pieces_2 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << ((i % 16) * 4);
-    }
-    for (; i < 64; i++) {
-        const int square = FlipSquare((int)i);
-        this->game.pieces_3 |= (unsigned long long)ConvertPiece(rand_pos.squares[square]) << ((i % 16) * 4);
+
+    for (int i = 0; i < 16; i++) this->game.pieces[i] = 0;
+
+    int index = 0;
+    for (int i = 0; i < 64; i++) {
+        const int square = FlipSquare(i);
+        if (this->game.occupied & (1ULL << i)) {
+            const uint8_t piece = ConvertPiece(rand_pos.squares[square]);
+
+            this->game.pieces[index / 2] |= piece << (((index + 1) % 2) * 4);
+            index++;
+        }
     }
 
-    this->game.stm_enPassant_hm = 0;
-    this->game.stm_enPassant_hm |= rand_pos.en_passant_square == -1 ? 64 : rand_pos.en_passant_square;
-    this->game.stm_enPassant_hm |= (!rand_pos.white_to_move) << 7;
+    this->game.stm_enPassant = 0;
+    this->game.stm_enPassant |= rand_pos.en_passant_square == -1 ? 64 : rand_pos.en_passant_square;
+    this->game.stm_enPassant |= !rand_pos.white_to_move << 7;
 
-    this->game.full_move = 0;
+    this->game.half_move = 0;
+    this->game.full_move = 1;
     this->game.score = 0;
 
     this->game.result = 3;
@@ -179,8 +171,7 @@ bool IsCheckmate(Board* board){
     return true;
 }
 
-void PlayGame(Thread *this) {
-
+double PlayGame(Thread *this) {
     Board board = PrepareGame(this);
 
     Stack stack = {
@@ -194,7 +185,6 @@ void PlayGame(Thread *this) {
     };
 
     while (1){
-
         stack.hashes[stack.hash_index] = board.zobrist_hash;
         if (IsCheckmate(&board)){
             this->game.result = board.white_to_move ? 0 : 2;
@@ -206,19 +196,19 @@ void PlayGame(Thread *this) {
         }
 
         const SearchResult result = search(&board, &stack);
-
         stack.nodes = 0;
 
         MakeMove(&board, result.best_move);
+
         const Move converted_move = ConvertMove(result.best_move);
+
         this->game.moves[stack.hash_index] = 0;
         this->game.moves[stack.hash_index] |= converted_move.value;
         this->game.moves[stack.hash_index] |= result.score << 16;
 
         stack.hash_index++;
-    }
 
-    this->game.full_move = stack.hash_index / 2;
+    }
     this->game.ply = stack.hash_index;
 
     this->thread_id = PseudorandomNumber(&this->thread_id);
@@ -226,34 +216,47 @@ void PlayGame(Thread *this) {
 
 void WriteGame(Game *game, FILE *file) {
     fwrite(&game->occupied, sizeof(unsigned long long), 1, file);
-    fwrite(&game->pieces_0, sizeof(unsigned long long), 1, file);
-    fwrite(&game->pieces_1, sizeof(unsigned long long), 1, file);
-    fwrite(&game->pieces_2, sizeof(unsigned long long), 1, file);
-    fwrite(&game->pieces_3, sizeof(unsigned long long), 1, file);
-    fwrite(&game->stm_enPassant_hm, sizeof(unsigned short), 1, file);
-    fwrite(&game->full_move, sizeof(unsigned short), 1, file);
-    fwrite(&game->score, sizeof(unsigned short), 1, file);
-    fwrite(&game->result, sizeof(short), 1, file);
+    fwrite(&game->pieces, sizeof(uint8_t), 16, file);
+    fwrite(&game->stm_enPassant, sizeof(uint8_t), 1, file);
+
+    fwrite(&game->half_move, sizeof(uint8_t), 1, file);
+    fwrite(&game->full_move, sizeof(uint16_t), 1, file);
+    fwrite(&game->score, sizeof(int16_t), 1, file);
+    fwrite(&game->result, sizeof(uint8_t), 1, file);
+
+    constexpr uint8_t padding = 0;
+    fwrite(&padding, sizeof(uint8_t), 1, file); // Padding
 
     fwrite(&game->moves, sizeof(unsigned long), game->ply, file);
+
+    constexpr unsigned int num = 0;
+    fwrite(&num, sizeof(unsigned int), 1, file); // End of game
     fflush(file);
 }
 
 void* GameLoop(void* arg) {
     Thread *this = (Thread *)arg;
-    this->thread_id = 1973982;
-    const int origin_id = this->thread_id;
+    double start = clock();
+    int positions = 0;
+
     while (1) {
-        PlayGame(this);
 
         pthread_mutex_lock(&mutex);
 
+
         finished_games++;
+
         WriteGame(&this->game, this->file);
-        printf("Games finished %d from thread %d\n", finished_games, origin_id);
+        positions += this->game.ply;
+        const double elapsed = clock() - start;
+        if (!(finished_games % 10)) {
+            printf("Games: %d  Positions: %d  Time elapsed: %lfs\n", finished_games, positions, elapsed / CLOCKS_PER_SEC);
+            break;
+        }
         pthread_mutex_unlock(&mutex);
-        break;
+
     }
+
     return NULL;
 }
 

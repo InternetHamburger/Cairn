@@ -72,7 +72,6 @@ SearchResult search(Board *board, Stack *stack) {
         Move move;
 
         int score = Negamax(stack, board, depth, true, &move);
-
         if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
             best_score = score;
             best_move = move;

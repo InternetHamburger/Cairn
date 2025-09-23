@@ -21,6 +21,7 @@ typedef struct {
 typedef struct{
     Move best_move;
     int score;
+    double time_in_part;
 } SearchResult;
 
 SearchResult search(Board *board, Stack *stack);

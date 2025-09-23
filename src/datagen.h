@@ -3,18 +3,17 @@
 
 #include "board.h"
 #include <stdio.h>
+#include <stdint.h>
 
 typedef struct { // In viriformat: https://github.com/cosmobobak/viriformat
     // Packed board
     unsigned long long occupied;
-    unsigned long long pieces_0;
-    unsigned long long pieces_1;
-    unsigned long long pieces_2;
-    unsigned long long pieces_3;
-    unsigned short stm_enPassant_hm;
-    unsigned short full_move;
-    unsigned short score;
-    short result;
+    uint8_t pieces[16];
+    uint8_t stm_enPassant;
+    uint8_t half_move;
+    uint16_t full_move;
+    int16_t score;
+    uint8_t result;
 
     // NOTE: DO NOT WRITE TO GAME FILE
     int ply;

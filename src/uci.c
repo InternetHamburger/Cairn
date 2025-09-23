@@ -176,7 +176,7 @@ void RunDatagen(char* line){
     line += strlen("output ");
     line[strlen(line) - 1] = '\0';
 
-    FILE *file = fopen(line, "wb");
+    FILE *file = fopen(line, "ab");
 
     Datagen(file, num_threads);
 }
@@ -191,7 +191,6 @@ void ReceiveCommand(char* line, Board *board) {
         "uci",
         "datagen",
         "d",
-
     };
 
     int patlength = 0;
