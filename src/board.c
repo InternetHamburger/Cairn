@@ -408,3 +408,16 @@ bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx){
     }
     return false;
 }
+
+uint64_t GetOccupied(const Board *board) {
+    return board->bitboards[WhitePawn] | board->bitboards[WhiteKnight] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] | board->bitboards[WhiteKing] |
+           board->bitboards[BlackPawn] | board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen] | board->bitboards[BlackKing];
+}
+
+uint64_t GetWhiteBitboard(const Board *board) {
+    return board->bitboards[WhitePawn] | board->bitboards[WhiteKnight] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] | board->bitboards[WhiteKing];
+}
+
+uint64_t GetBlackBitboard(const Board *board) {
+    return board->bitboards[BlackPawn] | board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen] | board->bitboards[BlackKing];
+}

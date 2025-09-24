@@ -86,6 +86,7 @@ void GetKnightMoves(Board *board, Move *moves, int *num_moves, int square){
 
 void GetKingMoves(Board *board, Move *moves, int *num_moves, int square){
     unsigned long long bitboard = king_moves[square];
+    uint64_t occupied = GetOccupied(board);
 
     while(bitboard){
         const int target_square = poplsb(&bitboard);
@@ -95,22 +96,21 @@ void GetKingMoves(Board *board, Move *moves, int *num_moves, int square){
             }
             continue;
         }
-
         moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
     }
 
     if (board->white_to_move){
-        if (board->white_kingside && !board->squares[62] && !board->squares[61]){
+        if (board->white_kingside && !(occupied & (1Ull << 61 | 1ULL << 62))){
             moves[(*num_moves)++] = MoveConstructor(square, 62, Castle);
         }
-        if (board->white_queenside && !board->squares[57] && !board->squares[58] && !board->squares[59]){
+        if (board->white_queenside && !(occupied & (1Ull << 57 | 1ULL << 58 | 1ULL << 59))){
             moves[(*num_moves)++] = MoveConstructor(square, 58, Castle);
         }
     }else{
-        if (board->black_kingside && !board->squares[6] && !board->squares[5]){
+        if (board->black_kingside && !(occupied & (1Ull << 5 | 1ULL << 6))){
             moves[(*num_moves)++] = MoveConstructor(square, 6, Castle);
         }
-        if (board->black_queenside && !board->squares[1] && !board->squares[2] && !board->squares[3]){
+        if (board->black_queenside && !(occupied & (1Ull << 1 | 1ULL << 2 | 1ULL << 3))){
             moves[(*num_moves)++] = MoveConstructor(square, 2, Castle);
         }
     }

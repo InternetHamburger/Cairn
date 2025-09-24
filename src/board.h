@@ -52,5 +52,6 @@ bool InCheck(const Board *board);
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
 Board BoardConstructor(const char* fen);
 bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx);
+uint64_t GetOccupied(const Board *board);
 
 #endif //CAIRN_BOARD_H
