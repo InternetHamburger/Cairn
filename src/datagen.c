@@ -103,7 +103,7 @@ Board GenerateRandomPosition(unsigned long long *seed) {
     return board;
 }
 
-unsigned long long GetOccupied(Board *board) {
+unsigned long long GetViriOccupied(Board *board) {
     unsigned long long occupied = 0;
 
     for (int i = 0; i < 64; i++) {
@@ -120,7 +120,7 @@ Board PrepareGame(Thread *this) {
     PseudorandomNumber(seed);
 
     Board rand_pos = GenerateRandomPosition(seed);
-    this->game.occupied = GetOccupied(&rand_pos);
+    this->game.occupied = GetViriOccupied(&rand_pos);
 
     for (int i = 0; i < 16; i++) this->game.pieces[i] = 0;
 

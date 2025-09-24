@@ -80,12 +80,13 @@ void SetPosition(char* line, Board *board) {
         }
 
         *board = BoardConstructor(line);
-        line += fen_length + 1;
+        line += fen_length;
     }else if (pos_type == 1) {
         *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
     const int parse_moves = MatchPattern(line, "moves", &num);
     line += num;
+
 
     if (parse_moves != -1){
         ParseMoves(board, line);
@@ -224,7 +225,8 @@ void ReceiveCommand(char* line, Board *board) {
             break;
         case 7:
             PrintBoard(board);
+            printf("Fen: %s\n", BoardToFen(board));
+            printf("Key: %llu\n", board->zobrist_hash);
             break;
     }
 }
-

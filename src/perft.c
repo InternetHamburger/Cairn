@@ -49,7 +49,7 @@ unsigned long long splitPerft(Board *board, const int depth) {
             *board = copy;
             continue;
         }
-        const unsigned long long u = perft(board, depth - 1);
+        const uint64_t u = perft(board, depth - 1);
         printf("%s: %llu\n", MoveToString(moves[i]), u);
         nodes += u;
         *board = copy;

@@ -37,7 +37,7 @@ void MakeMove(Board *board, const Move move) {
     board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
 
     if (captured_piece != None){
-        board->bitboards[captured_piece] ^= (1ULL << captured_piece);
+        board->bitboards[captured_piece] ^= (1ULL << target_square);
         board->zobrist_hash ^= zobrist_squares[target_square][captured_piece];
     }
 
@@ -196,11 +196,12 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
         if (white_to_move) {
             const int new_rank = rank + 1;
 
-            if (board->squares[new_rank * 8 + right_file] == WhitePawn)
+            if (new_rank < 8 && board->squares[new_rank * 8 + right_file] == WhitePawn)
                 return true;
+
         }else {
             const int new_rank = rank - 1;
-            if (board->squares[new_rank * 8 + right_file] == BlackPawn)
+            if (new_rank >= 0 && board->squares[new_rank * 8 + right_file] == BlackPawn)
                 return true;
         }
     }
@@ -208,11 +209,12 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
         if (white_to_move) {
             const int new_rank = rank + 1;
 
-            if (board->squares[new_rank * 8 + left_file] == WhitePawn)
+            if (new_rank < 8 && board->squares[new_rank * 8 + left_file] == WhitePawn)
                 return true;
+
         }else {
             const int new_rank = rank - 1;
-            if (board->squares[new_rank * 8 + left_file] == BlackPawn)
+            if (new_rank >= 0 && board->squares[new_rank * 8 + left_file] == BlackPawn)
                 return true;
         }
     }
@@ -317,10 +319,25 @@ Board BoardConstructor(const char* fen){
                     break;
                 case 1:
                     if (fen[i + 1] != '-') {
-                        if (fen[i + 1] == 'K') white_kingside = true; else break;
-                        if (fen[i + 2] == 'Q') white_queenside = true; else break;
-                        if (fen[i + 3] == 'k') black_kingside = true; else break;
-                        if (fen[i + 4] == 'q') black_queenside = true; else break;
+                        for (int castle_index = 1; castle_index <= 4; castle_index++){
+                            if (fen[i + castle_index] == ' ') break;
+                            switch (fen[i + castle_index]) {
+                                case 'K':
+                                    white_kingside = true;
+                                    break;
+                                case 'Q':
+                                    white_queenside = true;
+                                    break;
+                                case 'k':
+                                    black_kingside = true;
+                                    break;
+                                case 'q':
+                                    black_queenside = true;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
                     }
                     break;
                 case 2:

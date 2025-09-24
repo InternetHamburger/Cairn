@@ -1,10 +1,12 @@
 #include "preComputedData.h"
 
 #include <stdio.h>
+#include <stdint.h>
 
 unsigned long long knight_moves[64];
 unsigned long long king_moves[64];
 
+uint64_t a_file = 0x0101010101010101;
 
 __attribute__((constructor))  // runs before main()
 static void init_table(void) {

@@ -100,17 +100,18 @@ void GetKingMoves(Board *board, Move *moves, int *num_moves, int square){
     }
 
     if (board->white_to_move){
-        if (board->white_kingside && !(occupied & (1Ull << 61 | 1ULL << 62))){
+        if (board->white_kingside && !(occupied & ((1Ull << 61) | (1ULL << 62)))){
             moves[(*num_moves)++] = MoveConstructor(square, 62, Castle);
         }
-        if (board->white_queenside && !(occupied & (1Ull << 57 | 1ULL << 58 | 1ULL << 59))){
+        if (board->white_queenside && !(occupied & ((1Ull << 57) | (1ULL << 58) | (1ULL << 59)))){
             moves[(*num_moves)++] = MoveConstructor(square, 58, Castle);
         }
     }else{
-        if (board->black_kingside && !(occupied & (1Ull << 5 | 1ULL << 6))){
+        if (board->black_kingside && !(occupied & ((1Ull << 5) | (1ULL << 6)))){
             moves[(*num_moves)++] = MoveConstructor(square, 6, Castle);
         }
-        if (board->black_queenside && !(occupied & (1Ull << 1 | 1ULL << 2 | 1ULL << 3))){
+
+        if (board->black_queenside && !(occupied & ((1Ull << 1) | (1ULL << 2) | (1ULL << 3)))){
             moves[(*num_moves)++] = MoveConstructor(square, 2, Castle);
         }
     }

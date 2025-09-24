@@ -1,8 +1,6 @@
 #include <stdio.h>
-#include <time.h>
 #include "src/board.h"
-#include "src/datagen.h"
-#include "src/moveGeneration.h"
+#include "src/preComputedData.h"
 #include "src/uci.h"
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +9,7 @@
 
 int main(void) {
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
     while (1) {
         char line[20000];
         fflush(stdout);
