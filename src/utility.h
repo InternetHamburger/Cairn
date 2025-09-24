@@ -16,5 +16,6 @@ PieceType GetType(Piece piece);
 int poplsb(unsigned long long *bb);
 Move StringToMove(char* move, Board *board);
 char* BoardToFen(const Board *board);
+void PrintBitBoard(uint64_t bitboard);
 
 #endif //CAIRN_UTILITY_H

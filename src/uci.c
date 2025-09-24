@@ -177,6 +177,8 @@ void RunDatagen(char* line){
     line[strlen(line) - 1] = '\0';
 
     FILE *file = fopen(line, "ab");
+    constexpr uint8_t padding = 0;
+    fwrite(&padding, sizeof(uint8_t), 1, file); // Padding
 
     Datagen(file, num_threads);
 }

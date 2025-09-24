@@ -212,6 +212,7 @@ double PlayGame(Thread *this) {
     this->game.ply = stack.hash_index;
 
     this->thread_id = PseudorandomNumber(&this->thread_id);
+    return 0;
 }
 
 void WriteGame(Game *game, FILE *file) {
@@ -240,27 +241,27 @@ void* GameLoop(void* arg) {
     int positions = 0;
 
     while (1) {
+        PlayGame(this);
 
+        printf("HMM\n");
         pthread_mutex_lock(&mutex);
-
 
         finished_games++;
 
         WriteGame(&this->game, this->file);
         positions += this->game.ply;
         const double elapsed = clock() - start;
-        if (!(finished_games % 10)) {
+        if (!(finished_games % 50)) {
             printf("Games: %d  Positions: %d  Time elapsed: %lfs\n", finished_games, positions, elapsed / CLOCKS_PER_SEC);
-            break;
         }
         pthread_mutex_unlock(&mutex);
-
     }
 
     return NULL;
 }
 
 void Datagen(FILE *file, int num_threads) {
+
     Thread states[num_threads];
     pthread_t threads[num_threads];
 
@@ -270,6 +271,10 @@ void Datagen(FILE *file, int num_threads) {
             .file = file
         };
         states[i] = state;
-        pthread_create(&threads[i], NULL, GameLoop, &states[i]);
+        pthread_create(&threads[i], nullptr, GameLoop, &states[i]);
+    }
+
+    for (int i = 0; i < num_threads; i++) {
+        pthread_join(threads[i], nullptr);
     }
 }

@@ -29,12 +29,15 @@ void MakeMove(Board *board, const Move move) {
     board->squares[target_square] = board->squares[start_square];
     board->squares[start_square] = 0;
 
+    board->bitboards[moved_piece] ^= (1ULL << start_square) | (1ULL << target_square);
+
     const int flag = GetFlag(move);
 
     board->zobrist_hash ^= zobrist_squares[start_square][moved_piece];
     board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
 
     if (captured_piece != None){
+        board->bitboards[captured_piece] ^= (1ULL << captured_piece);
         board->zobrist_hash ^= zobrist_squares[target_square][captured_piece];
     }
 
@@ -64,21 +67,26 @@ void MakeMove(Board *board, const Move move) {
 
     if (IsPromotion(move)) {
         board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
+        board->bitboards[moved_piece] ^= (1ULL << target_square);
         switch (flag) {
             case PromoteQueen:
                 board->squares[target_square] = board->white_to_move ? WhiteQueen : BlackQueen;
+                board->bitboards[board->white_to_move ? WhiteQueen : BlackQueen] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteQueen : BlackQueen];
                 break;
             case PromoteKnight:
                 board->squares[target_square] = board->white_to_move ? WhiteKnight : BlackKnight;
+                board->bitboards[board->white_to_move ? WhiteKnight : BlackKnight] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteKnight : BlackKnight];
                 break;
             case PromoteBishop:
                 board->squares[target_square] = board->white_to_move ? WhiteBishop : BlackBishop;
+                board->bitboards[board->white_to_move ? WhiteBishop : BlackBishop] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteBishop : BlackBishop];
                 break;
             case PromoteRook:
                 board->squares[target_square] = board->white_to_move ? WhiteRook : BlackRook;
+                board->bitboards[board->white_to_move ? WhiteRook : BlackRook] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteRook : BlackRook];
                 break;
             default:
@@ -96,11 +104,13 @@ void MakeMove(Board *board, const Move move) {
         if (captures_left) {
             const int new_square = start_square - 1;
             board->squares[new_square] = 0;
+            board->bitboards[board->white_to_move ? BlackPawn : WhitePawn] ^= (1ULL << new_square);
             board->zobrist_hash ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
         }
         else {
             const int new_square = start_square + 1;
             board->squares[new_square] = 0;
+            board->bitboards[board->white_to_move ? BlackPawn : WhitePawn] ^= (1ULL << new_square);
             board->zobrist_hash ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
         }
     }
@@ -111,24 +121,29 @@ void MakeMove(Board *board, const Move move) {
             board->squares[61] = WhiteRook;
             board->zobrist_hash ^= zobrist_squares[61][WhiteRook];
             board->zobrist_hash ^= zobrist_squares[63][WhiteRook];
+            board->bitboards[WhiteRook] ^= (1ULL << 61) | (1ULL << 63);
         }
         if (target_square == 58) {
             board->squares[56] = 0;
             board->squares[59] = WhiteRook;
             board->zobrist_hash ^= zobrist_squares[56][WhiteRook];
             board->zobrist_hash ^= zobrist_squares[59][WhiteRook];
+            board->bitboards[WhiteRook] ^= (1ULL << 56) | (1ULL << 59);
+
         }
         if (target_square == 6) {
             board->squares[7] = 0;
             board->squares[5] = BlackRook;
             board->zobrist_hash ^= zobrist_squares[7][BlackRook];
             board->zobrist_hash ^= zobrist_squares[5][BlackRook];
+            board->bitboards[BlackRook] ^= (1ULL << 7) | (1ULL << 5);
         }
         if (target_square == 2) {
             board->squares[0] = 0;
             board->squares[3] = BlackRook;
             board->zobrist_hash ^= zobrist_squares[0][BlackRook];
             board->zobrist_hash ^= zobrist_squares[3][BlackRook];
+            board->bitboards[BlackRook] ^= (1ULL << 0) | (1ULL << 3);
         }
     }
     if (board->white_kingside != init_white_kingside) board->zobrist_hash ^= zobrist_white_kingside;
@@ -270,7 +285,6 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
 // Start fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 Board BoardConstructor(const char* fen){
     const int fen_length = strlen(fen);
-    int i = 0;
     int main_length;
     int empty_encountered = 0;
 
@@ -278,6 +292,12 @@ Board BoardConstructor(const char* fen){
     for (int i = 0; i < 64; i++) {
         squares[i] = None;
     }
+
+    uint64_t bitboards[BlackKing + 1];
+    for (int i = 0; i < BlackKing + 1; i++) {
+        bitboards[i] = 0;
+    }
+
     bool white_to_move;
     bool white_kingside = false;
     bool white_queenside = false;
@@ -286,6 +306,7 @@ Board BoardConstructor(const char* fen){
     int en_passant_square = - 1;
     int white_king_square;
     int black_king_square;
+    int i = 0;
 
     while (i < fen_length && empty_encountered < 3){
         if (fen[i] == ' '){
@@ -335,6 +356,7 @@ Board BoardConstructor(const char* fen){
         }
         else
         {
+            bitboards[piece] |= 1ULL << square_index;
             if (piece == WhiteKing) white_king_square = square_index;
             if (piece == BlackKing) black_king_square = square_index;
             squares[square_index] = piece;
@@ -351,7 +373,7 @@ Board BoardConstructor(const char* fen){
             .black_queenside = black_queenside,
             .en_passant_square = en_passant_square,
             .black_king_square = black_king_square,
-            .white_king_square = white_king_square
+            .white_king_square = white_king_square,
     };
 
     board.zobrist_hash = 958761493876598375ULL; // Initial hash
@@ -360,6 +382,9 @@ Board BoardConstructor(const char* fen){
 
         if (board.squares[i] != None)
             board.zobrist_hash ^= zobrist_squares[i][squares[i]];
+    }
+    for (i = 0; i < BlackKing + 1; i++) {
+        board.bitboards[i] = bitboards[i];
     }
 
     if (en_passant_square != -1) board.zobrist_hash ^= zobrist_ep_squares[en_passant_square];

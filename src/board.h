@@ -1,6 +1,8 @@
 #ifndef CAIRN_BOARD_H
 #define CAIRN_BOARD_H
 
+#include <stdint.h>
+
 #include "move.h"
 
 #define MAX_NUM_PLY 17697
@@ -40,6 +42,7 @@ typedef struct{
     int en_passant_square;
     int white_king_square;
     int black_king_square;
+    uint64_t bitboards[BlackKing + 1];
     unsigned long long zobrist_hash;
 } Board;
 

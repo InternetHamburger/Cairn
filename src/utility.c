@@ -313,3 +313,30 @@ char* BoardToFen(const Board *board){
 
     return fen;
 }
+
+void PrintBitBoard(uint64_t bitboard) {
+    char pieces[64];
+    for (int i = 0; i < 64; i++) {
+        if (bitboard & (1ULL << i)) pieces[i] = '1';
+        else pieces[i] = ' ';
+    }
+
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf(" | %c | %c | %c | %c | %c | %c | %c | %c | 8\n", pieces[0], pieces[1], pieces[2], pieces[3], pieces[4], pieces[5], pieces[6], pieces[7]);
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf(" | %c | %c | %c | %c | %c | %c | %c | %c | 7\n", pieces[8], pieces[9], pieces[10], pieces[11], pieces[12], pieces[13], pieces[14], pieces[15]);
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf(" | %c | %c | %c | %c | %c | %c | %c | %c | 6\n", pieces[16], pieces[17], pieces[18], pieces[19], pieces[20], pieces[21], pieces[22], pieces[23]);
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf(" | %c | %c | %c | %c | %c | %c | %c | %c | 5\n", pieces[24], pieces[25], pieces[26], pieces[27], pieces[28], pieces[29], pieces[30], pieces[31]);
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf(" | %c | %c | %c | %c | %c | %c | %c | %c | 4\n", pieces[32], pieces[33], pieces[34], pieces[35], pieces[36], pieces[37], pieces[38], pieces[39]);
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf(" | %c | %c | %c | %c | %c | %c | %c | %c | 3\n", pieces[40], pieces[41], pieces[42], pieces[43], pieces[44], pieces[45], pieces[46], pieces[47]);
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf(" | %c | %c | %c | %c | %c | %c | %c | %c | 2\n", pieces[48], pieces[49], pieces[50], pieces[51], pieces[52], pieces[53], pieces[54], pieces[55]);
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf(" | %c | %c | %c | %c | %c | %c | %c | %c | 1\n", pieces[56], pieces[57], pieces[58], pieces[59], pieces[60], pieces[61], pieces[62], pieces[63]);
+    printf(" +---+---+---+---+---+---+---+---+\n");
+    printf("   a   b   c   d   e   f   g   h\n\n");
+}
