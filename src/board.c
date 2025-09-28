@@ -193,6 +193,7 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
 
     const int left_file = file - 1;
     const int right_file = file + 1;
+
     if (right_file < 8){
         if (white_to_move) {
             const int new_rank = rank + 1;
@@ -220,55 +221,40 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
         }
     }
 
-    unsigned long long knight_attacks = knight_moves[square];
-    unsigned long long king_attacks = king_moves[square];
+    uint64_t knights = board->bitboards[white_to_move ? WhiteKnight : BlackKnight];
+    uint64_t kings = board->bitboards[white_to_move ? WhiteKing : BlackKing];
 
-    if (white_to_move) {
-        while(knight_attacks){
-            const int target_square = poplsb(&knight_attacks);
-            if (board->squares[target_square] == WhiteKnight){
-                return true;
-            }
-        }
-        while(king_attacks){
-            const int target_square = poplsb(&king_attacks);
-            if (board->squares[target_square] == WhiteKing){
-                return true;
-            }
-        }
-    }else {
-        while(knight_attacks){
-            const int target_square = poplsb(&knight_attacks);
-            if (board->squares[target_square] == BlackKnight){
-                return true;
-            }
-        }
-        while(king_attacks){
-            const int target_square = poplsb(&king_attacks);
-            if (board->squares[target_square] == BlackKing){
-                return true;
-            }
-        }
-    }
+    uint64_t knight_attacks = knight_moves[square];
+    uint64_t king_attacks = king_moves[square];
+
+    if (knight_attacks & knights) return true;
+    if (king_attacks & kings) return true;
 
     // right-up, left-up, right-down, left-down, right, left, up, down
     const int rank_directions[] = {-1, -1, 1, 1, 0, 0, -1, 1};
     const int file_directions[] = {-1, 1, -1, 1, 1, -1, 0, 0};
 
+    uint64_t friendly_pieces = white_to_move ? GetBlackBitboard(board) : GetWhiteBitboard(board);
+    uint64_t enemy_pieces = white_to_move ? GetWhiteBitboard(board) : GetBlackBitboard(board);
+    uint64_t occupied = friendly_pieces | enemy_pieces;
+
+    uint64_t enemy_sliders = white_to_move ? board->bitboards[WhiteQueen] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] : board->bitboards[BlackQueen] | board->bitboards[BlackBishop] | board->bitboards[BlackRook];
+
     for (int direction = 0; direction < 8; direction++){
         int curr_rank = square / 8;
         int curr_file = square % 8;
         while (1){
+            if (!(enemy_sliders & rays[square][direction])) break;
             curr_rank += rank_directions[direction];
             curr_file += file_directions[direction];
 
             int target_square = 8 * curr_rank + curr_file;
-            PieceType target_type = GetType( board->squares[target_square]);
+            PieceType target_type = board->squares[target_square] & 0b0111;
             if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
                 break; // Outside board
             }
-            if (board->squares[target_square]){
-                if (IsColor(white_to_move, board->squares[target_square])){
+            if (occupied & 1ULL << target_square){
+                if (enemy_pieces & 1ULL << target_square){
                     if (target_type == Queen) return true;
                     if (direction < 4 && target_type == Bishop) return true;
                     if (direction > 3 && target_type == Rook) return true;
