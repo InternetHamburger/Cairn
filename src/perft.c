@@ -2,6 +2,8 @@
 #include "utility.h"
 
 #include <stdio.h>
+#include <time.h>
+#include <math.h>
 
 #include "board.h"
 #include "move.h"
@@ -39,6 +41,7 @@ unsigned long long splitPerft(Board *board, const int depth) {
     int num_moves = 0;
     const Move* moves = GetMoves(board, &num_moves);
     const Board copy = *board;
+    double start = clock();
     for (int i = 0; i < num_moves; i++) {
 
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
@@ -54,6 +57,8 @@ unsigned long long splitPerft(Board *board, const int depth) {
         nodes += u;
         *board = copy;
     }
+    double elapsed = clock() - start;
     printf("\nNodes searched: %llu\n", nodes);
+    printf("Knps: %lf\n", round(nodes / elapsed));
     return nodes;
 }

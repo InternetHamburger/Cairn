@@ -99,10 +99,11 @@ void GoCommand(char* line, Board *board) {
         "nodes",
         "depth",
         "wtime", // Assumes btime winc and binc follow
-        "perft"
+        "perft",
+        "softnodes"
     };
     int patlength;
-    int go_type = MatchPatterns(line, go_types, 5, &patlength);
+    int go_type = MatchPatterns(line, go_types, 6, &patlength);
     line += 1 + patlength;
 
     Stack stack = {
@@ -164,6 +165,12 @@ void GoCommand(char* line, Board *board) {
             int perft_depth;
             sscanf(line, "%d", &perft_depth);
             splitPerft(board, perft_depth);
+            break;
+        case 5:
+            int soft_nodes;
+            sscanf(line, "%d", &soft_nodes);
+            stack.soft_node_limit = soft_nodes;
+            search(board, &stack);
             break;
     }
 }

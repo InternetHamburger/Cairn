@@ -7,6 +7,7 @@ unsigned long long knight_moves[64];
 unsigned long long king_moves[64];
 
 uint64_t a_file = 0x0101010101010101;
+uint64_t first_rank = 0xff00000000000000;
 
 __attribute__((constructor))  // runs before main()
 static void init_table(void) {

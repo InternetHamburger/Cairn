@@ -94,8 +94,8 @@ Move StringToMove(char* move, Board *board) {
     const int start_file = startSquare % 8;
     const int start_rank = startSquare / 8;
 
-    const int target_file = startSquare % 8;
-    const int target_rank = startSquare / 8;
+    const int target_file = targetSquare % 8;
+    const int target_rank = targetSquare / 8;
 
     int MoveFlag = none;
 
@@ -104,6 +104,7 @@ Move StringToMove(char* move, Board *board) {
     {
         if (start_file != target_file)
         {
+
             if (board->squares[targetSquare] == 0)
             {
                 MoveFlag = EnPassant;

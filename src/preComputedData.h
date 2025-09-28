@@ -7,5 +7,6 @@
 extern unsigned long long knight_moves[TABLE_SIZE];
 extern unsigned long long king_moves[TABLE_SIZE];
 extern uint64_t a_file;
+extern uint64_t first_rank;
 
 #endif //CAIRN_PRECOMPUTEDDATA_H

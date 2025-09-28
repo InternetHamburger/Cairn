@@ -242,10 +242,7 @@ void* GameLoop(void* arg) {
 
     while (1) {
         PlayGame(this);
-
-        printf("HMM\n");
         pthread_mutex_lock(&mutex);
-
         finished_games++;
 
         WriteGame(&this->game, this->file);

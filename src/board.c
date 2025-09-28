@@ -95,7 +95,8 @@ void MakeMove(Board *board, const Move move) {
     }
 
     if (flag == DoublePush) {
-        board->en_passant_square = start_square + (board->white_to_move ? 8 : -8);
+
+        board->en_passant_square = target_square + (board->white_to_move ? 8 : -8);
         board->zobrist_hash ^= zobrist_ep_squares[board->en_passant_square];
     }
 
