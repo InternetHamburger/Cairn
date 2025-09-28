@@ -241,12 +241,12 @@ PieceType GetType(Piece piece) {
     return piece & 0b0111;
 }
 
-int getlsb(unsigned long long bb) {
+static inline int getlsb(unsigned long long bb) {
     assert(bb);  // lsb(0) is undefined
     return __builtin_ctzll(bb);
 }
 
-int poplsb(unsigned long long *bb) {
+inline int poplsb(uint64_t *bb) {
     int lsb = getlsb(*bb);
     *bb &= *bb - 1;
     return lsb;

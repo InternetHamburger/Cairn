@@ -2,17 +2,15 @@
 #include "utility.h"
 #include "board.h"
 
-const int PIECE_VALUES[] = {0, 100, 300, 300, 500, 900, 0};
+const int PIECE_VALUES[] = {0, 100, 300, 300, 500, 900, 0, 0, 0, -100, -300, -300, -500, -900, 0};
 
 int eval(Board *board) {
+    uint64_t occupied = GetOccupied(board);
 
     int eval = 0;
-    for (int i = 0; i < 64; i++) {
-        if (IsColor(board->white_to_move, board->squares[i])) {
-            eval += PIECE_VALUES[GetType(board->squares[i])];
-        } else if (IsOppositeColor(board->white_to_move, board->squares[i])){
-            eval -= PIECE_VALUES[GetType(board->squares[i])];
-        }
+    while (occupied){
+        const int square = poplsb(&occupied);
+        eval += PIECE_VALUES[board->squares[square]];
     }
     return eval;
 }

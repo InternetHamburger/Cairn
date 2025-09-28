@@ -7,9 +7,9 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <windows.h>
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int finished_games = 0;
 
 Piece ConvertPiece(Piece piece) {
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
@@ -184,6 +184,8 @@ double PlayGame(Thread *this) {
             .hash_index = 0
     };
 
+    double start = clock();
+    int total_nodes = 0;
     while (1){
         stack.hashes[stack.hash_index] = board.zobrist_hash;
         if (IsCheckmate(&board)){
@@ -196,6 +198,7 @@ double PlayGame(Thread *this) {
         }
 
         const SearchResult result = search(&board, &stack);
+        total_nodes += stack.nodes;
         stack.nodes = 0;
 
         MakeMove(&board, result.best_move);
@@ -207,10 +210,9 @@ double PlayGame(Thread *this) {
         this->game.moves[stack.hash_index] |= result.score << 16;
 
         stack.hash_index++;
-
     }
-    this->game.ply = stack.hash_index;
 
+    this->game.ply = stack.hash_index;
     this->thread_id = PseudorandomNumber(&this->thread_id);
     return 0;
 }
@@ -235,43 +237,62 @@ void WriteGame(Game *game, FILE *file) {
     fflush(file);
 }
 
-void* GameLoop(void* arg) {
-    Thread *this = (Thread *)arg;
-    double start = clock();
-    int positions = 0;
+void* GameLoop(Thread *this) {
+
+    HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
+    WaitForSingleObject(hMutex, INFINITE);
 
     while (1) {
         PlayGame(this);
-        pthread_mutex_lock(&mutex);
-        finished_games++;
+        WaitForSingleObject(hMutex, INFINITE);
 
         WriteGame(&this->game, this->file);
-        positions += this->game.ply;
-        const double elapsed = clock() - start;
-        if (!(finished_games % 50)) {
-            printf("Games: %d  Positions: %d  Time elapsed: %lfs\n", finished_games, positions, elapsed / CLOCKS_PER_SEC);
-        }
-        pthread_mutex_unlock(&mutex);
+        ReleaseMutex(hMutex);
+        CloseHandle(hMutex);
+        break;
     }
 
     return NULL;
 }
 
-void Datagen(FILE *file, int num_threads) {
-
-    Thread states[num_threads];
-    pthread_t threads[num_threads];
-
+void Datagen(char* file_path, char* this_path, int num_threads, int seed) {
     for (int i = 0; i < num_threads; i++) {
-        const Thread state = {
-            .thread_id = i + 1,
-            .file = file
-        };
-        states[i] = state;
-        pthread_create(&threads[i], nullptr, GameLoop, &states[i]);
-    }
 
-    for (int i = 0; i < num_threads; i++) {
-        pthread_join(threads[i], nullptr);
+        STARTUPINFO si;
+        PROCESS_INFORMATION pi;
+
+        ZeroMemory(&si, sizeof(si));
+        si.cb = sizeof(si);
+        ZeroMemory(&pi, sizeof(pi));
+
+        HANDLE hJob = CreateJobObject(NULL, NULL);
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {0};
+        jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli));
+
+        AssignProcessToJobObject(hJob, pi.hProcess);
+
+        char cmdLine[256];
+        sprintf(cmdLine, "datagen seed %d output %s", i + seed, file_path);
+
+        if (!CreateProcess(
+                this_path,       // path to executable
+                cmdLine,         // command line arguments (NULL if none)
+                NULL,            // process security attributes
+                NULL,            // thread security attributes
+                FALSE,           // inherit handles
+                0,               // creation flags
+                NULL,            // environment
+                NULL,            // current directory
+                &si,
+                &pi
+        )) {
+            printf("CreateProcess failed (%lu).\n", GetLastError());
+            continue;
+        }
+
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+
     }
 }

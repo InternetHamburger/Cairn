@@ -1,13 +1,26 @@
 #include <stdio.h>
 #include "src/board.h"
-#include "src/preComputedData.h"
+#include "src/datagen.h"
 #include "src/uci.h"
 #include <stdlib.h>
 #include <string.h>
 
-#include "src/utility.h"
+int main(int argc, char *args[]) {
+    if (argc > 1 && (strncmp(args[1], "datagen", strlen("datagen")) == 0)){
+        int seed;
+        sscanf(args[2], "%d", &seed);
+        FILE *file = fopen(args[5], "ab");
+        printf("%s", args[5]);
 
-int main(void) {
+        Thread state = {
+                .thread_id = seed,
+                .file = file
+        };
+
+        GameLoop(&state);
+        return 0;
+    }
+
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
     while (1) {
@@ -19,7 +32,7 @@ int main(void) {
             input[i] = line[i];
         }
         input[strlen(line)] = '\0';
-        ReceiveCommand(input, &board);
+        ReceiveCommand(input, &board, args[0]);
 
     }
     return 0;

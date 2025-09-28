@@ -2,7 +2,7 @@
 #define CAIRN_UCI_H
 #include "board.h"
 
-void ReceiveCommand(char* line, Board *board);
+void ReceiveCommand(char* line, Board *board, char* this_path);
 
 typedef struct {
     void (*function)(void *arg);

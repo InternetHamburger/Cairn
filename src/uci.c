@@ -175,23 +175,30 @@ void GoCommand(char* line, Board *board) {
     }
 }
 
-void RunDatagen(char* line){
+void RunDatagen(char* line, char* this_path){
     int num_threads;
     line += strlen("threads ");
     sscanf(line, "%d", &num_threads);
 
     line += num_threads > 9 ? 3 : 2;
+
+    line += strlen("seed ");
+    uint64_t seed;
+    sscanf(line, "%llu", &seed);
+    while (1){
+        if (line[0] != ' ') line++;
+        else break;
+    }
+    line++;
+
     line += strlen("output ");
     line[strlen(line) - 1] = '\0';
 
-    FILE *file = fopen(line, "ab");
-    constexpr uint8_t padding = 0;
-    fwrite(&padding, sizeof(uint8_t), 1, file); // Padding
 
-    Datagen(file, num_threads);
+    Datagen(line, this_path, num_threads, seed);
 }
 
-void ReceiveCommand(char* line, Board *board) {
+void ReceiveCommand(char* line, Board *board, char* this_path) {
     const char* commands[] = {
         "position",
         "go",
@@ -228,7 +235,7 @@ void ReceiveCommand(char* line, Board *board) {
             printf("id name Cairn\noption name Hash type spin default 16 min 1 max 33554432\nuciok\n");
             break;
         case 6:
-            RunDatagen(line);
+            RunDatagen(line, this_path);
             break;
         case 7:
             PrintBoard(board);
