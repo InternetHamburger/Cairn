@@ -1,6 +1,8 @@
 #ifndef CAIRN_MOVE_H
 #define CAIRN_MOVE_H
 
+#include <stdint.h>
+
 typedef enum{
     none = 0b0000,
     Castle = 0b0001,
@@ -13,7 +15,7 @@ typedef enum{
 } MoveFlag;
 
 typedef struct{
-    short int value; // Format ffffsssssstttttt, f - flag, s - start square, t - target square
+    uint16_t value; // Format ffffsssssstttttt, f - flag, s - start square, t - target square
 } Move;
 
 int StartSquare(Move move);

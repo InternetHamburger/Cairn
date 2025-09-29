@@ -30,7 +30,7 @@ typedef struct {
 
 Piece ConvertPiece(Piece piece);
 Board GenerateRandomPosition(unsigned long long *seed);
-void Datagen(char* file_path, char* this_path, int num_threads, int seed);
+void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed);
 void* GameLoop(Thread *this);
 
 #endif //CAIRN_DATAGEN_H

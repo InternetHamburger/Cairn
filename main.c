@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "src/board.h"
+#include "src/zobrist.h."
 #include "src/datagen.h"
 #include "src/uci.h"
 #include <stdlib.h>
@@ -7,10 +8,12 @@
 
 int main(int argc, char *args[]) {
 
-    if (argc > 1 && (strncmp(args[0], "datagen", strlen("datagen")) == 0)){
-        int seed;
-        sscanf(args[2], "%d", &seed);
-        FILE *file = fopen(args[4], "ab");
+    int offset = argc > 1 && (strncmp(args[1], "datagen", strlen("datagen")) == 0) ? 1 : 0;
+
+    if (argc > 1 && (strncmp(args[offset], "datagen", strlen("datagen")) == 0)){
+        uint64_t seed;
+        sscanf(args[2 + offset], "%llu", &seed);
+        FILE *file = fopen(args[4 + offset], "ab");
 
         Thread state = {
                 .thread_id = seed,

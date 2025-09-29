@@ -18,7 +18,7 @@ bool IsPromotion(const Move move) {
 
 Move MoveConstructor(const int start_square, const int target_square, const MoveFlag flag){
     const Move move = {
-            .value = ((short)(flag) << (short)12) | (start_square << 6) | target_square
+            .value = (flag << 12) | (start_square << 6) | target_square
     };
     return move;
 }

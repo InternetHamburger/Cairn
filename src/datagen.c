@@ -28,13 +28,13 @@ Move ConvertMove(Move move) {
             case 62:
                 new_target_square = 7;
                 break;
-            case 57:
+            case 58:
                 new_target_square = 0;
                 break;
             case 6:
                 new_target_square = 63;
                 break;
-            case 1:
+            case 2:
                 new_target_square = 56;
                 break;
         }
@@ -140,17 +140,17 @@ Board PrepareGame(Thread *this) {
             uint8_t piece = ConvertPiece(rand_pos.squares[square]);
 
             if ((piece & 0b0111) == 0b0011) {// Is a rook
-                piece = piece & 0b1000;
+                piece &= 0b1000;
                 if (rand_pos.white_kingside && square == 63) {
                     piece |= 0b0110;
                 }
-                else if (rand_pos.white_kingside && square == 63) {
+                else if (rand_pos.white_queenside && square == 56) {
                     piece |= 0b0110;
                 }
-                else if (rand_pos.white_kingside && square == 63) {
+                else if (rand_pos.black_kingside && square == 7) {
                     piece |= 0b0110;
                 }
-                else if (rand_pos.white_kingside && square == 63) {
+                else if (rand_pos.black_queenside && square == 0) {
                     piece |= 0b0110;
                 }
                 else {
@@ -158,7 +158,7 @@ Board PrepareGame(Thread *this) {
                 }
             }
 
-            this->game.pieces[index / 2] |= piece << (((index + 1) % 2) * 4);
+            this->game.pieces[index / 2] |= piece << ((index % 2) * 4);
             index++;
         }
     }
@@ -228,9 +228,10 @@ double PlayGame(Thread *this) {
         total_nodes += stack.nodes;
         stack.nodes = 0;
 
+        const Move converted_move = ConvertMove(result.best_move);
+
         MakeMove(&board, result.best_move);
 
-        const Move converted_move = ConvertMove(result.best_move);
 
         this->game.moves[stack.hash_index] = 0;
         this->game.moves[stack.hash_index] |= converted_move.value;
@@ -279,7 +280,7 @@ void* GameLoop(Thread *this) {
     return NULL;
 }
 
-void Datagen(char* file_path, char* this_path, int num_threads, int seed) {
+void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed) {
     for (int i = 0; i < num_threads; i++) {
 
         STARTUPINFO si;
@@ -297,8 +298,8 @@ void Datagen(char* file_path, char* this_path, int num_threads, int seed) {
         AssignProcessToJobObject(hJob, pi.hProcess);
 
         char cmdLine[256];
-
-        sprintf(cmdLine, "datagen seed %d output %s", i + seed, file_path);
+        seed = PseudorandomNumber(&seed);
+        sprintf(cmdLine, "datagen seed %llu output %s", seed, file_path);
         printf("%s\n", cmdLine);
         if (!CreateProcess(
                 this_path,       // path to executable
