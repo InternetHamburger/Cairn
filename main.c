@@ -6,11 +6,11 @@
 #include <string.h>
 
 int main(int argc, char *args[]) {
-    if (argc > 1 && (strncmp(args[1], "datagen", strlen("datagen")) == 0)){
+
+    if (argc > 1 && (strncmp(args[0], "datagen", strlen("datagen")) == 0)){
         int seed;
         sscanf(args[2], "%d", &seed);
-        FILE *file = fopen(args[5], "ab");
-        printf("%s", args[5]);
+        FILE *file = fopen(args[4], "ab");
 
         Thread state = {
                 .thread_id = seed,

@@ -12,11 +12,12 @@
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 Piece ConvertPiece(Piece piece) {
+
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
 }
 
 Move ConvertMove(Move move) {
-    int flag = GetFlag(move);
+    const int flag = GetFlag(move);
 
     int new_flag = 0;
     int new_start_square = 0;
@@ -26,12 +27,16 @@ Move ConvertMove(Move move) {
         switch (TargetSquare(move)) {
             case 62:
                 new_target_square = 7;
+                break;
             case 57:
                 new_target_square = 0;
+                break;
             case 6:
                 new_target_square = 63;
+                break;
             case 1:
                 new_target_square = 56;
+                break;
         }
         new_flag = 0b1000;
     }
@@ -43,14 +48,18 @@ Move ConvertMove(Move move) {
         else if (IsPromotion(move)) {
             new_flag = 0b1100;
             switch (flag) {
-                PromoteQueen:
+                case PromoteQueen:
                     new_flag |= 0b0011;
-                PromoteKnight:
+                    break;
+                case PromoteKnight:
                     new_flag |= 0b0000;
-                PromoteBishop:
+                    break;
+                case PromoteBishop:
                     new_flag |= 0b0001;
-                PromoteRook:
+                    break;
+                case PromoteRook:
                     new_flag |= 0b0010;
+                    break;
             }
         }
     }
@@ -128,7 +137,26 @@ Board PrepareGame(Thread *this) {
     for (int i = 0; i < 64; i++) {
         const int square = FlipSquare(i);
         if (this->game.occupied & (1ULL << i)) {
-            const uint8_t piece = ConvertPiece(rand_pos.squares[square]);
+            uint8_t piece = ConvertPiece(rand_pos.squares[square]);
+
+            if ((piece & 0b0111) == 0b0011) {// Is a rook
+                piece = piece & 0b1000;
+                if (rand_pos.white_kingside && square == 63) {
+                    piece |= 0b0110;
+                }
+                else if (rand_pos.white_kingside && square == 63) {
+                    piece |= 0b0110;
+                }
+                else if (rand_pos.white_kingside && square == 63) {
+                    piece |= 0b0110;
+                }
+                else if (rand_pos.white_kingside && square == 63) {
+                    piece |= 0b0110;
+                }
+                else {
+                    piece |= 0b0011;
+                }
+            }
 
             this->game.pieces[index / 2] |= piece << (((index + 1) % 2) * 4);
             index++;
@@ -149,9 +177,8 @@ Board PrepareGame(Thread *this) {
 
 bool IsCheckmate(Board* board){
     int num_moves = 0;
-    Move* moves = GetMoves(board, &num_moves);
+    const Move* moves = GetMoves(board, &num_moves);
 
-    int num_legal_moves = 0;
     const Board copy = *board;
     for (int i = 0; i < num_moves; i++) {
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
@@ -192,7 +219,7 @@ double PlayGame(Thread *this) {
             this->game.result = board.white_to_move ? 0 : 2;
             break;
         }
-        else if (IsRepetition(stack.hashes, stack.hash_index)){
+        if (IsRepetition(stack.hashes, stack.hash_index)){
             this->game.result = 1;
             break;
         }
@@ -240,18 +267,15 @@ void WriteGame(Game *game, FILE *file) {
 void* GameLoop(Thread *this) {
 
     HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
-    WaitForSingleObject(hMutex, INFINITE);
 
     while (1) {
+
         PlayGame(this);
         WaitForSingleObject(hMutex, INFINITE);
 
         WriteGame(&this->game, this->file);
         ReleaseMutex(hMutex);
-        CloseHandle(hMutex);
-        break;
     }
-
     return NULL;
 }
 
@@ -273,8 +297,9 @@ void Datagen(char* file_path, char* this_path, int num_threads, int seed) {
         AssignProcessToJobObject(hJob, pi.hProcess);
 
         char cmdLine[256];
-        sprintf(cmdLine, "datagen seed %d output %s", i + seed, file_path);
 
+        sprintf(cmdLine, "datagen seed %d output %s", i + seed, file_path);
+        printf("%s\n", cmdLine);
         if (!CreateProcess(
                 this_path,       // path to executable
                 cmdLine,         // command line arguments (NULL if none)
