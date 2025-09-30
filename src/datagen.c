@@ -76,7 +76,9 @@ Board GenerateRandomPosition(unsigned long long *seed) {
     int num_rand_moves = ((*seed >> 43) & 1ULL) == 1 ? 8 : 9;
     for (int num_deep = 0; num_deep < num_rand_moves; num_deep++) {
         int num_moves = 0;
-        Move* moves = GetMoves(&board, &num_moves);
+
+        Move moves[256];
+        GetMoves(&board, moves, &num_moves);
 
         int num_legal_moves = 0;
         Move* legal_moves = malloc(sizeof(Move) * num_moves);
@@ -106,7 +108,6 @@ Board GenerateRandomPosition(unsigned long long *seed) {
             MakeMove(&board, legal_moves[rand_index]);
         }
         prev_copy = copy;
-        free(moves);
         free(legal_moves);
     }
     return board;
@@ -177,7 +178,8 @@ Board PrepareGame(Thread *this) {
 
 bool IsCheckmate(Board* board){
     int num_moves = 0;
-    const Move* moves = GetMoves(board, &num_moves);
+    Move moves[256];
+    GetMoves(board, moves, &num_moves);
 
     const Board copy = *board;
     for (int i = 0; i < num_moves; i++) {
@@ -231,7 +233,6 @@ double PlayGame(Thread *this) {
         const Move converted_move = ConvertMove(result.best_move);
 
         MakeMove(&board, result.best_move);
-
 
         this->game.moves[stack.hash_index] = 0;
         this->game.moves[stack.hash_index] |= converted_move.value;
@@ -300,16 +301,16 @@ void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed) {
         char cmdLine[256];
         seed = PseudorandomNumber(&seed);
         sprintf(cmdLine, "datagen seed %llu output %s", seed, file_path);
-        printf("%s\n", cmdLine);
+        printf("%s this %s\n", cmdLine, this_path);
         if (!CreateProcess(
                 this_path,       // path to executable
                 cmdLine,         // command line arguments (NULL if none)
-                NULL,            // process security attributes
-                NULL,            // thread security attributes
+                nullptr,         // process security attributes
+                nullptr,         // thread security attributes
                 FALSE,           // inherit handles
                 0,               // creation flags
                 NULL,            // environment
-                NULL,            // current directory
+                nullptr,         // current directory
                 &si,
                 &pi
         )) {

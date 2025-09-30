@@ -244,14 +244,13 @@ void GetPawnMoves(Board *board, Move *moves, int *num_moves) {
 }
 
 /// Pseudolegal moves
-Move* GetMoves(Board *board, int *num_moves){
+void GetMoves(Board *board, Move* moves, int *num_moves){
 
     uint64_t enemy_pieces = board->white_to_move ? GetBlackBitboard(board) : GetWhiteBitboard(board);
     uint64_t friendly_pieces = board->white_to_move ? GetWhiteBitboard(board) : GetBlackBitboard(board);
     uint64_t occupied = GetOccupied(board);
 
     // Max number of moves in a position is 218
-    Move* moves = malloc(sizeof(Move) * 256);
     GetPawnMoves(board, moves, num_moves);
     GetKnightMoves(moves, num_moves, board->bitboards[board->white_to_move ? WhiteKnight : BlackKnight], friendly_pieces);
     for (int square = 0; square < 64; square++){
@@ -279,7 +278,4 @@ Move* GetMoves(Board *board, int *num_moves){
             }
         }
     }
-
-
-    return moves;
 }

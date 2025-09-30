@@ -20,7 +20,8 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
     int num_legal_moves = 0;
 
     int num_moves = 0;
-    Move* moves = GetMoves(board, &num_moves);
+    Move moves[256];
+    GetMoves(board, moves, &num_moves);
     const Board copy = *board;
 
     int best_score = NEG_INF;
@@ -41,7 +42,6 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
         *board = copy;
 
         if (stack->nodes > stack->node_limit || clock() - stack->start_time > stack->time_limit) {
-            free(moves);
             return NEG_INF;
         }
 
@@ -52,7 +52,6 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
             }
         }
     }
-    free(moves);
     if (num_legal_moves == 0) {
         if (InCheck(board)) return CHECKMATE;
         return 0; // Stalemate

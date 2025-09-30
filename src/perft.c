@@ -15,7 +15,8 @@ unsigned long long perft(Board *board, const int depth) {
     unsigned long long nodes = 0;
 
     int num_moves = 0;
-    const Move* moves = GetMoves(board, &num_moves);
+    Move moves[256];
+    GetMoves(board, moves, &num_moves);
     const Board copy = *board;
     for (int i = 0; i < num_moves; i++) {
 
@@ -39,7 +40,8 @@ unsigned long long splitPerft(Board *board, const int depth) {
     unsigned long long nodes = 0;
 
     int num_moves = 0;
-    const Move* moves = GetMoves(board, &num_moves);
+    Move moves[256];
+    GetMoves(board, moves, &num_moves);
     const Board copy = *board;
     double start = clock();
     for (int i = 0; i < num_moves; i++) {
