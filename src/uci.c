@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "datagen.h"
+#include "evaluation.h"
 
 int MatchPatterns(char* string, const char* patterns[], int num_patterns, int *patlength) {
     int matched_pattern = -1;
@@ -100,7 +101,7 @@ void GoCommand(char* line, Board *board) {
         "depth",
         "wtime", // Assumes btime winc and binc follow
         "perft",
-        "softnodes"
+        "softnodes",
     };
     int patlength;
     int go_type = MatchPatterns(line, go_types, 6, &patlength);
@@ -172,6 +173,7 @@ void GoCommand(char* line, Board *board) {
             stack.soft_node_limit = soft_nodes;
             search(board, &stack);
             break;
+
     }
 }
 
@@ -208,10 +210,11 @@ void ReceiveCommand(char* line, Board *board, char* this_path) {
         "uci",
         "datagen",
         "d",
+        "eval"
     };
 
     int patlength = 0;
-    const int matched_pattern = MatchPatterns(line, commands, 8, &patlength);
+    const int matched_pattern = MatchPatterns(line, commands, 9, &patlength);
     line += patlength + 1;
     switch (matched_pattern) {
         case -1:
@@ -241,6 +244,9 @@ void ReceiveCommand(char* line, Board *board, char* this_path) {
             PrintBoard(board);
             printf("Fen: %s\n", BoardToFen(board));
             printf("Key: %llu\n", board->zobrist_hash);
+            break;
+        case 8:
+            printf("Raw eval: %d\n", eval(board));
             break;
     }
 }
