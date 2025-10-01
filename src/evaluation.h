@@ -3,6 +3,6 @@
 
 #include "board.h"
 
-int eval(Board *board);
+int eval(const Board *board);
 
 #endif //CAIRN_EVALUATION_H

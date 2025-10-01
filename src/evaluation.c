@@ -71,7 +71,7 @@ int king_table[64] = {
 
 int piece_square_values[BlackKing + 1][64];
 
-__attribute__((constructor))  // runs before main()
+__attribute__((constructor))
 static void init_table(void) {
     for (int i = 0; i < 64; i++)
     {
@@ -91,7 +91,7 @@ static void init_table(void) {
     }
 }
 
-int eval(Board *board) {
+int eval(const Board *board) {
     uint64_t occupied = GetOccupied(board);
 
     int eval = 0;
@@ -99,5 +99,5 @@ int eval(Board *board) {
         const int square = poplsb(&occupied);
         eval += piece_square_values[board->squares[square]][square];
     }
-    return eval;
+    return eval * (board->white_to_move ? 1 : -1);
 }
