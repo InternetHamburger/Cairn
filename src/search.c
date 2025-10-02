@@ -10,7 +10,7 @@
 #include <time.h>
 
 
-int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
+int Negamax(Stack *stack, Board *board, int depth, int ply, bool isTop, Move *move) {
     if (depth == 0) return eval(board);
     stack->hashes[stack->hash_index] = board->zobrist_hash;
     if (IsRepetition(stack->hashes, stack->hash_index)){
@@ -37,7 +37,7 @@ int Negamax(Stack *stack, Board *board, int depth, bool isTop, Move *move) {
         stack->nodes++;
         num_legal_moves++;
         stack->hash_index++;
-        const int score = -Negamax(stack, board, depth - 1, false, move);
+        const int score = -Negamax(stack, board, depth - 1, ply + 1, false, move);
         stack->hash_index--;
         *board = copy;
 
@@ -70,7 +70,7 @@ SearchResult search(Board *board, Stack *stack) {
 
         Move move;
 
-        int score = Negamax(stack, board, depth, true, &move);
+        int score = Negamax(stack, board, depth, 0, true, &move);
         if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
             best_score = score;
             best_move = move;

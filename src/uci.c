@@ -33,7 +33,7 @@ int MatchPattern(char* string, const char* pattern, int *patlength) {
     return matched_pattern;
 }
 
-void ParseMoves(Board *board, char* moves){
+void ParseMoves(Board *board, char* moves, Stack *stack){
     while (1){
         moves++;
         char* move = malloc(4 + 1);
@@ -51,16 +51,20 @@ void ParseMoves(Board *board, char* moves){
             move[5] = '\0';
         }
         MakeMove(board, StringToMove(move, board));
+        stack->hash_index++;
+        stack->hashes[stack->hash_index] = board->zobrist_hash;
         free(move);
         if (moves[0] == '\n') break;
     }
 }
 
-void SetPosition(char* line, Board *board) {
+void SetPosition(char* line, Board *board, Stack *stack) {
     const char* position_types[] = {
         "fen",
         "startpos"
     };
+
+
 
     int num;
     const int pos_type = MatchPatterns(line, position_types, 2, &num);
@@ -85,16 +89,19 @@ void SetPosition(char* line, Board *board) {
     }else if (pos_type == 1) {
         *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
+    stack->hash_index = 0;
+    stack->hashes[stack->hash_index] = board->zobrist_hash;
+
     const int parse_moves = MatchPattern(line, "moves", &num);
     line += num;
 
 
     if (parse_moves != -1){
-        ParseMoves(board, line);
+        ParseMoves(board, line, stack);
     }
 }
 
-void GoCommand(char* line, Board *board) {
+void GoCommand(char* line, Board *board, Stack *stack) {
     const char* go_types[] = {
         "movetime",
         "nodes",
@@ -107,15 +114,14 @@ void GoCommand(char* line, Board *board) {
     int go_type = MatchPatterns(line, go_types, 6, &patlength);
     line += 1 + patlength;
 
-    Stack stack = {
-            .nodes = 0,
-            .node_limit = INT_MAX,
-            .print_info = true,
-            .depth_limit = 255,
-            .soft_node_limit = INT_MAX,
-            .time_limit = INT_MAX,
-            .hash_index = 0
-    };
+
+    stack->nodes = 0;
+    stack->node_limit = INT_MAX;
+    stack->print_info = true;
+    stack->depth_limit = 255;
+    stack->soft_node_limit = INT_MAX;
+    stack->time_limit = INT_MAX;
+
 
     switch (go_type) {
         case -1:
@@ -124,20 +130,20 @@ void GoCommand(char* line, Board *board) {
         case 0:
             int time;
             sscanf(line, "%d", &time);
-            stack.time_limit = time;
-            search(board, &stack);
+            stack->time_limit = time;
+            search(board, stack);
             break;
         case 1:
             int nodes;
             sscanf(line, "%d", &nodes);
-            stack.node_limit = nodes;
-            search(board, &stack);
+            stack->node_limit = nodes;
+            search(board, stack);
             break;
         case 2:
             int depth;
             sscanf(line, "%d", &depth);
-            stack.depth_limit = depth;
-            search(board, &stack);
+            stack->depth_limit = depth;
+            search(board, stack);
             break;
         case 3:
             int white_time;
@@ -159,8 +165,8 @@ void GoCommand(char* line, Board *board) {
             int increment = board->white_to_move ? white_inc : black_inc;
 
             int time_limit = time_left / 20 + increment / 2;
-            stack.time_limit = time_limit;
-            search(board, &stack);
+            stack->time_limit = time_limit;
+            search(board, stack);
             break;
         case 4:
             int perft_depth;
@@ -170,8 +176,8 @@ void GoCommand(char* line, Board *board) {
         case 5:
             int soft_nodes;
             sscanf(line, "%d", &soft_nodes);
-            stack.soft_node_limit = soft_nodes;
-            search(board, &stack);
+            stack->soft_node_limit = soft_nodes;
+            search(board, stack);
             break;
 
     }
@@ -200,7 +206,7 @@ void RunDatagen(char* line, char* this_path){
     Datagen(line, this_path, num_threads, seed);
 }
 
-void ReceiveCommand(char* line, Board *board, char* this_path) {
+void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
     const char* commands[] = {
         "position",
         "go",
@@ -221,10 +227,10 @@ void ReceiveCommand(char* line, Board *board, char* this_path) {
             printf("Invalid command\n");
             return;
         case 0:
-            SetPosition(line, board);
+            SetPosition(line, board, stack);
             break;
         case 1:
-            GoCommand(line, board);
+            GoCommand(line, board, stack);
             break;
         case 2:
             printf("readyok\n");

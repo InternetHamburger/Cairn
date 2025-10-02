@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include "src/board.h"
-#include "src/zobrist.h."
 #include "src/datagen.h"
 #include "src/uci.h"
 #include <stdlib.h>
@@ -25,6 +24,15 @@ int main(int argc, char *args[]) {
     }
 
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    Stack stack = {
+            .nodes = 0,
+            .node_limit = INT_MAX,
+            .print_info = true,
+            .depth_limit = 255,
+            .soft_node_limit = INT_MAX,
+            .time_limit = INT_MAX,
+            .hash_index = 0
+    };
 
     while (1) {
         char line[20000];
@@ -35,7 +43,7 @@ int main(int argc, char *args[]) {
             input[i] = line[i];
         }
         input[strlen(line)] = '\0';
-        ReceiveCommand(input, &board, args[0]);
+        ReceiveCommand(input, &board, args[0], &stack);
 
     }
     return 0;
