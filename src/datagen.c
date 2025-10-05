@@ -217,7 +217,7 @@ double PlayGame(Thread *this) {
             this->game.result = board.white_to_move ? 0 : 2;
             break;
         }
-        if (IsRepetition(stack.hashes, stack.hash_index)){
+        if (IsRepetition(stack.hashes, stack.hash_index) || stack.hash_index > 250){ // Hard limit on length
             this->game.result = 1;
             break;
         }
@@ -225,6 +225,7 @@ double PlayGame(Thread *this) {
 
         const SearchResult result = search(&board, &stack);
         assert(result.best_move.value != 0);
+
         stack.nodes = 0;
         const Move converted_move = ConvertMove(result.best_move);
         MakeMove(&board, result.best_move);
