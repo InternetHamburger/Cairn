@@ -8,11 +8,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <windows.h>
-
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+#include <assert.h>
 
 Piece ConvertPiece(Piece piece) {
-
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
 }
 
@@ -76,9 +74,9 @@ Board GenerateRandomPosition(unsigned long long *seed) {
     int num_rand_moves = ((*seed >> 43) & 1ULL) == 1 ? 8 : 9;
     for (int num_deep = 0; num_deep < num_rand_moves; num_deep++) {
         int num_moves = 0;
-
         Move moves[256];
         GetMoves(&board, moves, &num_moves);
+
 
         int num_legal_moves = 0;
         Move* legal_moves = malloc(sizeof(Move) * num_moves);
@@ -87,6 +85,7 @@ Board GenerateRandomPosition(unsigned long long *seed) {
             if (GetFlag(moves[i]) == Castle && !IsLegalCastle(&board, moves[i])){
                 continue;
             }
+            assert(moves[i].value != 0);
             MakeMove(&board, moves[i]);
             if (IsAttackedBySideToMove(&board, board.white_to_move, board.white_to_move ? board.black_king_square : board.white_king_square)) {
                 board = copy;
@@ -104,7 +103,7 @@ Board GenerateRandomPosition(unsigned long long *seed) {
         else {
             unsigned long long rand_index = *seed % num_legal_moves;
             PseudorandomNumber(seed);
-
+            assert(legal_moves[rand_index].value != 0);
             MakeMove(&board, legal_moves[rand_index]);
         }
         prev_copy = copy;
@@ -180,19 +179,18 @@ bool IsCheckmate(Board* board){
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
-
     const Board copy = *board;
     for (int i = 0; i < num_moves; i++) {
+
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
         }
+        assert(moves[i].value != 0);
         MakeMove(board, moves[i]);
         if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
             *board = copy;
             continue;
         }
-
-
         *board = copy;
 
         return false;
@@ -205,18 +203,16 @@ double PlayGame(Thread *this) {
 
     Stack stack = {
             .nodes = 0,
-            .node_limit = 50000,
+            .node_limit = 10000,
             .print_info = false,
             .depth_limit = 255,
             .soft_node_limit = 5000,
             .time_limit = INT_MAX,
             .hash_index = 0
     };
-
-    double start = clock();
-    int total_nodes = 0;
     while (1){
         stack.hashes[stack.hash_index] = board.zobrist_hash;
+
         if (IsCheckmate(&board)){
             this->game.result = board.white_to_move ? 0 : 2;
             break;
@@ -226,12 +222,11 @@ double PlayGame(Thread *this) {
             break;
         }
 
+
         const SearchResult result = search(&board, &stack);
-        total_nodes += stack.nodes;
+        assert(result.best_move.value != 0);
         stack.nodes = 0;
-
         const Move converted_move = ConvertMove(result.best_move);
-
         MakeMove(&board, result.best_move);
 
         this->game.moves[stack.hash_index] = 0;
@@ -239,10 +234,12 @@ double PlayGame(Thread *this) {
         this->game.moves[stack.hash_index] |= result.score << 16;
 
         stack.hash_index++;
+
     }
 
     this->game.ply = stack.hash_index;
     this->thread_id = PseudorandomNumber(&this->thread_id);
+
     return 0;
 }
 
@@ -271,7 +268,6 @@ void* GameLoop(Thread *this) {
     HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
 
     while (1) {
-
         PlayGame(this);
         WaitForSingleObject(hMutex, INFINITE);
 

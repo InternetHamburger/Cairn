@@ -39,7 +39,7 @@ int main(int argc, char *args[]) {
         fflush(stdout);
         fgets(line, 20000, stdin);
         char* input = malloc(strlen(line) + 1);
-        for (int i = 0; i < strlen(line); i++){
+        for (size_t i = 0; i < strlen(line); i++){
             input[i] = line[i];
         }
         input[strlen(line)] = '\0';

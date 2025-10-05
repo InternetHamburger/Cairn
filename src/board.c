@@ -3,12 +3,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "move.h"
 #include "zobrist.h"
 #include "utility.h"
 #include "preComputedData.h"
 
 void MakeMove(Board *board, const Move move) {
+    assert(move.value != 0);
     const int start_square = StartSquare(move);
     const int target_square = TargetSquare(move);
 
@@ -274,7 +276,7 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
 // Start fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 Board BoardConstructor(const char* fen){
     const int fen_length = strlen(fen);
-    int main_length;
+    int main_length = -1;
     int empty_encountered = 0;
 
     Piece squares[64];
@@ -287,14 +289,14 @@ Board BoardConstructor(const char* fen){
         bitboards[i] = 0;
     }
 
-    bool white_to_move;
+    bool white_to_move = NULL;
     bool white_kingside = false;
     bool white_queenside = false;
     bool black_kingside = false;
     bool black_queenside = false;
-    int en_passant_square = - 1;
-    int white_king_square;
-    int black_king_square;
+    int en_passant_square = -1;
+    int white_king_square = -1;
+    int black_king_square = -1;
     int i = 0;
 
     while (i < fen_length && empty_encountered < 3){

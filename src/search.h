@@ -9,10 +9,10 @@
 typedef struct {
     unsigned long long nodes;
     double start_time;
-    int time_limit;
-    int node_limit;
+    uint64_t time_limit;
+    uint64_t node_limit;
     int depth_limit;
-    int soft_node_limit;
+    uint64_t soft_node_limit;
     bool print_info;
     unsigned long long hashes[MAX_NUM_PLY]; // For threefold repetition
     int hash_index;
@@ -21,7 +21,8 @@ typedef struct {
 typedef struct{
     Move best_move;
     int score;
-    double time_in_part;
+    uint64_t nodes;
+    int depth;
 } SearchResult;
 
 SearchResult search(Board *board, Stack *stack);

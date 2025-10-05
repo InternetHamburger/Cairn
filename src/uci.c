@@ -6,11 +6,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "datagen.h"
 #include "evaluation.h"
 
-int MatchPatterns(char* string, const char* patterns[], int num_patterns, int *patlength) {
+int MatchPatterns(char* string, const char* patterns[], size_t num_patterns, int *patlength) {
     int matched_pattern = -1;
     for (size_t i = 0; i < num_patterns; i++) {
         const size_t patlen = strlen(patterns[i]);
@@ -50,7 +51,9 @@ void ParseMoves(Board *board, char* moves, Stack *stack){
             moves++;
             move[5] = '\0';
         }
-        MakeMove(board, StringToMove(move, board));
+        Move make_move = StringToMove(move, board);
+        assert(make_move.value != 0);
+        MakeMove(board, make_move);
         stack->hash_index++;
         stack->hashes[stack->hash_index] = board->zobrist_hash;
         free(move);
@@ -66,7 +69,7 @@ void SetPosition(char* line, Board *board, Stack *stack) {
 
 
 
-    int num;
+    int num = -1900000;
     const int pos_type = MatchPatterns(line, position_types, 2, &num);
     line += num + 1;
     if (pos_type == -1) {
