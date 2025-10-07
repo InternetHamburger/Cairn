@@ -219,11 +219,12 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
         "uci",
         "datagen",
         "d",
-        "eval"
+        "eval",
+        "r"
     };
 
     int patlength = 0;
-    const int matched_pattern = MatchPatterns(line, commands, 9, &patlength);
+    const int matched_pattern = MatchPatterns(line, commands, 10, &patlength);
     line += patlength + 1;
     switch (matched_pattern) {
         case -1:
@@ -256,6 +257,9 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             break;
         case 8:
             printf("Raw eval: %d\n", eval(board));
+            break;
+        case 9:
+            PrintBitBoard(GetOccupied(board));
             break;
     }
 }
