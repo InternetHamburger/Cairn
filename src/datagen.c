@@ -203,10 +203,10 @@ double PlayGame(Thread *this) {
 
     Stack stack = {
             .nodes = 0,
-            .node_limit = 10000,
+            .node_limit = 60000,
             .print_info = false,
             .depth_limit = 255,
-            .soft_node_limit = 5000,
+            .soft_node_limit = 60000,
             .time_limit = INT_MAX,
             .hash_index = 0
     };
