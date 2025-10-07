@@ -57,7 +57,7 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
 }
 
 int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply, bool isTop, Move *move) {
-    if (depth == 0) return eval(board);
+    if (depth == 0) return qSearch(stack, board, alpha, beta);
     stack->hashes[stack->hash_index] = board->zobrist_hash;
     if (IsRepetition(stack->hashes, stack->hash_index) && ply > 0){
         return 0;
