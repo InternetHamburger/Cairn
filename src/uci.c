@@ -182,7 +182,6 @@ void GoCommand(char* line, Board *board, Stack *stack) {
             stack->soft_node_limit = soft_nodes;
             search(board, stack);
             break;
-
     }
 }
 
@@ -243,6 +242,16 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             exit(0);
         case 4:
             *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+            Stack new = {
+                    .nodes = 0,
+                    .node_limit = INT_MAX,
+                    .print_info = true,
+                    .depth_limit = 255,
+                    .soft_node_limit = INT_MAX,
+                    .time_limit = INT_MAX,
+                    .hash_index = 0
+            };
+            *stack = new;
             break;
         case 5:
             printf("id name Cairn\noption name Hash type spin default 16 min 1 max 33554432\nuciok\n");
