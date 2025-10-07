@@ -56,7 +56,7 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
     return best_score;
 }
 
-int Negamax(Stack *stack, Board *board, int depth, int ply, bool isTop, Move *move) {
+int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply, bool isTop, Move *move) {
     if (depth == 0) return eval(board);
     stack->hashes[stack->hash_index] = board->zobrist_hash;
     if (IsRepetition(stack->hashes, stack->hash_index)){
@@ -84,7 +84,7 @@ int Negamax(Stack *stack, Board *board, int depth, int ply, bool isTop, Move *mo
         stack->nodes++;
         num_legal_moves++;
         stack->hash_index++;
-        const int score = -Negamax(stack, board, depth - 1, ply + 1, false, move);
+        const int score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
         stack->hash_index--;
         *board = copy;
 
@@ -94,10 +94,16 @@ int Negamax(Stack *stack, Board *board, int depth, int ply, bool isTop, Move *mo
 
         if (score > best_score) {
             best_score = score;
-
+            if (score > alpha){
+                alpha = score;
+            }
             if (isTop) {
                 *move = moves[i];
             }
+        }
+
+        if (score >= beta) {
+            break;
         }
     }
     if (num_legal_moves == 0) {
@@ -118,7 +124,7 @@ SearchResult search(Board *board, Stack *stack) {
     for (depth = 1; depth <= stack->depth_limit && !quit; depth++) {
         Move move;
 
-        int score = Negamax(stack, board, depth, 0, true, &move);
+        int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, true, &move);
         assert(move.value != 0);
         if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
             best_score = score;
