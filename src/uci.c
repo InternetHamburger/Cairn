@@ -10,6 +10,8 @@
 
 #include "datagen.h"
 #include "evaluation.h"
+#include "moveOrderer.h"
+#include "moveGeneration.h"
 
 int MatchPatterns(char* string, const char* patterns[], size_t num_patterns, int *patlength) {
     int matched_pattern = -1;
@@ -268,7 +270,6 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             printf("Raw eval: %d\n", eval(board));
             break;
         case 9:
-            PrintBitBoard(GetOccupied(board));
             break;
     }
 }

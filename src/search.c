@@ -6,6 +6,7 @@
 #include "move.h"
 #include "moveGeneration.h"
 #include "zobrist.h"
+#include "moveOrderer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -23,6 +24,7 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
+    OrderMoves(board, moves, num_moves);
     const Board copy = *board;
 
     for (int i = 0; i < num_moves; i++) {
@@ -83,8 +85,9 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
         stack->nodes++;
         num_legal_moves++;
+
         stack->hash_index++;
-        const int score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+        int score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
         stack->hash_index--;
         *board = copy;
 
@@ -118,10 +121,10 @@ SearchResult search(Board *board, Stack *stack) {
 
     Move best_move = MoveConstructor(0, 0, 0);
     int best_score = NEG_INF;
-    bool quit = false;
     stack->start_time = clock();
-    int depth = 1;
-    for (depth = 1; depth <= stack->depth_limit && !quit; depth++) {
+    int depth;
+
+    for (depth = 1; depth <= stack->depth_limit; depth++) {
         Move move;
 
         int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, true, &move);
@@ -129,9 +132,8 @@ SearchResult search(Board *board, Stack *stack) {
         if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
             best_score = score;
             best_move = move;
-        }
-        else if (depth > 1) {
-            quit = true;
+        }else{
+            break;
         }
 
 

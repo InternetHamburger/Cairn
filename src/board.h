@@ -7,7 +7,7 @@
 
 #define MAX_NUM_PLY 17697
 
-typedef enum{
+enum{
     None = 0b0000,
     WhitePawn = 0b0001,
     WhiteKnight = 0b0010,
@@ -21,7 +21,9 @@ typedef enum{
     BlackRook = 0b1100,
     BlackQueen = 0b1101,
     BlackKing = 0b1110,
-} Piece;
+};
+
+typedef uint8_t Piece;
 
 typedef enum{
     Pawn = 0b0001,
@@ -43,7 +45,7 @@ typedef struct{
     int white_king_square;
     int black_king_square;
     uint64_t bitboards[BlackKing + 1];
-    unsigned long long zobrist_hash;
+    uint64_t zobrist_hash;
 } Board;
 
 void MakeMove(Board *board, Move move);
@@ -51,7 +53,7 @@ void PrintBoard(const Board* board);
 bool InCheck(const Board *board);
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
 Board BoardConstructor(const char* fen);
-bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx);
+bool IsRepetition(const uint64_t hashes[MAX_NUM_PLY], int idx);
 uint64_t GetOccupied(const Board *board);
 uint64_t GetWhiteBitboard(const Board *board);
 uint64_t GetBlackBitboard(const Board *board);
