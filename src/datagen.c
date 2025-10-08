@@ -203,10 +203,10 @@ double PlayGame(Thread *this) {
 
     Stack stack = {
             .nodes = 0,
-            .node_limit = 60000,
+            .node_limit = 500000,
             .print_info = false,
             .depth_limit = 255,
-            .soft_node_limit = 60000,
+            .soft_node_limit = 30000,
             .time_limit = INT_MAX,
             .hash_index = 0
     };
@@ -232,7 +232,7 @@ double PlayGame(Thread *this) {
 
         this->game.moves[stack.hash_index] = 0;
         this->game.moves[stack.hash_index] |= converted_move.value;
-        this->game.moves[stack.hash_index] |= result.score << 16;
+        this->game.moves[stack.hash_index] |= ((board.white_to_move ? 1 : -1) * result.score) << 16;
 
         stack.hash_index++;
 
