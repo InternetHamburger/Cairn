@@ -70,6 +70,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
+    OrderMoves(board, moves, num_moves);
     const Board copy = *board;
 
     int best_score = NEG_INF;
