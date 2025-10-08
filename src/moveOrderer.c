@@ -21,5 +21,25 @@ int compare(void *board, const void *a, const void *b){
 }
 
 void OrderMoves(Board *board, Move* moves, int move_length){
-    qsort_s(moves, move_length, sizeof(Move), compare, board);
+    int move_scores[move_length];
+    for (int i = 0; i < move_length; i++){
+        move_scores[i] = mvv_lva(moves[i], board);
+    }
+
+    // Insertion sort implementation
+    for (int i = 1; i < move_length; i++) {
+        Move key_move = moves[i];
+        int key_score = move_scores[i];
+        int j = i - 1;
+
+        while (j >= 0 && move_scores[j] < key_score) {
+            moves[j + 1] = moves[j];
+            move_scores[j + 1] = move_scores[j];
+            j--;
+        }
+
+        moves[j + 1] = key_move;
+        move_scores[j + 1] = key_score;
+    }
+    //qsort_s(moves, move_length, sizeof(Move), compare, board);
 }
