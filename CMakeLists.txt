@@ -22,7 +22,5 @@ add_executable(Cairn
         src/evaluation.c
         src/datagen.c
         src/zobrist.c
-        src/moveGeneration.h
         src/moveOrderer.c
-        src/moveOrderer.h
 )
