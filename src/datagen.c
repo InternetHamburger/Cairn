@@ -232,7 +232,7 @@ double PlayGame(Thread *this) {
 
         this->game.moves[stack.hash_index] = 0;
         this->game.moves[stack.hash_index] |= converted_move.value;
-        this->game.moves[stack.hash_index] |= ((board.white_to_move ? 1 : -1) * result.score) << 16;
+        this->game.moves[stack.hash_index] |= ((board.white_to_move ? -1 : 1) * result.score) << 16;
 
         stack.hash_index++;
 
