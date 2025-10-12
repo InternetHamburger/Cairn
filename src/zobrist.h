@@ -3,14 +3,14 @@
 
 #include "board.h"
 
-extern unsigned long long zobrist_squares[64][BlackKing + 1];
-extern unsigned long long zobrist_ep_squares[64];
-extern unsigned long long zobrist_stm;
-extern unsigned long long zobrist_white_kingside;
-extern unsigned long long zobrist_white_queenside;
-extern unsigned long long zobrist_black_kingside;
-extern unsigned long long zobrist_black_queenside;
+extern uint64_t zobrist_squares[64][BlackKing + 1];
+extern uint64_t zobrist_ep_squares[64];
+extern uint64_t zobrist_stm;
+extern uint64_t zobrist_white_kingside;
+extern uint64_t zobrist_white_queenside;
+extern uint64_t zobrist_black_kingside;
+extern uint64_t zobrist_black_queenside;
 
-unsigned long long PseudorandomNumber(unsigned long long *seed);
+uint64_t PseudorandomNumber(uint64_t *seed);
 
 #endif //CAIRN_ZOBRIST_H

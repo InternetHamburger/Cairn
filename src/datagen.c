@@ -206,7 +206,7 @@ double PlayGame(Thread *this) {
             .node_limit = 500000,
             .print_info = false,
             .depth_limit = 255,
-            .soft_node_limit = 30000,
+            .soft_node_limit = 70000,
             .time_limit = INT_MAX,
             .hash_index = 0
     };
@@ -279,6 +279,8 @@ void* GameLoop(Thread *this) {
 }
 
 void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed) {
+    FILE *file = fopen(file_path, "wb");
+    fclose(file);
     for (int i = 0; i < num_threads; i++) {
 
         STARTUPINFO si;
