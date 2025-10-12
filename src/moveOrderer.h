@@ -4,6 +4,6 @@
 #include "board.h"
 #include "utility.h"
 
-void OrderMoves(Board *board, Move* moves, int move_length);
+void OrderMoves(Board *board, Move* moves, int move_length, Move tt_move);
 
 #endif //CAIRN_MOVEORDERER_H

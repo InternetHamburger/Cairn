@@ -2,6 +2,7 @@
 #include "board.h"
 #include "search.h"
 #include "utility.h"
+#include "transposition.h"
 #include "perft.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,6 +211,48 @@ void RunDatagen(char* line, char* this_path){
     Datagen(line, this_path, num_threads, seed);
 }
 
+void SetOption(char* line){
+    line += strlen("name ");
+
+    const char* option_types[] = {
+            "Hash",
+            "Threads"
+    };
+
+    int patlength;
+    int option_type = MatchPatterns(line, option_types, 6, &patlength);
+
+    line += 1 + patlength;
+    line += strlen("value ");
+
+    switch (option_type) {
+        case -1:
+            printf("Invalid option type\n");
+            break;
+        case 0:
+            uint64_t hash_size;
+            sscanf(line, "%llu", &hash_size);
+
+            free(tt.entries);
+            int num_entries = (int)(hash_size * 1000000 / sizeof(Entry));
+            Entry* entries = malloc(num_entries * sizeof(Entry));
+            tt.num_entries = num_entries;
+            tt.entries = entries;
+            for (int i = 0; i < tt.num_entries; i++) {
+                tt.entries[i].hash = 0;
+                tt.entries[i].best_move.value = 0;
+                tt.entries[i].score = 0;
+                tt.entries[i].depth_node_type = 0;
+            }
+            break;
+        case 1:
+            break;
+        default:
+            printf("Invalid option type\n");
+            break;
+    }
+}
+
 void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
     const char* commands[] = {
         "position",
@@ -221,11 +264,12 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
         "datagen",
         "d",
         "eval",
-        "r"
+        "r",
+        "setoption"
     };
 
     int patlength = 0;
-    const int matched_pattern = MatchPatterns(line, commands, 10, &patlength);
+    const int matched_pattern = MatchPatterns(line, commands, 11, &patlength);
     line += patlength + 1;
     switch (matched_pattern) {
         case -1:
@@ -256,7 +300,10 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             *stack = new;
             break;
         case 5:
-            printf("id name Cairn\noption name Hash type spin default 16 min 1 max 33554432\nuciok\n");
+            printf("id name Cairn\n"
+                   "option name Hash type spin default 16 min 1 max 33554432\n"
+                   "option name Threads type spin default 1 min 1 max 1\n"
+                   "uciok\n");
             break;
         case 6:
             RunDatagen(line, this_path);
@@ -273,7 +320,10 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             int num_moves = 0;
             Move moves[256];
             GetMoves(board, moves, &num_moves);
-            OrderMoves(board, moves, num_moves);
+            OrderMoves(board, moves, num_moves, MoveConstructor(0, 0, 0));
+            break;
+        case 10:
+            SetOption(line);
             break;
     }
 }

@@ -2,10 +2,17 @@
 #include "src/board.h"
 #include "src/datagen.h"
 #include "src/uci.h"
+#include "src/transposition.h"
 #include <stdlib.h>
 #include <string.h>
 
 int main(int argc, char *args[]) {
+
+    int num_entries = 16 * 1000000 / sizeof(Entry);
+    Entry* entries = malloc(num_entries * sizeof(Entry));
+    tt.num_entries = num_entries;
+    tt.entries = entries;
+    ZeroTT();
 
     int offset = argc > 1 && (strncmp(args[1], "datagen", strlen("datagen")) == 0) ? 1 : 0;
 

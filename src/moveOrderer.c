@@ -11,19 +11,19 @@ int mvv_lva(Move move, Board *board){
     return 100 * piece_scores[GetType(board->squares[TargetSquare(move)])] - piece_scores[GetType(board->squares[StartSquare(move)])];
 }
 
-int compare(void *board, const void *a, const void *b){
-    Move *A = (Move*)a;
-    Move *B = (Move*)b;
-    int a_score = mvv_lva(*A, board);
-    int b_score = mvv_lva(*B, board);
-
-    return b_score - a_score;
+int move_score(Move move, Board* board, Move tt_move){
+    if (move.value == tt_move.value){
+        return 1000;
+    }
+    else{
+        return mvv_lva(move, board);
+    }
 }
 
-void OrderMoves(Board *board, Move* moves, int move_length){
+void OrderMoves(Board *board, Move* moves, int move_length, Move tt_move){
     int move_scores[move_length];
     for (int i = 0; i < move_length; i++){
-        move_scores[i] = mvv_lva(moves[i], board);
+        move_scores[i] = move_score(moves[i], board, tt_move);
     }
 
     // Insertion sort implementation

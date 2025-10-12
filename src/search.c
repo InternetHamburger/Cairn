@@ -1,9 +1,9 @@
 #include "search.h"
-#include <limits.h>
 #include "utility.h"
 #include "board.h"
 #include "evaluation.h"
 #include "move.h"
+#include "transposition.h"
 #include "moveGeneration.h"
 #include "zobrist.h"
 #include "moveOrderer.h"
@@ -24,7 +24,7 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
-    OrderMoves(board, moves, num_moves);
+    OrderMoves(board, moves, num_moves, MoveConstructor(0, 0, 0));
     const Board copy = *board;
 
     for (int i = 0; i < num_moves; i++) {
@@ -65,15 +65,22 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         return 0;
     }
 
+    uint64_t tt_index = board->zobrist_hash % tt.num_entries;
+
+    Entry entry = tt.entries[tt_index];
+
     int num_legal_moves = 0;
 
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
-    OrderMoves(board, moves, num_moves);
+    Move tt_move = board->zobrist_hash == entry.hash ? entry.best_move : MoveConstructor(0, 0, 0);
+    OrderMoves(board, moves, num_moves, tt_move);
     const Board copy = *board;
+    bool alpha_raised = false;
 
     int best_score = NEG_INF;
+    Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
@@ -97,7 +104,9 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
 
         if (score > best_score) {
+            alpha_raised = true;
             best_score = score;
+            best_move = moves[i];
             if (score > alpha){
                 alpha = score;
             }
@@ -107,19 +116,42 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
 
         if (score >= beta) {
-            break;
+            Entry new_entry = {
+                    .hash = board->zobrist_hash,
+                    .best_move = best_move,
+                    .score = (int16_t)best_score,
+                    .depth_node_type = LOWER | depth
+
+            };
+            tt.entries[tt_index] = new_entry;
+
+            return best_score;
         }
     }
     if (num_legal_moves == 0) {
         if (InCheck(board)) return CHECKMATE;
         return 0; // Stalemate
     }
-
+    Entry new_entry = {
+            .hash = board->zobrist_hash,
+            .best_move = best_move,
+            .score = (int16_t)best_score,
+    };
+    if (alpha_raised)
+    {
+        new_entry.depth_node_type = EXACT | depth;
+    }
+    else
+    {
+        new_entry.depth_node_type = UPPER | depth;
+    }
+    tt.entries[tt_index] = new_entry;
     return best_score;
 }
 
 SearchResult search(Board *board, Stack *stack) {
 
+    ZeroTT();
     Move best_move = MoveConstructor(0, 0, 0);
     int best_score = NEG_INF;
     stack->start_time = clock();

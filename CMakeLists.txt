@@ -23,4 +23,6 @@ add_executable(Cairn
         src/datagen.c
         src/zobrist.c
         src/moveOrderer.c
+        src/transposition.c
+        src/transposition.h
 )
