@@ -91,11 +91,21 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             *board = copy;
             continue;
         }
+
         stack->nodes++;
         num_legal_moves++;
-
         stack->hash_index++;
-        int score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+
+        int score;
+        if (i == 0){
+            score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+        }else{
+            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1, ply + 1, false, move);
+            if (score > alpha && beta - alpha > 1){
+                score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+            }
+        }
+
         stack->hash_index--;
         *board = copy;
 
