@@ -3,6 +3,8 @@ project(Cairn C)
 
 set(CMAKE_C_STANDARD 23)
 
+set(CMAKE_AR "gcc-ar")
+
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -flto -Wall -Wextra")
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
