@@ -95,7 +95,19 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         num_legal_moves++;
 
         stack->hash_index++;
-        int score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+        int score;
+        if (i == 0)
+        {
+            score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+        }
+        else
+        {
+            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1, ply + 1, false, move);
+            if (score > alpha && beta - alpha > 1)
+            {
+                score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+            }
+        }
         stack->hash_index--;
         *board = copy;
 
@@ -160,7 +172,7 @@ SearchResult search(Board *board, Stack *stack) {
     for (depth = 1; depth <= stack->depth_limit; depth++) {
         Move move;
 
-        int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, true, &move);
+        const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, true, &move);
         assert(move.value != 0);
         if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
             best_score = score;
