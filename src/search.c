@@ -66,8 +66,13 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     }
 
     uint64_t tt_index = board->zobrist_hash % tt.num_entries;
-
     Entry entry = tt.entries[tt_index];
+
+    const int static_eval = eval(board);
+    if (static_eval >= beta + 150 * depth && !InCheck(board))
+    {
+        return static_eval;
+    }
 
     int num_legal_moves = 0;
 
