@@ -12,6 +12,12 @@
 #include <time.h>
 #include <assert.h>
 
+void Init()
+{
+    ZeroTT();
+    ZeroHist();
+}
+
 int qSearch(Stack *stack, Board *board, int alpha, int beta){
     int static_eval = eval(board);
 
@@ -142,12 +148,12 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
 
         if (score >= beta) {
-            Entry new_entry = {
+            UpdateHistTable(board, moves[i], depth * depth);
+            const Entry new_entry = {
                     .hash = board->zobrist_hash,
                     .best_move = best_move,
                     .score = (int16_t)best_score,
                     .depth_node_type = LOWER | depth
-
             };
             tt.entries[tt_index] = new_entry;
 
@@ -176,8 +182,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 }
 
 SearchResult search(Board *board, Stack *stack) {
-
-    ZeroTT();
+    Init();
     Move best_move = MoveConstructor(0, 0, 0);
     int best_score = NEG_INF;
     stack->start_time = clock();
