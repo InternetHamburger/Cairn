@@ -135,7 +135,7 @@ int eg_king_table[64] = {
 };
 
 const int mg_piece_values[] = {0, 122, 210, 237, 418, 662, 0};
-const int eg_piece_values[] = {0, 78, 255, 278, 411, 768, 0}
+const int eg_piece_values[] = {0, 78, 255, 278, 411, 768, 0};
 
 int mg_piece_square_values[BlackKing + 1][64];
 int eg_piece_square_values[BlackKing + 1][64];
