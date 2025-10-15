@@ -64,9 +64,18 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     if (IsRepetition(stack->hashes, stack->hash_index) && ply > 0){
         return 0;
     }
+    const bool is_pv = beta - alpha > 1;
 
-    uint64_t tt_index = board->zobrist_hash % tt.num_entries;
-    Entry entry = tt.entries[tt_index];
+    const uint64_t tt_index = board->zobrist_hash % tt.num_entries;
+    const Entry entry = tt.entries[tt_index];
+
+    if (GetDepth(entry) >= depth && ply > 0 && board->zobrist_hash == entry.hash && !is_pv)
+    {
+        if (GetEntryType(entry) == EXACT)
+        {
+            return entry.score;
+        }
+    }
 
     const int static_eval = eval(board);
     if (static_eval >= beta + 150 * depth && !InCheck(board))
