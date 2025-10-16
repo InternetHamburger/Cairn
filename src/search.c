@@ -12,6 +12,12 @@
 #include <time.h>
 #include <assert.h>
 
+void Init()
+{
+    ZeroTT();
+    ZeroHist();
+}
+
 int qSearch(Stack *stack, Board *board, int alpha, int beta){
     int static_eval = eval(board);
 
@@ -84,17 +90,18 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     }
 
     int num_legal_moves = 0;
-
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
+
     Move tt_move = board->zobrist_hash == entry.hash ? entry.best_move : MoveConstructor(0, 0, 0);
     OrderMoves(board, moves, num_moves, tt_move);
+
     const Board copy = *board;
     bool alpha_raised = false;
-
     int best_score = NEG_INF;
     Move best_move = MoveConstructor(0, 0, 0);
+
     for (int i = 0; i < num_moves; i++) {
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
@@ -105,6 +112,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             *board = copy;
             continue;
         }
+
         stack->nodes++;
         num_legal_moves++;
 
@@ -142,12 +150,14 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
 
         if (score >= beta) {
-            Entry new_entry = {
+            if (board->squares[TargetSquare(moves[i])] == None){
+                UpdateHistTable(board, moves[i], depth * depth);
+            }
+            const Entry new_entry = {
                     .hash = board->zobrist_hash,
                     .best_move = best_move,
                     .score = (int16_t)best_score,
                     .depth_node_type = LOWER | depth
-
             };
             tt.entries[tt_index] = new_entry;
 
@@ -176,8 +186,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 }
 
 SearchResult search(Board *board, Stack *stack) {
-
-    ZeroTT();
+    Init();
     Move best_move = MoveConstructor(0, 0, 0);
     int best_score = NEG_INF;
     stack->start_time = clock();
@@ -198,12 +207,12 @@ SearchResult search(Board *board, Stack *stack) {
 
         const int time_elapsed = (int)(clock() - stack->start_time);
         if (stack->print_info){
-        printf("info depth %d", depth);
-        printf(" score cp %d", best_score);
-        printf(" nodes %llu", stack->nodes);
-        printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
-        printf(" time %d", time_elapsed);
-        printf(" pv %s\n", MoveToString(best_move));
+            printf("info depth %d", depth);
+            printf(" score cp %d", best_score);
+            printf(" nodes %llu", stack->nodes);
+            printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
+            printf(" time %d", time_elapsed);
+            printf(" pv %s\n", MoveToString(best_move));
         }
     }
     if (best_move.value == 0){

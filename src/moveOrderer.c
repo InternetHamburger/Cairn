@@ -1,11 +1,29 @@
+#include "moveOrderer.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "board.h"
 #include "utility.h"
 
 
 
+
+int history_table[BlackKing + 1][64];
+
 const int piece_scores[] = {0, 1, 3, 3, 5, 9, 0};
+
+void ZeroHist()
+{
+    memset(history_table, 0, sizeof(history_table));
+}
+
+void UpdateHistTable(const Board* board, const Move move, const int bonus)
+{
+    int* hist_value = &history_table[board->squares[StartSquare(move)]][TargetSquare(move)];
+    *hist_value += bonus - *hist_value * abs(bonus) / MAX_HISTORY;
+}
 
 int mvv_lva(Move move, Board *board){
     return 100 * piece_scores[GetType(board->squares[TargetSquare(move)])] - piece_scores[GetType(board->squares[StartSquare(move)])];
@@ -15,9 +33,10 @@ int move_score(Move move, Board* board, Move tt_move){
     if (move.value == tt_move.value){
         return 1000;
     }
-    else{
+    if (board->squares[TargetSquare(move)] != None){
         return mvv_lva(move, board);
     }
+    return history_table[board->squares[StartSquare(move)]][TargetSquare(move)] - MAX_HISTORY; // Ensure quiet moves are ordered last
 }
 
 void OrderMoves(Board *board, Move* moves, int move_length, Move tt_move){
