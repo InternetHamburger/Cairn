@@ -10,6 +10,8 @@
 #include <windows.h>
 #include <assert.h>
 
+#include "transposition.h"
+
 Piece ConvertPiece(Piece piece) {
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
 }
@@ -210,6 +212,7 @@ double PlayGame(Thread *this) {
             .time_limit = INT_MAX,
             .hash_index = 0
     };
+    ZeroTT();
     while (1){
         stack.hashes[stack.hash_index] = board.zobrist_hash;
 
