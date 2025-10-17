@@ -14,7 +14,6 @@
 
 void Init()
 {
-    ZeroTT();
     ZeroHist();
 }
 

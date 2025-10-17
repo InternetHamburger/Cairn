@@ -287,6 +287,8 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
         case 3:
             exit(0);
         case 4:
+            ZeroTT();
+            ZeroHist();
             *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
             Stack new = {
                     .nodes = 0,
