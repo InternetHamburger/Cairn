@@ -176,6 +176,7 @@ static void init_table(void) {
 
 int eval(const Board *board) {
     uint64_t occupied = GetOccupied(board);
+    int num_pieces = __builtin_popcountll(occupied);
 
     int mg_eval = 0;
     int eg_eval = 0;
@@ -186,7 +187,6 @@ int eval(const Board *board) {
     }
 
     // Interpolate based on number of pieces
-    int num_pieces = __builtin_popcountll(occupied);
     int eval = (mg_eval * num_pieces + eg_eval * (32 - num_pieces)) / 32;
 
     return eval * (board->white_to_move ? 1 : -1);
