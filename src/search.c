@@ -64,6 +64,11 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
 }
 
 int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply, bool isTop, Move *move) {
+
+    const bool in_check = InCheck(board);
+
+    if (in_check)
+        depth++;
     if (depth <= 0) return qSearch(stack, board, alpha, beta);
     stack->hashes[stack->hash_index] = board->zobrist_hash;
     if (IsRepetition(stack->hashes, stack->hash_index) && ply > 0){
@@ -83,7 +88,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     }
 
     const int static_eval = eval(board);
-    if (static_eval >= beta + 150 * depth && !InCheck(board))
+    if (static_eval >= beta + 150 * depth && !in_check)
     {
         return static_eval;
     }
@@ -111,6 +116,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             *board = copy;
             continue;
         }
+
+
 
         stack->nodes++;
         num_legal_moves++;
