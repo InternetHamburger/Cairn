@@ -60,5 +60,4 @@ void OrderMoves(Board *board, Move* moves, int move_length, Move tt_move){
         moves[j + 1] = key_move;
         move_scores[j + 1] = key_score;
     }
-    //qsort_s(moves, move_length, sizeof(Move), compare, board);
 }

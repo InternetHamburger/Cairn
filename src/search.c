@@ -11,10 +11,22 @@
 #include <stdlib.h>
 #include <time.h>
 #include <assert.h>
+#include <math.h>
 
 void Init()
 {
     ZeroHist();
+}
+
+int lmr_reduction[255][218]; // Indexed by [depth][move_num]
+
+__attribute__((constructor))
+static void init_table(){
+    for (int depth = 1; depth < 255; depth++){
+        for (int move_num = 1; move_num < 218; move_num++){
+            lmr_reduction[depth][move_num] = (int)(1 + log(depth) * log(move_num) / 3);
+        }
+    }
 }
 
 int qSearch(Stack *stack, Board *board, int alpha, int beta){
@@ -64,6 +76,11 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
 }
 
 int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply, bool isTop, Move *move) {
+
+    const bool in_check = InCheck(board);
+
+    if (in_check)
+        depth++;
     if (depth <= 0) return qSearch(stack, board, alpha, beta);
     stack->hashes[stack->hash_index] = board->zobrist_hash;
     if (IsRepetition(stack->hashes, stack->hash_index) && ply > 0){
@@ -83,7 +100,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     }
 
     const int static_eval = eval(board);
-    if (static_eval >= beta + 150 * depth && !InCheck(board))
+    if (static_eval >= beta + 150 * depth && !in_check)
     {
         return static_eval;
     }
@@ -112,6 +129,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             continue;
         }
 
+
+
         stack->nodes++;
         num_legal_moves++;
 
@@ -123,7 +142,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
         else
         {
-            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 2, ply + 1, false, move);
+            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - lmr_reduction[depth][num_legal_moves], ply + 1, false, move);
             if (score > alpha && beta - alpha > 1)
             {
                 score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
