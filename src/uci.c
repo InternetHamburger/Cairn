@@ -319,10 +319,6 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             printf("Raw eval: %d\n", eval(board));
             break;
         case 9:
-            int num_moves = 0;
-            Move moves[256];
-            GetMoves(board, moves, &num_moves);
-            OrderMoves(board, moves, num_moves, MoveConstructor(0, 0, 0));
             break;
         case 10:
             SetOption(line);

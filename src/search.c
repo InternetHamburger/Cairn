@@ -41,7 +41,7 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
-    OrderMoves(board, moves, num_moves, MoveConstructor(0, 0, 0));
+    OrderMoves(board, moves, num_moves, 0, MoveConstructor(0, 0, 0));
     const Board copy = *board;
 
     for (int i = 0; i < num_moves; i++) {
@@ -111,7 +111,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     GetMoves(board, moves, &num_moves);
 
     Move tt_move = board->zobrist_hash == entry.hash ? entry.best_move : MoveConstructor(0, 0, 0);
-    OrderMoves(board, moves, num_moves, tt_move);
+    OrderMoves(board, moves, num_moves, ply, tt_move);
 
     const Board copy = *board;
     bool alpha_raised = false;
@@ -169,6 +169,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
         if (score >= beta) {
             if (board->squares[TargetSquare(moves[i])] == None){
+                UpdateKillers(moves[i], ply);
                 UpdateHistTable(board, moves[i], depth * depth);
             }
             const Entry new_entry = {
