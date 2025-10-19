@@ -11,10 +11,22 @@
 #include <stdlib.h>
 #include <time.h>
 #include <assert.h>
+#include <math.h>
 
 void Init()
 {
     ZeroHist();
+}
+
+int lmr_reduction[255][218]; // Indexed by [depth][move_num]
+
+__attribute__((constructor))
+static void init_table(){
+    for (int depth = 1; depth < 255; depth++){
+        for (int move_num = 1; move_num < 218; move_num++){
+            lmr_reduction[depth][move_num] = (int)(1 + log(depth) * log(move_num) / 3);
+        }
+    }
 }
 
 int qSearch(Stack *stack, Board *board, int alpha, int beta){
@@ -123,7 +135,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
         else
         {
-            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 2, ply + 1, false, move);
+            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - lmr_reduction[depth][num_legal_moves], ply + 1, false, move);
             if (score > alpha && beta - alpha > 1)
             {
                 score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
