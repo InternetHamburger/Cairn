@@ -200,7 +200,7 @@ bool IsCheckmate(Board* board){
     return true;
 }
 
-double PlayGame(Thread *this) {
+int PlayGame(Thread *this) {
     Board board = PrepareGame(this);
 
     Stack stack = {
@@ -213,6 +213,13 @@ double PlayGame(Thread *this) {
             .hash_index = 0
     };
     ZeroTT();
+
+    SearchResult check = search(&board, &stack);
+    if (abs(check.score) >= 200)
+    {
+        return -1;
+    }
+
     while (1){
         stack.hashes[stack.hash_index] = board.zobrist_hash;
 
@@ -272,9 +279,12 @@ void* GameLoop(Thread *this) {
     HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
 
     while (1) {
-        PlayGame(this);
+        const int res = PlayGame(this);
+        if (res == -1)
+        {
+            continue;
+        }
         WaitForSingleObject(hMutex, INFINITE);
-
         WriteGame(&this->game, this->file);
         ReleaseMutex(hMutex);
     }
