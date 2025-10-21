@@ -16,7 +16,13 @@ typedef struct {
     bool print_info;
     unsigned long long hashes[MAX_NUM_PLY]; // For threefold repetition
     int hash_index;
+    Move pv_table[257][218];
 } Stack;
+
+typedef struct {
+    int length, score;
+    Move line[MAX_NUM_PLY];
+} PVariation;
 
 typedef struct{
     Move best_move;
@@ -24,6 +30,7 @@ typedef struct{
     uint64_t nodes;
     int depth;
 } SearchResult;
+
 
 SearchResult search(Board *board, Stack *stack);
 
