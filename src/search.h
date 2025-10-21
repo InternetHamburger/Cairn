@@ -21,7 +21,7 @@ typedef struct {
 
 typedef struct {
     int length, score;
-    Move line[MAX_NUM_PLY];
+    Move line[256];
 } PVariation;
 
 typedef struct{
