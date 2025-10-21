@@ -35,7 +35,7 @@ int main(int argc, char *args[]) {
             .nodes = 0,
             .node_limit = INT_MAX,
             .print_info = true,
-            .depth_limit = 255,
+            .depth_limit = 127,
             .soft_node_limit = INT_MAX,
             .time_limit = INT_MAX,
             .hash_index = 0

@@ -205,7 +205,7 @@ double PlayGame(Thread *this) {
             .nodes = 0,
             .node_limit = 100000,
             .print_info = false,
-            .depth_limit = 255,
+            .depth_limit = 127,
             .soft_node_limit = 50000,
             .time_limit = INT_MAX,
             .hash_index = 0
@@ -271,7 +271,6 @@ void* GameLoop(Thread *this) {
     while (1) {
         PlayGame(this);
         WaitForSingleObject(hMutex, INFINITE);
-
         WriteGame(&this->game, this->file);
         ReleaseMutex(hMutex);
     }
