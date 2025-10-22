@@ -12,6 +12,7 @@
 #include <time.h>
 #include <assert.h>
 #include <math.h>
+#include <string.h>
 
 void Init()
 {
@@ -75,9 +76,12 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
     return best_score;
 }
 
-int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply, bool isTop, Move *move) {
+int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply, PVariation *pv) {
 
     const bool in_check = InCheck(board);
+    PVariation lpv;
+
+    pv->length = 0;
 
     if (in_check)
         depth++;
@@ -129,8 +133,6 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             continue;
         }
 
-
-
         stack->nodes++;
         num_legal_moves++;
 
@@ -138,14 +140,14 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         int score;
         if (i == 0)
         {
-            score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+            score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
         }
         else
         {
-            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - lmr_reduction[depth][num_legal_moves], ply + 1, false, move);
+            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - lmr_reduction[depth][num_legal_moves], ply + 1, &lpv);
             if (score > alpha && beta - alpha > 1)
             {
-                score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, false, move);
+                score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
             }
         }
         stack->hash_index--;
@@ -161,9 +163,9 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             best_move = moves[i];
             if (score > alpha){
                 alpha = score;
-            }
-            if (isTop) {
-                *move = moves[i];
+                pv->length = 1 + lpv.length;
+                pv->line[0] = moves[i];
+                memcpy(pv->line + 1, lpv.line, sizeof(Move) * lpv.length);
             }
         }
 
@@ -212,13 +214,12 @@ SearchResult search(Board *board, Stack *stack) {
     int depth;
 
     for (depth = 1; depth <= stack->depth_limit; depth++) {
-        Move move;
-
-        const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, true, &move);
+        PVariation pv;
+        const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
         assert(move.value != 0);
         if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
             best_score = score;
-            best_move = move;
+            best_move = pv.line[0];
         }else{
             break;
         }
@@ -231,7 +232,13 @@ SearchResult search(Board *board, Stack *stack) {
             printf(" nodes %llu", stack->nodes);
             printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
             printf(" time %d", time_elapsed);
-            printf(" pv %s\n", MoveToString(best_move));
+
+            printf(" pv ");
+            for (int i = 0; i < pv.length; i++) {
+                char* moveStr = MoveToString(pv.line[i]);
+                printf("%s ", moveStr);
+            }
+            printf("\n");
         }
     }
     if (best_move.value == 0){
@@ -260,12 +267,10 @@ SearchResult search(Board *board, Stack *stack) {
         if (num_legal_moves == 0) {
             exit(-2);
         }
-        else {
-            uint64_t seed = num_legal_moves;
-            unsigned long long rand_index = PseudorandomNumber(&seed) % num_legal_moves;
-            assert(legal_moves[rand_index].value != 0);
-            best_move = legal_moves[rand_index];
-        }
+        uint64_t seed = num_legal_moves;
+        unsigned long long rand_index = PseudorandomNumber(&seed) % num_legal_moves;
+        assert(legal_moves[rand_index].value != 0);
+        best_move = legal_moves[rand_index];
         free(legal_moves);
     }
 

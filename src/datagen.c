@@ -10,8 +10,6 @@
 #include <windows.h>
 #include <assert.h>
 
-#include "transposition.h"
-
 Piece ConvertPiece(Piece piece) {
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
 }
@@ -200,26 +198,18 @@ bool IsCheckmate(Board* board){
     return true;
 }
 
-int PlayGame(Thread *this) {
+double PlayGame(Thread *this) {
     Board board = PrepareGame(this);
 
     Stack stack = {
             .nodes = 0,
-            .node_limit = 30000,
+            .node_limit = 16000,
             .print_info = false,
             .depth_limit = 255,
-            .soft_node_limit = 16000,
+            .soft_node_limit = 50000,
             .time_limit = INT_MAX,
             .hash_index = 0
     };
-    ZeroTT();
-
-    SearchResult check = search(&board, &stack);
-    if (abs(check.score) >= 200)
-    {
-        return -1;
-    }
-
     while (1){
         stack.hashes[stack.hash_index] = board.zobrist_hash;
 
@@ -279,12 +269,9 @@ void* GameLoop(Thread *this) {
     HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
 
     while (1) {
-        const int res = PlayGame(this);
-        if (res == -1)
-        {
-            continue;
-        }
+        PlayGame(this);
         WaitForSingleObject(hMutex, INFINITE);
+
         WriteGame(&this->game, this->file);
         ReleaseMutex(hMutex);
     }
