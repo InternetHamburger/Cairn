@@ -186,7 +186,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
     }
     if (num_legal_moves == 0) {
-        if (InCheck(board)) return CHECKMATE;
+        if (InCheck(board)) return CHECKMATE + ply;
         return 0; // Stalemate
     }
     Entry new_entry = {
