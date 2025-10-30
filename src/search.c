@@ -123,6 +123,13 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     Move best_move = MoveConstructor(0, 0, 0);
 
     for (int i = 0; i < num_moves; i++) {
+
+        // Late move pruning
+        if (!in_check && i >= 5 + 2 * depth * depth)
+        {
+            continue;
+        }
+
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
         }
