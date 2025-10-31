@@ -114,6 +114,9 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     Move moves[256];
     GetMoves(board, moves, &num_moves);
 
+    Move quiet_moves[num_moves];
+    int num_quiets = 0;
+
     Move tt_move = board->zobrist_hash == entry.hash ? entry.best_move : MoveConstructor(0, 0, 0);
     OrderMoves(board, moves, num_moves, ply, tt_move);
 
@@ -124,6 +127,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
     for (int i = 0; i < num_moves; i++) {
 
+        const bool is_capture = board->squares[TargetSquare(moves[i])] != None;
         // Late move pruning
         if (!in_check && i >= 5 + 2 * depth * depth)
         {
@@ -138,6 +142,11 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
             *board = copy;
             continue;
+        }
+
+        if (!is_capture)
+        {
+            quiet_moves[num_quiets++] = moves[i];
         }
 
         stack->nodes++;
@@ -177,9 +186,18 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
 
         if (score >= beta) {
-            if (board->squares[TargetSquare(moves[i])] == None){
+            if (!is_capture){
                 UpdateKillers(moves[i], ply);
-                UpdateHistTable(board, moves[i], depth * depth);
+                for (int j = 0; j < num_quiets; j++)
+                {
+                    if (quiet_moves[j].value == moves[i].value)
+                    {
+                        UpdateHistTable(board, moves[i], depth * depth);
+                    }else
+                    {
+                        UpdateHistTable(board, quiet_moves[j], -depth * depth);
+                    }
+                }
             }
             const Entry new_entry = {
                     .hash = board->zobrist_hash,
