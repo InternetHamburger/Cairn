@@ -129,7 +129,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
         const bool is_capture = board->squares[TargetSquare(moves[i])] != None;
         // Late move pruning
-        if (!in_check && i >= 5 + 2 * depth * depth)
+        if (!in_check && !is_capture && i >= 5 + 2 * depth * depth)
         {
             continue;
         }
