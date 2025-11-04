@@ -241,7 +241,7 @@ SearchResult search(Board *board, Stack *stack) {
     for (depth = 1; depth <= stack->depth_limit; depth++) {
         PVariation pv;
         const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
-        assert(move.value != 0);
+        assert(pv.line[0].value != 0);
         if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
             best_score = score;
             best_move = pv.line[0];
