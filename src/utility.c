@@ -17,6 +17,15 @@ int FlipSquare(int square) {
     return square ^ 0b111000;
 }
 
+bool IsDiagonalSlider(Piece piece){
+    PieceType type = GetType(piece);
+    return type == Queen || type == Bishop;
+}
+
+bool IsOrthogonalSlider(Piece piece){
+    PieceType type = GetType(piece);
+    return type == Queen || type == Rook;
+}
 
 char* SquareToString(int square){
     const int rank = square / 8;
@@ -241,7 +250,7 @@ PieceType GetType(Piece piece) {
     return piece & 0b0111;
 }
 
-static inline int getlsb(unsigned long long bb) {
+int getlsb(unsigned long long bb) {
     assert(bb);  // lsb(0) is undefined
     return __builtin_ctzll(bb);
 }

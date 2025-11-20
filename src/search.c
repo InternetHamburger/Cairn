@@ -50,6 +50,12 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
         }
+
+        // Skip bad captures
+        if (!staticExchangeEvaluation(board, moves[i], 0))
+        {
+            continue;
+        }
         MakeMove(board, moves[i]);
         if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
             *board = copy;
