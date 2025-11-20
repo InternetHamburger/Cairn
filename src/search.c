@@ -104,7 +104,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     }
 
     const int static_eval = eval(board);
-    if (static_eval >= beta + 100 * depth && !in_check)
+    if (static_eval >= beta + 60 * depth && !in_check)
     {
         return static_eval;
     }
