@@ -158,13 +158,21 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         {
             score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
         }
-        else
+        else if (depth >= 3)
         {
             int r = lmr_reduction[depth][num_legal_moves];
             r -= is_pv;
             r = __max(r, 0);
             score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
             if (score > alpha)
+            {
+                score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
+            }
+        }
+        else
+        {
+            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1, ply + 1, &lpv);
+            if (score > alpha && is_pv)
             {
                 score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
             }
