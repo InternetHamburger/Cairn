@@ -469,7 +469,6 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
 
     for (int direction = 0; direction < 8; direction++)
     {
-
         if (!(sliders & rays[square][direction])) continue;
 
         while (1)
@@ -482,6 +481,10 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
             Piece pieceOnTargetSquare = board->squares[target_square];
             bool isOccupied = (targetBitboard & occupied) != 0;
 
+            if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
+                break; // Outside board
+            }
+
             // Blocked by non-slider piece
             if (targetBitboard & nonSliders)
             {
@@ -493,12 +496,11 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
                 attackers |= targetBitboard;
                 break;
             }
-            else if (IsDiagonalSlider(pieceOnTargetSquare) && direction < 4 && isOccupied)
+            if (IsDiagonalSlider(pieceOnTargetSquare) && direction < 4 && isOccupied)
             {
                 attackers |= targetBitboard;
                 break;
             }
-
         }
     }
 
@@ -525,9 +527,8 @@ int moveEstimatedValue(Board *board, Move move) {
 }
 
 int staticExchangeEvaluation(Board *board, Move move, int threshold){
-
     int from, to, flag, colour, balance, nextVictim;
-    uint64_t bishops, rooks, queens, occupied, attackers, myAttackers;
+    uint64_t occupied, attackers, myAttackers;
 
     // Unpack move information
     from = StartSquare(move);
@@ -553,12 +554,6 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
     // the exchange is guaranteed to beat the threshold.
     if (balance >= 0) return 1;
 
-    queens = board->bitboards[WhiteQueen] | board->bitboards[BlackQueen];
-
-    bishops = board->bitboards[WhiteBishop] | board->bitboards[BlackBishop] | queens;
-
-    rooks = board->bitboards[WhiteRook] | board->bitboards[BlackRook] | queens;
-
     // Let occupied suppose that the move was actually made
     occupied = GetOccupied(board);
     occupied = (occupied ^ (1ull << from)) | (1ull << to);
@@ -572,9 +567,7 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
 
     // Now our opponents turn to recapture
     colour = !board->white_to_move;
-
     while (1) {
-
         // If we have no more attackers left we lose
         myAttackers = attackers & (colour ? GetWhiteBitboard(board) : GetBlackBitboard(board));
         if (myAttackers == 0ull) break;
@@ -611,7 +604,6 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
             break;
         }
     }
-
     // Side to move after the loop loses
     return board->white_to_move != colour;
 }
