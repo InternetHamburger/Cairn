@@ -444,8 +444,8 @@ uint64_t GetBlackBitboard(const Board *board) {
 
 uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
 {
-    uint64_t attackers = 0UL;
-    uint64_t squareBitboard = 1UL << square;
+    uint64_t attackers = 0ULL;
+    uint64_t squareBitboard = 1ULL << square;
 
     const uint64_t capture_right_mask = ~(a_file << 7);
     const uint64_t capture_left_mask = ~a_file;
@@ -464,22 +464,22 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
     const int rank_directions[] = {-1, -1, 1, 1, 0, 0, -1, 1};
     const int file_directions[] = {-1, 1, -1, 1, 1, -1, 0, 0};
 
-    int curr_rank = square / 8;
-    int curr_file = square % 8;
+
 
     for (int direction = 0; direction < 8; direction++)
     {
         if (!(sliders & rays[square][direction])) continue;
-
+        int curr_rank = square / 8;
+        int curr_file = square % 8;
         while (1)
         {
             curr_rank += rank_directions[direction];
             curr_file += file_directions[direction];
 
             int target_square = 8 * curr_rank + curr_file;
-            uint64_t targetBitboard = 1UL << target_square;
+            uint64_t targetBitboard = 1ULL << target_square;
             Piece pieceOnTargetSquare = board->squares[target_square];
-            bool isOccupied = (targetBitboard & occupied) != 0;
+            bool isOccupied = targetBitboard & occupied;
 
             if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
                 break; // Outside board
@@ -560,6 +560,7 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
     if (flag == EnPassant){
         occupied ^= (1ull << board->en_passant_square);
     }
+
 
     // Get all pieces which attack the target square. And with occupied
     // so that we do not let the same piece attack twice
