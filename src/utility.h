@@ -13,7 +13,7 @@ int StringToSquare(char* square);
 char* MoveToString(Move move);
 bool IsLegalCastle(const Board *board, Move move);
 PieceType GetType(Piece piece);
-inline int getlsb(unsigned long long bb);
+int getlsb(unsigned long long bb);
 int poplsb(unsigned long long *bb);
 Move StringToMove(char* move, Board *board);
 char* BoardToFen(const Board *board);
