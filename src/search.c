@@ -42,7 +42,7 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
-    OrderMoves(board, moves, num_moves, 0, MoveConstructor(0, 0, 0));
+    OrderCaptures(board, moves, num_moves);
     const Board copy = *board;
 
     for (int i = 0; i < num_moves; i++) {

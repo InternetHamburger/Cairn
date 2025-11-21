@@ -39,10 +39,10 @@ int mvv_lva(Move move, Board *board){
 
 int move_score(Move move, Board* board, Move tt_move, int ply){
     if (move.value == tt_move.value){
-        return 1000;
+        return 100000;
     }
     if (board->squares[TargetSquare(move)] != None){
-        return mvv_lva(move, board);
+        return mvv_lva(move, board) - !staticExchangeEvaluation(board, move, 0) * 100000;
     }
     if (move.value == killer_moves[ply].value){
         return 1;
@@ -54,6 +54,29 @@ void OrderMoves(Board *board, Move* moves, int move_length, int ply, Move tt_mov
     int move_scores[move_length];
     for (int i = 0; i < move_length; i++){
         move_scores[i] = move_score(moves[i], board, tt_move, ply);
+    }
+
+    // Insertion sort implementation
+    for (int i = 1; i < move_length; i++) {
+        Move key_move = moves[i];
+        int key_score = move_scores[i];
+        int j = i - 1;
+
+        while (j >= 0 && move_scores[j] < key_score) {
+            moves[j + 1] = moves[j];
+            move_scores[j + 1] = move_scores[j];
+            j--;
+        }
+
+        moves[j + 1] = key_move;
+        move_scores[j + 1] = key_score;
+    }
+}
+
+void OrderCaptures(Board *board, Move* moves, int move_length){
+    int move_scores[move_length];
+    for (int i = 0; i < move_length; i++){
+        move_scores[i] = mvv_lva(moves[i], board);// + staticExchangeEvaluation(board, moves[i], 0) * 1000;
     }
 
     // Insertion sort implementation
