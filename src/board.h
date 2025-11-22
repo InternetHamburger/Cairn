@@ -2,7 +2,6 @@
 #define CAIRN_BOARD_H
 
 #include <stdint.h>
-
 #include "move.h"
 
 #define MAX_NUM_PLY 17697
@@ -25,14 +24,16 @@ enum{
 
 typedef uint8_t Piece;
 
-typedef enum{
+enum{
     Pawn = 0b0001,
     Knight = 0b0010,
     Bishop = 0b0011,
     Rook = 0b0100,
     Queen = 0b0101,
     King = 0b0110,
-} PieceType;
+};
+
+typedef uint8_t PieceType;
 
 typedef struct{
     Piece squares[64];
@@ -54,8 +55,11 @@ bool InCheck(const Board *board);
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
 Board BoardConstructor(const char* fen);
 bool IsRepetition(const uint64_t hashes[MAX_NUM_PLY], int idx);
+PieceType PromotionType(Move move);
 uint64_t GetOccupied(const Board *board);
 uint64_t GetWhiteBitboard(const Board *board);
 uint64_t GetBlackBitboard(const Board *board);
+int staticExchangeEvaluation(Board *board, Move move, int threshold);
+
 
 #endif //CAIRN_BOARD_H

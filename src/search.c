@@ -42,12 +42,18 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
-    OrderMoves(board, moves, num_moves, 0, MoveConstructor(0, 0, 0));
+    OrderCaptures(board, moves, num_moves);
     const Board copy = *board;
 
     for (int i = 0; i < num_moves; i++) {
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
+            continue;
+        }
+
+        // Skip bad captures
+        if (!staticExchangeEvaluation(board, moves[i], 0))
+        {
             continue;
         }
         MakeMove(board, moves[i]);
@@ -104,7 +110,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     }
 
     const int static_eval = eval(board);
-    if (static_eval >= beta + 100 * depth && !in_check)
+    if (static_eval >= beta + 60 * depth && !in_check)
     {
         return static_eval;
     }
@@ -158,13 +164,21 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         {
             score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
         }
-        else
+        else if (depth >= 3)
         {
             int r = lmr_reduction[depth][num_legal_moves];
             r -= is_pv;
             r = __max(r, 0);
             score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
             if (score > alpha)
+            {
+                score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
+            }
+        }
+        else
+        {
+            score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1, ply + 1, &lpv);
+            if (score > alpha && is_pv)
             {
                 score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
             }

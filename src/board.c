@@ -267,9 +267,6 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
         }
     }
 
-
-
-
     return false;
 }
 
@@ -415,6 +412,23 @@ bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx){
     return false;
 }
 
+PieceType PromotionType(const Move move){
+    int flag = GetFlag(move);
+    switch (flag) {
+        case PromoteQueen:
+            return Queen;
+        case PromoteKnight:
+            return Knight;
+        case PromoteBishop:
+            return Bishop;
+        case PromoteRook:
+            return Rook;
+        default:
+            printf("Invalid promotion piece type %d\n", flag);
+            exit(-1);
+    }
+}
+
 uint64_t GetOccupied(const Board *board) {
     return board->bitboards[WhitePawn] | board->bitboards[WhiteKnight] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] | board->bitboards[WhiteKing] |
            board->bitboards[BlackPawn] | board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen] | board->bitboards[BlackKing];
@@ -426,4 +440,171 @@ uint64_t GetWhiteBitboard(const Board *board) {
 
 uint64_t GetBlackBitboard(const Board *board) {
     return board->bitboards[BlackPawn] | board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen] | board->bitboards[BlackKing];
+}
+
+uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
+{
+    uint64_t attackers = 0ULL;
+    uint64_t squareBitboard = 1ULL << square;
+
+    const uint64_t capture_right_mask = ~(a_file << 7);
+    const uint64_t capture_left_mask = ~a_file;
+
+    attackers |= (squareBitboard & capture_right_mask) << 9 & board->bitboards[WhitePawn];
+    attackers |= (squareBitboard & capture_left_mask) << 7 & board->bitboards[WhitePawn];
+    attackers |= (squareBitboard & capture_right_mask) >> 9 & board->bitboards[BlackPawn];
+    attackers |= (squareBitboard & capture_left_mask) >> 7 & board->bitboards[BlackPawn];
+    attackers |= knight_moves[square] & (board->bitboards[WhiteKnight] | board->bitboards[BlackKnight]);
+    attackers |= king_moves[square] & (board->bitboards[WhiteKing] | board->bitboards[BlackKing]);
+
+    uint64_t sliders = (board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen]) & occupied;
+    uint64_t nonSliders = (GetOccupied(board) ^ sliders) & occupied;
+
+    // right-up, left-up, right-down, left-down, right, left, up, down
+    const int rank_directions[] = {-1, -1, 1, 1, 0, 0, -1, 1};
+    const int file_directions[] = {-1, 1, -1, 1, 1, -1, 0, 0};
+
+
+
+    for (int direction = 0; direction < 8; direction++)
+    {
+        if (!(sliders & rays[square][direction])) continue;
+        int curr_rank = square / 8;
+        int curr_file = square % 8;
+        while (1)
+        {
+            curr_rank += rank_directions[direction];
+            curr_file += file_directions[direction];
+
+            int target_square = 8 * curr_rank + curr_file;
+            uint64_t targetBitboard = 1ULL << target_square;
+            Piece pieceOnTargetSquare = board->squares[target_square];
+            bool isOccupied = targetBitboard & occupied;
+
+            if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
+                break; // Outside board
+            }
+
+            // Blocked by non-slider piece
+            if (targetBitboard & nonSliders)
+            {
+                break;
+            }
+
+            if (IsOrthogonalSlider(pieceOnTargetSquare) && direction > 3 && isOccupied)
+            {
+                attackers |= targetBitboard;
+                break;
+            }
+            if (IsDiagonalSlider(pieceOnTargetSquare) && direction < 4 && isOccupied)
+            {
+                attackers |= targetBitboard;
+                break;
+            }
+        }
+    }
+
+    return attackers;
+}
+
+// Yoinked from Ethereal: https://github.com/AndyGrant/Ethereal/blob/master/src/search.c#L929
+static const int SEEPieceValues[] = {0, 100, 300, 300, 500, 900, 0};
+
+int moveEstimatedValue(Board *board, Move move) {
+
+    // Start with the value of the piece on the target square
+    int value = SEEPieceValues[GetType(board->squares[TargetSquare(move)])];
+
+    // Factor in the new piece's value and remove our promoted pawn
+    if (IsPromotion(move))
+        value += SEEPieceValues[PromotionType(move)] - SEEPieceValues[Pawn];
+
+    // Target square is encoded as empty for enpass moves
+    else if (GetFlag(move) == EnPassant)
+        value = SEEPieceValues[Pawn];
+
+    return value;
+}
+
+int staticExchangeEvaluation(Board *board, Move move, int threshold){
+    int from, to, flag, colour, balance, nextVictim;
+    uint64_t occupied, attackers, myAttackers;
+
+    // Unpack move information
+    from = StartSquare(move);
+    to = TargetSquare(move);
+    flag = GetFlag(move);
+
+    // Next victim is moved piece or promotion flag
+    nextVictim = !IsPromotion(move)
+                 ? GetType(board->squares[from])
+                 : PromotionType(move);
+
+    // Balance is the value of the move minus threshold. Function
+    // call takes care for Enpass, Promotion and Castling moves.
+    balance = moveEstimatedValue(board, move) - threshold;
+
+    // Best case still fails to beat the threshold
+    if (balance < 0) return 0;
+
+    // Worst case is losing the moved piece
+    balance -= SEEPieceValues[nextVictim];
+
+    // If the balance is positive even if losing the moved piece,
+    // the exchange is guaranteed to beat the threshold.
+    if (balance >= 0) return 1;
+
+    // Let occupied suppose that the move was actually made
+    occupied = GetOccupied(board);
+    occupied = (occupied ^ (1ull << from)) | (1ull << to);
+    if (flag == EnPassant){
+        occupied ^= (1ull << board->en_passant_square);
+    }
+
+
+    // Get all pieces which attack the target square. And with occupied
+    // so that we do not let the same piece attack twice
+    attackers = AttackersToSquare(board, to, occupied) & occupied;
+
+    // Now our opponents turn to recapture
+    colour = !board->white_to_move;
+    while (1) {
+        // If we have no more attackers left we lose
+        myAttackers = attackers & (colour ? GetWhiteBitboard(board) : GetBlackBitboard(board));
+        if (myAttackers == 0ull) break;
+
+        // Find our weakest piece to attack with
+        for (nextVictim = Pawn; nextVictim <= King; nextVictim++){
+            if (myAttackers & (board->bitboards[nextVictim] | board->bitboards[nextVictim + 8]))
+            {
+                break;
+            }
+        }
+
+        // Remove this attacker from the occupied
+
+        occupied ^= (1ull << getlsb(myAttackers & (board->bitboards[nextVictim] | board->bitboards[nextVictim + 8])));
+
+        attackers = AttackersToSquare(board, to, occupied) & occupied;
+
+        // Swap the turn
+        colour = !colour;
+
+        // Negamax the balance and add the value of the next victim
+        balance = -balance - 1 - SEEPieceValues[nextVictim];
+
+        // If the balance is non-negative after giving away our piece then we win
+        if (balance >= 0) {
+
+            // As a slide speed up for move legality checking, if our last attacking
+            // piece is a king, and our opponent still has attackers, then we've
+            // lost as the move we followed would be illegal
+            if (nextVictim == King && (attackers & (colour ? GetWhiteBitboard(board) : GetBlackBitboard(board))))
+                colour = !colour;
+
+            break;
+        }
+    }
+    // Side to move after the loop loses
+    return board->white_to_move != colour;
 }

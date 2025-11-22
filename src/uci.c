@@ -319,6 +319,11 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             printf("Raw eval: %d\n", eval(board));
             break;
         case 9:
+            int margin;
+            char move_str[6];
+            sscanf(line, "%d %s", &margin, &move_str);
+            Move move = StringToMove(move_str, board);
+            printf("%s: %d\n", MoveToString(move), staticExchangeEvaluation(board, move, margin));
             break;
         case 10:
             SetOption(line);
