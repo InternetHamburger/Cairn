@@ -140,6 +140,11 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             continue;
         }
 
+        if (num_legal_moves > 0 && !in_check && !is_capture && !is_pv && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
+        {
+            continue;
+        }
+
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
         }
