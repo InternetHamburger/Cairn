@@ -100,8 +100,9 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
     const uint64_t tt_index = board->zobrist_hash % tt.num_entries;
     const Entry entry = tt.entries[tt_index];
+    const bool tt_hit = board->zobrist_hash == entry.hash;
 
-    if (GetDepth(entry) >= depth && ply > 0 && board->zobrist_hash == entry.hash && !is_pv)
+    if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
         if (GetEntryType(entry) == EXACT)
         {
@@ -123,7 +124,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     Move quiet_moves[num_moves];
     int num_quiets = 0;
 
-    Move tt_move = board->zobrist_hash == entry.hash ? entry.best_move : MoveConstructor(0, 0, 0);
+    Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
     OrderMoves(board, moves, num_moves, ply, tt_move);
 
     const Board copy = *board;
