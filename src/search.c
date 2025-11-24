@@ -136,7 +136,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
         const bool is_capture = board->squares[TargetSquare(moves[i])] != None;
         // Late move pruning
-        if (!in_check && !is_capture && i >= 5 + 2 * depth * depth)
+        if (ply > 0 && !in_check && !is_capture && i >= 5 + 2 * depth * depth)
         {
             continue;
         }
@@ -266,12 +266,12 @@ SearchResult search(Board *board, Stack *stack) {
         const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
         best_score = score;
         best_move = pv.line[0];
+
+
         assert(pv.line[0].value != 0);
         if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
             break;
         }
-        
-
 
         const int time_elapsed = (int)(clock() - stack->start_time);
         if (stack->print_info){
