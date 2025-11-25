@@ -270,7 +270,7 @@ SearchResult search(Board *board, Stack *stack) {
         best_move = pv.line[0];
 
         const int time_elapsed = (int)(clock() - stack->start_time);
-        if (stack->print_info){
+        if (stack->print_info && score != NEG_INF){
             printf("info depth %d", depth);
             printf(" score cp %d", best_score);
             printf(" nodes %llu", stack->nodes);
