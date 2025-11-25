@@ -193,6 +193,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         *board = copy;
 
         if (stack->nodes > stack->node_limit || clock() - stack->start_time > stack->time_limit) {
+            if (ply == 0)
+                return best_score;
             return NEG_INF;
         }
 
@@ -267,12 +269,6 @@ SearchResult search(Board *board, Stack *stack) {
         best_score = score;
         best_move = pv.line[0];
 
-
-        assert(pv.line[0].value != 0);
-        if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
-            break;
-        }
-
         const int time_elapsed = (int)(clock() - stack->start_time);
         if (stack->print_info){
             printf("info depth %d", depth);
@@ -288,6 +284,12 @@ SearchResult search(Board *board, Stack *stack) {
             }
             printf("\n");
         }
+        assert(pv.line[0].value != 0);
+        if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
+            break;
+        }
+
+
     }
     if (best_move.value == 0){
         int num_moves = 0;
