@@ -100,8 +100,9 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
     const uint64_t tt_index = board->zobrist_hash % tt.num_entries;
     const Entry entry = tt.entries[tt_index];
+    const bool tt_hit = board->zobrist_hash == entry.hash;
 
-    if (GetDepth(entry) >= depth && ply > 0 && board->zobrist_hash == entry.hash && !is_pv)
+    if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
         if (GetEntryType(entry) == EXACT)
         {
@@ -123,7 +124,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     Move quiet_moves[num_moves];
     int num_quiets = 0;
 
-    Move tt_move = board->zobrist_hash == entry.hash ? entry.best_move : MoveConstructor(0, 0, 0);
+    Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
     OrderMoves(board, moves, num_moves, ply, tt_move);
 
     const Board copy = *board;
@@ -135,7 +136,12 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
         const bool is_capture = board->squares[TargetSquare(moves[i])] != None;
         // Late move pruning
-        if (!in_check && !is_capture && i >= 5 + 2 * depth * depth)
+        if (ply > 0 && !in_check && !is_capture && i >= 5 + 2 * depth * depth)
+        {
+            continue;
+        }
+
+        if (num_legal_moves > 0 && !in_check && !is_capture && !is_pv && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
         {
             continue;
         }
@@ -258,14 +264,14 @@ SearchResult search(Board *board, Stack *stack) {
     for (depth = 1; depth <= stack->depth_limit; depth++) {
         PVariation pv;
         const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
+        best_score = score;
+        best_move = pv.line[0];
+
+
         assert(pv.line[0].value != 0);
-        if (!(stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit)) {
-            best_score = score;
-            best_move = pv.line[0];
-        }else{
+        if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
             break;
         }
-
 
         const int time_elapsed = (int)(clock() - stack->start_time);
         if (stack->print_info){
