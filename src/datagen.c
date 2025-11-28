@@ -127,8 +127,23 @@ unsigned long long GetViriOccupied(Board *board) {
 Board PrepareGame(Thread *this) {
     unsigned long long* seed = &this->thread_id;
     PseudorandomNumber(seed);
-
     Board rand_pos = GenerateRandomPosition(seed);
+    // Try at most 100 different positions
+    for (int i = 0; i < 100; i++){
+        Stack stack = {
+                .nodes = 0,
+                .node_limit = 500000,
+                .print_info = false,
+                .depth_limit = 255,
+                .soft_node_limit = 8000,
+                .time_limit = INT_MAX,
+                .hash_index = 0
+        };
+        const SearchResult result = search(&rand_pos, &stack);
+        if (abs(result.score) < 750) break;
+        rand_pos = GenerateRandomPosition(seed);
+    }
+
     this->game.occupied = GetViriOccupied(&rand_pos);
 
     for (int i = 0; i < 16; i++) this->game.pieces[i] = 0;
@@ -203,10 +218,10 @@ double PlayGame(Thread *this) {
 
     Stack stack = {
             .nodes = 0,
-            .node_limit = 16000,
+            .node_limit = 500000,
             .print_info = false,
             .depth_limit = 255,
-            .soft_node_limit = 50000,
+            .soft_node_limit = 8000,
             .time_limit = INT_MAX,
             .hash_index = 0
     };
