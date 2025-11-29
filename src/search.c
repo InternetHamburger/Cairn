@@ -262,15 +262,18 @@ SearchResult search(Board *board, Stack *stack) {
     int best_score = NEG_INF;
     stack->start_time = clock();
     int depth;
-
+    PVariation lpv;
     for (depth = 1; depth <= stack->depth_limit; depth++) {
         PVariation pv;
         const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
-        best_score = score;
-        best_move = pv.line[0];
+        if (score != NEG_INF){
+            best_score = score;
+            best_move = pv.line[0];
+            lpv = pv;
+        }
 
         const int time_elapsed = (int)(clock() - stack->start_time);
-        if (stack->print_info && score != NEG_INF){
+        if (stack->print_info){
             printf("info depth %d", depth);
             printf(" score cp %d", best_score);
             printf(" nodes %llu", stack->nodes);
@@ -278,13 +281,13 @@ SearchResult search(Board *board, Stack *stack) {
             printf(" time %d", time_elapsed);
 
             printf(" pv ");
-            for (int i = 0; i < pv.length; i++) {
-                char* moveStr = MoveToString(pv.line[i]);
+            for (int i = 0; i < lpv.length; i++) {
+                char* moveStr = MoveToString(lpv.line[i]);
                 printf("%s ", moveStr);
             }
             printf("\n");
         }
-        assert(pv.line[0].value != 0);
+        assert(lpv.line[0].value != 0);
         if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
             break;
         }
