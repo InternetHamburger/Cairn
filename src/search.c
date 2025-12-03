@@ -14,6 +14,9 @@
 #include <math.h>
 #include <string.h>
 
+
+constexpr int ASP_MIN_DEPTH = 5;
+
 void Init()
 {
     ZeroHist();
@@ -256,6 +259,22 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     return best_score;
 }
 
+void UCIReport(Stack *stack, PVariation *lpv, int depth, int score, int time_elapsed)
+{
+    printf("info depth %d", depth);
+    printf(" score cp %d", score);
+    printf(" nodes %llu", stack->nodes);
+    printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
+    printf(" time %d", time_elapsed);
+
+    printf(" pv ");
+    for (int i = 0; i < lpv->length; i++) {
+        char* moveStr = MoveToString(lpv->line[i]);
+        printf("%s ", moveStr);
+    }
+    printf("\n");
+}
+
 SearchResult search(Board *board, Stack *stack) {
     Init();
     Move best_move = MoveConstructor(0, 0, 0);
@@ -263,9 +282,51 @@ SearchResult search(Board *board, Stack *stack) {
     stack->start_time = clock();
     int depth;
     PVariation lpv;
+
+    int alpha = NEG_INF;
+    int beta = -NEG_INF;
+
     for (depth = 1; depth <= stack->depth_limit; depth++) {
         PVariation pv;
-        const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
+
+        int score = NEG_INF;
+        if (depth >= ASP_MIN_DEPTH)
+        {
+            int delta = 20;
+            alpha = __max(best_score - delta, NEG_INF);
+            beta = __min(best_score + delta, -NEG_INF);
+            while (1)
+            {
+                if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
+                    break;
+                }
+                score = Negamax(stack, board, alpha, beta, depth, 0, &pv);
+                delta += delta;
+                if (score <= alpha)
+                {
+                    beta = (alpha + beta) / 2;
+                    alpha = __max(best_score - delta, NEG_INF);
+                }
+                else if (score >= beta)
+                {
+                    beta = __min(best_score + delta, -NEG_INF);
+                }
+                else
+                {
+                    break;
+                }
+
+                if (delta >= 500)
+                {
+                    alpha = NEG_INF;
+                    beta = -NEG_INF;
+                }
+            }
+        }
+        else
+        {
+            score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
+        }
         if (score != NEG_INF){
             best_score = score;
             best_move = pv.line[0];
@@ -274,18 +335,7 @@ SearchResult search(Board *board, Stack *stack) {
 
         const int time_elapsed = (int)(clock() - stack->start_time);
         if (stack->print_info){
-            printf("info depth %d", depth);
-            printf(" score cp %d", best_score);
-            printf(" nodes %llu", stack->nodes);
-            printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
-            printf(" time %d", time_elapsed);
-
-            printf(" pv ");
-            for (int i = 0; i < lpv.length; i++) {
-                char* moveStr = MoveToString(lpv.line[i]);
-                printf("%s ", moveStr);
-            }
-            printf("\n");
+            UCIReport(stack, &lpv, depth, best_score, time_elapsed);
         }
         assert(lpv.line[0].value != 0);
         if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
