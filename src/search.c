@@ -28,7 +28,7 @@ __attribute__((constructor))
 static void init_table(){
     for (int depth = 1; depth < 255; depth++){
         for (int move_num = 1; move_num < 218; move_num++){
-            lmr_reduction[depth][move_num] = (int)(1 + log(depth) * log(move_num) / 3);
+            lmr_reduction[depth][move_num] = (int)(1 + log2(depth) * log2(move_num) / 3);
         }
     }
 }
