@@ -96,7 +96,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         depth++;
     if (depth <= 0) return qSearch(stack, board, alpha, beta);
     stack->hashes[stack->hash_index] = board->zobrist_hash;
-    if (IsRepetition(stack->hashes, stack->hash_index) && ply > 0){
+    if ((IsRepetition(stack->hashes, stack->hash_index) || board->fifty_move_counter >= 100) && ply > 0){
         return 0;
     }
     const bool is_pv = beta - alpha > 1;
@@ -280,12 +280,12 @@ SearchResult search(Board *board, Stack *stack) {
     Move best_move = MoveConstructor(0, 0, 0);
     int best_score = NEG_INF;
     stack->start_time = clock();
-    int depth;
     PVariation lpv;
 
     int alpha = NEG_INF;
     int beta = -NEG_INF;
 
+    int depth;
     for (depth = 1; depth <= stack->depth_limit; depth++) {
         PVariation pv;
 
@@ -341,8 +341,6 @@ SearchResult search(Board *board, Stack *stack) {
         if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
             break;
         }
-
-
     }
     if (best_move.value == 0){
         int num_moves = 0;

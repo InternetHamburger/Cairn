@@ -17,6 +17,7 @@ void MakeMove(Board *board, const Move move) {
     const int moved_piece = board->squares[start_square];
     const int captured_piece = board->squares[target_square];
 
+
     if (board->en_passant_square != -1){
         board->zobrist_hash ^= zobrist_ep_squares[board->en_passant_square];
     }
@@ -27,7 +28,7 @@ void MakeMove(Board *board, const Move move) {
     const bool init_black_queenside = board->black_queenside;
 
     board->en_passant_square = -1;
-
+    board->fifty_move_counter++;
     board->squares[target_square] = board->squares[start_square];
     board->squares[start_square] = 0;
 
@@ -41,6 +42,7 @@ void MakeMove(Board *board, const Move move) {
     if (captured_piece != None){
         board->bitboards[captured_piece] ^= (1ULL << target_square);
         board->zobrist_hash ^= zobrist_squares[target_square][captured_piece];
+        board->fifty_move_counter = 0;
     }
 
     if (target_square == 63 || start_square == 63) {
@@ -65,6 +67,11 @@ void MakeMove(Board *board, const Move move) {
         board->black_kingside = false;
         board->black_queenside = false;
         board->black_king_square = target_square;
+    }
+
+    if (GetType(moved_piece) == Pawn)
+    {
+        board->fifty_move_counter = 0;
     }
 
     if (IsPromotion(move)) {
@@ -377,6 +384,7 @@ Board BoardConstructor(const char* fen){
             .en_passant_square = en_passant_square,
             .black_king_square = black_king_square,
             .white_king_square = white_king_square,
+            .fifty_move_counter = 0
     };
 
     board.zobrist_hash = 958761493876598375ULL; // Initial hash
@@ -410,6 +418,11 @@ bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx){
         if (num_occasions > 2) return true;
     }
     return false;
+}
+
+bool Is50MoveRule(const Board *board)
+{
+
 }
 
 PieceType PromotionType(const Move move){
