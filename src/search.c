@@ -327,9 +327,9 @@ SearchResult search(Board *board, Stack *stack) {
         {
             score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
         }
+        best_move = pv.line[0];
         if (score != NEG_INF){
             best_score = score;
-            best_move = pv.line[0];
             lpv = pv;
         }
 
