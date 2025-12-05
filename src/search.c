@@ -107,7 +107,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
     if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
-        if (GetEntryType(entry) == EXACT)
+        if (GetEntryType(entry) << 6 == EXACT)
         {
             return entry.score;
         }
@@ -259,12 +259,23 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     return best_score;
 }
 
+int CountHashFull()
+{
+    int num = 0;
+    for (int i = 0; i < 1000; i++)
+    {
+        num += !IsNull(tt.entries[i]);
+    }
+    return num;
+}
+
 void UCIReport(Stack *stack, PVariation *lpv, int depth, int score, int time_elapsed)
 {
     printf("info depth %d", depth);
     printf(" score cp %d", score);
     printf(" nodes %llu", stack->nodes);
     printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
+    printf(" hashfull %d", CountHashFull());
     printf(" time %d", time_elapsed);
 
     printf(" pv ");

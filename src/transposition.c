@@ -11,6 +11,11 @@ int GetEntryType(Entry entry){
     return (entry.depth_node_type & 0b11000000) >> 6;
 }
 
+bool IsNull(Entry entry)
+{
+    return !(entry.depth_node_type & 0b11000000);
+}
+
 void ZeroTT(){
     for (int i = 0; i < tt.num_entries; i++) {
         tt.entries[i].hash = 0;
