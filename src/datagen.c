@@ -136,7 +136,7 @@ Board PrepareGame(Thread *this) {
                 .print_info = false,
                 .depth_limit = 255,
                 .soft_node_limit = 8000,
-                .time_limit = INT_MAX,
+                .time_limit = INT64_MAX,
                 .hash_index = 0
         };
         const SearchResult result = search(&rand_pos, &stack);

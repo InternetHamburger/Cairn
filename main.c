@@ -33,11 +33,11 @@ int main(int argc, char *args[]) {
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     Stack stack = {
             .nodes = 0,
-            .node_limit = INT_MAX,
+            .node_limit = INT64_MAX,
             .print_info = true,
             .depth_limit = 255,
-            .soft_node_limit = INT_MAX,
-            .time_limit = INT_MAX,
+            .soft_node_limit = INT64_MAX,
+            .time_limit = INT64_MAX,
             .hash_index = 0
     };
 
