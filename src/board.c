@@ -463,10 +463,11 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
     const uint64_t capture_right_mask = ~(a_file << 7);
     const uint64_t capture_left_mask = ~a_file;
 
-    attackers |= (squareBitboard & capture_right_mask) << 9 & board->bitboards[WhitePawn];
-    attackers |= (squareBitboard & capture_left_mask) << 7 & board->bitboards[WhitePawn];
-    attackers |= (squareBitboard & capture_right_mask) >> 9 & board->bitboards[BlackPawn];
-    attackers |= (squareBitboard & capture_left_mask) >> 7 & board->bitboards[BlackPawn];
+    attackers |= squareBitboard << 7 & (board->bitboards[WhitePawn] & capture_right_mask);
+    attackers |= squareBitboard << 9 & (board->bitboards[WhitePawn] & capture_left_mask);
+    attackers |= squareBitboard >> 9 & (board->bitboards[BlackPawn] & capture_right_mask);
+    attackers |= squareBitboard >> 7 & (board->bitboards[BlackPawn] & capture_left_mask);
+
     attackers |= knight_moves[square] & (board->bitboards[WhiteKnight] | board->bitboards[BlackKnight]);
     attackers |= king_moves[square] & (board->bitboards[WhiteKing] | board->bitboards[BlackKing]);
 
@@ -599,7 +600,6 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
         occupied ^= (1ull << getlsb(myAttackers & (board->bitboards[nextVictim] | board->bitboards[nextVictim + 8])));
 
         attackers = AttackersToSquare(board, to, occupied) & occupied;
-
         // Swap the turn
         colour = !colour;
 

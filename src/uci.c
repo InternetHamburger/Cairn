@@ -323,7 +323,9 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             char move_str[6];
             sscanf(line, "%d %s", &margin, &move_str);
             Move move = StringToMove(move_str, board);
-            printf("%s: %d\n", MoveToString(move), staticExchangeEvaluation(board, move, margin));
+            printf("%s: %d %d\r\n", MoveToString(move), staticExchangeEvaluation(board, move, margin), staticExchangeEvaluation(board, move, margin) != staticExchangeEvaluation(board, move, margin + 1));
+
+
             break;
         case 10:
             SetOption(line);
