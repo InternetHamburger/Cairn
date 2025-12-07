@@ -149,6 +149,10 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             continue;
         }
 
+        if (!is_capture && ply > 0 && depth <= 8 && !staticExchangeEvaluation(board, moves[i], -60 * depth)){
+            continue;
+        }
+
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
         }
