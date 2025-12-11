@@ -420,11 +420,6 @@ bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx){
     return false;
 }
 
-bool Is50MoveRule(const Board *board)
-{
-
-}
-
 PieceType PromotionType(const Move move){
     int flag = GetFlag(move);
     switch (flag) {
