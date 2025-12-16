@@ -107,7 +107,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
     if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
-        if (GetEntryType(entry) << 6 == EXACT)
+        if ((GetEntryType(entry) & EXACT) == EXACT)
         {
             return entry.score;
         }

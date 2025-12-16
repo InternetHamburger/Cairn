@@ -8,7 +8,7 @@ int GetDepth(Entry entry){
 }
 
 int GetEntryType(Entry entry){
-    return (entry.depth_node_type & 0b11000000) >> 6;
+    return entry.depth_node_type & 0b11000000;
 }
 
 bool IsNull(Entry entry)
