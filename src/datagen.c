@@ -233,7 +233,7 @@ double PlayGame(Thread *this) {
             this->game.result = board.white_to_move ? 0 : 2;
             break;
         }
-        if (IsRepetition(stack.hashes, stack.hash_index) || board.fifty_move_counter >= 100 || stack.hash_index > 250){ // Hard limit on length
+        if (IsRepetition(stack.hashes, stack.hash_index) || board.fifty_move_counter >= 100 || stack.hash_index > 512){ // Hard limit on length
             this->game.result = 1;
             break;
         }
