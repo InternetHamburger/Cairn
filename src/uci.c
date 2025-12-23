@@ -292,11 +292,11 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
             Stack new = {
                     .nodes = 0,
-                    .node_limit = INT_MAX,
+                    .node_limit = INT64_MAX,
                     .print_info = true,
                     .depth_limit = 255,
-                    .soft_node_limit = INT_MAX,
-                    .time_limit = INT_MAX,
+                    .soft_node_limit = INT64_MAX,
+                    .time_limit = INT64_MAX,
                     .hash_index = 0
             };
             *stack = new;
@@ -321,9 +321,9 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
         case 9:
             int margin;
             char move_str[6];
-            sscanf(line, "%d %s", &margin, &move_str);
+            sscanf(line, "%d %s", &margin, move_str);
             Move move = StringToMove(move_str, board);
-            printf("%s: %d\n", MoveToString(move), staticExchangeEvaluation(board, move, margin));
+            printf("%s: %d %d\r\n", MoveToString(move), staticExchangeEvaluation(board, move, margin), staticExchangeEvaluation(board, move, margin) != staticExchangeEvaluation(board, move, margin + 1));
             break;
         case 10:
             SetOption(line);

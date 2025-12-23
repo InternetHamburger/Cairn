@@ -4,6 +4,7 @@
 #include "search.h"
 #include "zobrist.h"
 #include "moveGeneration.h"
+#include "transposition.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -127,8 +128,23 @@ unsigned long long GetViriOccupied(Board *board) {
 Board PrepareGame(Thread *this) {
     unsigned long long* seed = &this->thread_id;
     PseudorandomNumber(seed);
-
     Board rand_pos = GenerateRandomPosition(seed);
+    // Try at most 100 different positions
+    for (int i = 0; i < 100; i++){
+        Stack stack = {
+                .nodes = 0,
+                .node_limit = 500000,
+                .print_info = false,
+                .depth_limit = 255,
+                .soft_node_limit = 8000,
+                .time_limit = INT64_MAX,
+                .hash_index = 0
+        };
+        const SearchResult result = search(&rand_pos, &stack);
+        if (abs(result.score) < 750) break;
+        rand_pos = GenerateRandomPosition(seed);
+    }
+
     this->game.occupied = GetViriOccupied(&rand_pos);
 
     for (int i = 0; i < 16; i++) this->game.pieces[i] = 0;
@@ -203,7 +219,7 @@ double PlayGame(Thread *this) {
 
     Stack stack = {
             .nodes = 0,
-            .node_limit = 16000,
+            .node_limit = 500000,
             .print_info = false,
             .depth_limit = 255,
             .soft_node_limit = 50000,
@@ -217,7 +233,7 @@ double PlayGame(Thread *this) {
             this->game.result = board.white_to_move ? 0 : 2;
             break;
         }
-        if (IsRepetition(stack.hashes, stack.hash_index) || stack.hash_index > 250){ // Hard limit on length
+        if (IsRepetition(stack.hashes, stack.hash_index) || board.fifty_move_counter >= 100 || stack.hash_index > 512){ // Hard limit on length
             this->game.result = 1;
             break;
         }
@@ -269,6 +285,7 @@ void* GameLoop(Thread *this) {
     HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
 
     while (1) {
+        ZeroTT();
         PlayGame(this);
         WaitForSingleObject(hMutex, INFINITE);
 
@@ -279,8 +296,6 @@ void* GameLoop(Thread *this) {
 }
 
 void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed) {
-    FILE *file = fopen(file_path, "wb");
-    fclose(file);
     for (int i = 0; i < num_threads; i++) {
 
         STARTUPINFO si;

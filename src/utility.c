@@ -68,6 +68,9 @@ Piece GetPromotionPiece(Move move){
             return BlackRook;
         case PromoteBishop:
             return BlackBishop;
+        default:
+            printf("Illegal promotion piece");
+            exit(-1);
     }
 }
 
@@ -265,7 +268,7 @@ char* BoardToFen(const Board *board){
     char* fen = malloc(256);
     int fen_index = 0;
 
-    int squares_since_last_piece;
+    int squares_since_last_piece = 0;
     for (int rank = 0; rank < 8; rank++){
         for (int file = 0; file < 8; file++){
             const int square = rank * 8 + file;

@@ -4,9 +4,9 @@
 #include <stdint.h>
 #include "board.h"
 
-#define EXACT 0b00000000
-#define UPPER 0b01000000
-#define LOWER 0b10000000
+#define EXACT 0b01000000
+#define UPPER 0b10000000
+#define LOWER 0b11000000
 
 typedef struct{
     uint64_t hash;
@@ -26,4 +26,6 @@ extern TT tt;
 int GetDepth(Entry entry);
 int GetEntryType(Entry entry);
 void ZeroTT();
+bool IsNull(Entry entry);
+
 #endif //CAIRN_TRANSPOSITION_H

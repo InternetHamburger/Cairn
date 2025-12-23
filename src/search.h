@@ -7,14 +7,14 @@
 #define CHECKMATE (-32567)
 
 typedef struct {
-    unsigned long long nodes;
+    uint64_t nodes;
     double start_time;
     uint64_t time_limit;
     uint64_t node_limit;
     int depth_limit;
     uint64_t soft_node_limit;
     bool print_info;
-    unsigned long long hashes[MAX_NUM_PLY]; // For threefold repetition
+    uint64_t hashes[MAX_NUM_PLY]; // For threefold repetition
     int hash_index;
     Move pv_table[257][218];
 } Stack;

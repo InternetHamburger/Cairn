@@ -17,6 +17,7 @@ void MakeMove(Board *board, const Move move) {
     const int moved_piece = board->squares[start_square];
     const int captured_piece = board->squares[target_square];
 
+
     if (board->en_passant_square != -1){
         board->zobrist_hash ^= zobrist_ep_squares[board->en_passant_square];
     }
@@ -27,7 +28,7 @@ void MakeMove(Board *board, const Move move) {
     const bool init_black_queenside = board->black_queenside;
 
     board->en_passant_square = -1;
-
+    board->fifty_move_counter++;
     board->squares[target_square] = board->squares[start_square];
     board->squares[start_square] = 0;
 
@@ -41,6 +42,7 @@ void MakeMove(Board *board, const Move move) {
     if (captured_piece != None){
         board->bitboards[captured_piece] ^= (1ULL << target_square);
         board->zobrist_hash ^= zobrist_squares[target_square][captured_piece];
+        board->fifty_move_counter = 0;
     }
 
     if (target_square == 63 || start_square == 63) {
@@ -65,6 +67,11 @@ void MakeMove(Board *board, const Move move) {
         board->black_kingside = false;
         board->black_queenside = false;
         board->black_king_square = target_square;
+    }
+
+    if (GetType(moved_piece) == Pawn)
+    {
+        board->fifty_move_counter = 0;
     }
 
     if (IsPromotion(move)) {
@@ -377,6 +384,7 @@ Board BoardConstructor(const char* fen){
             .en_passant_square = en_passant_square,
             .black_king_square = black_king_square,
             .white_king_square = white_king_square,
+            .fifty_move_counter = 0
     };
 
     board.zobrist_hash = 958761493876598375ULL; // Initial hash
@@ -450,10 +458,11 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
     const uint64_t capture_right_mask = ~(a_file << 7);
     const uint64_t capture_left_mask = ~a_file;
 
-    attackers |= (squareBitboard & capture_right_mask) << 9 & board->bitboards[WhitePawn];
-    attackers |= (squareBitboard & capture_left_mask) << 7 & board->bitboards[WhitePawn];
-    attackers |= (squareBitboard & capture_right_mask) >> 9 & board->bitboards[BlackPawn];
-    attackers |= (squareBitboard & capture_left_mask) >> 7 & board->bitboards[BlackPawn];
+    attackers |= squareBitboard << 7 & (board->bitboards[WhitePawn] & capture_right_mask);
+    attackers |= squareBitboard << 9 & (board->bitboards[WhitePawn] & capture_left_mask);
+    attackers |= squareBitboard >> 9 & (board->bitboards[BlackPawn] & capture_right_mask);
+    attackers |= squareBitboard >> 7 & (board->bitboards[BlackPawn] & capture_left_mask);
+
     attackers |= knight_moves[square] & (board->bitboards[WhiteKnight] | board->bitboards[BlackKnight]);
     attackers |= king_moves[square] & (board->bitboards[WhiteKing] | board->bitboards[BlackKing]);
 
@@ -586,7 +595,6 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
         occupied ^= (1ull << getlsb(myAttackers & (board->bitboards[nextVictim] | board->bitboards[nextVictim + 8])));
 
         attackers = AttackersToSquare(board, to, occupied) & occupied;
-
         // Swap the turn
         colour = !colour;
 

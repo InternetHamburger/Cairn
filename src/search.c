@@ -14,6 +14,9 @@
 #include <math.h>
 #include <string.h>
 
+
+constexpr int ASP_MIN_DEPTH = 5;
+
 void Init()
 {
     ZeroHist();
@@ -25,7 +28,7 @@ __attribute__((constructor))
 static void init_table(){
     for (int depth = 1; depth < 255; depth++){
         for (int move_num = 1; move_num < 218; move_num++){
-            lmr_reduction[depth][move_num] = (int)(1 + log(depth) * log(move_num) / 3);
+            lmr_reduction[depth][move_num] = (int)(1 + log2(depth) * log2(move_num) / 3);
         }
     }
 }
@@ -93,7 +96,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         depth++;
     if (depth <= 0) return qSearch(stack, board, alpha, beta);
     stack->hashes[stack->hash_index] = board->zobrist_hash;
-    if (IsRepetition(stack->hashes, stack->hash_index) && ply > 0){
+    if ((IsRepetition(stack->hashes, stack->hash_index) || board->fifty_move_counter >= 100) && ply > 0){
         return 0;
     }
     const bool is_pv = beta - alpha > 1;
@@ -104,14 +107,14 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
     if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
-        if (GetEntryType(entry) == EXACT)
+        if ((GetEntryType(entry) & EXACT) == EXACT)
         {
             return entry.score;
         }
     }
 
     const int static_eval = eval(board);
-    if (static_eval >= beta + 60 * depth && !in_check)
+    if (static_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
         return static_eval;
     }
@@ -146,6 +149,10 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             continue;
         }
 
+        if (!is_capture && ply > 0 && depth <= 8 && !staticExchangeEvaluation(board, moves[i], -60 * depth)){
+            continue;
+        }
+
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
         }
@@ -174,6 +181,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         {
             int r = lmr_reduction[depth][num_legal_moves];
             r -= is_pv;
+            r -= is_capture;
+            r -= GetKillerMove(ply).value == moves[i].value;
             r = __max(r, 0);
             score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
             if (score > alpha)
@@ -193,6 +202,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         *board = copy;
 
         if (stack->nodes > stack->node_limit || clock() - stack->start_time > stack->time_limit) {
+            if (ply == 0)
+                return best_score;
             return NEG_INF;
         }
 
@@ -254,39 +265,98 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     return best_score;
 }
 
+int CountHashFull()
+{
+    int num = 0;
+    for (int i = 0; i < 1000; i++)
+    {
+        num += !IsNull(tt.entries[i]);
+    }
+    return num;
+}
+
+void UCIReport(Stack *stack, PVariation *lpv, int depth, int score, int time_elapsed)
+{
+    printf("info depth %d", depth);
+    printf(" score cp %d", score);
+    printf(" nodes %llu", stack->nodes);
+    printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
+    printf(" hashfull %d", CountHashFull());
+    printf(" time %d", time_elapsed);
+
+    printf(" pv ");
+    for (int i = 0; i < lpv->length; i++) {
+        char* moveStr = MoveToString(lpv->line[i]);
+        printf("%s ", moveStr);
+    }
+    printf("\n");
+}
+
 SearchResult search(Board *board, Stack *stack) {
     Init();
     Move best_move = MoveConstructor(0, 0, 0);
     int best_score = NEG_INF;
     stack->start_time = clock();
-    int depth;
+    PVariation lpv;
 
+    int alpha = NEG_INF;
+    int beta = -NEG_INF;
+
+    int depth;
     for (depth = 1; depth <= stack->depth_limit; depth++) {
         PVariation pv;
-        const int score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
-        best_score = score;
+
+        int score = NEG_INF;
+        if (depth >= ASP_MIN_DEPTH)
+        {
+            int delta = 20;
+            alpha = __max(best_score - delta, NEG_INF);
+            beta = __min(best_score + delta, -NEG_INF);
+            while (1)
+            {
+                if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
+                    break;
+                }
+                score = Negamax(stack, board, alpha, beta, depth, 0, &pv);
+                delta += delta;
+                if (score <= alpha)
+                {
+                    beta = (alpha + beta) / 2;
+                    alpha = __max(best_score - delta, NEG_INF);
+                }
+                else if (score >= beta)
+                {
+                    beta = __min(best_score + delta, -NEG_INF);
+                }
+                else
+                {
+                    break;
+                }
+
+                if (delta >= 500)
+                {
+                    alpha = NEG_INF;
+                    beta = -NEG_INF;
+                }
+            }
+        }
+        else
+        {
+            score = Negamax(stack, board, NEG_INF, -NEG_INF, depth, 0, &pv);
+        }
         best_move = pv.line[0];
-
-
-        assert(pv.line[0].value != 0);
-        if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
-            break;
+        if (score != NEG_INF){
+            best_score = score;
+            lpv = pv;
         }
 
         const int time_elapsed = (int)(clock() - stack->start_time);
         if (stack->print_info){
-            printf("info depth %d", depth);
-            printf(" score cp %d", best_score);
-            printf(" nodes %llu", stack->nodes);
-            printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
-            printf(" time %d", time_elapsed);
-
-            printf(" pv ");
-            for (int i = 0; i < pv.length; i++) {
-                char* moveStr = MoveToString(pv.line[i]);
-                printf("%s ", moveStr);
-            }
-            printf("\n");
+            UCIReport(stack, &lpv, depth, best_score, time_elapsed);
+        }
+        assert(lpv.line[0].value != 0);
+        if (stack->nodes > stack->soft_node_limit || (clock() - stack->start_time) > stack->time_limit || stack->nodes > stack->node_limit) {
+            break;
         }
     }
     if (best_move.value == 0){

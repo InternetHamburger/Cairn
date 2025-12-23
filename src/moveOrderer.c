@@ -32,6 +32,10 @@ void UpdateKillers(const Move move, const int ply)
     killer_moves[ply] = move;
 }
 
+Move GetKillerMove(const int ply)
+{
+    return killer_moves[ply];
+}
 
 int mvv_lva(Move move, Board *board){
     return 100 * piece_scores[GetType(board->squares[TargetSquare(move)])] - piece_scores[GetType(board->squares[StartSquare(move)])];
