@@ -166,6 +166,18 @@ void MakeMove(Board *board, const Move move) {
     board->zobrist_hash ^= zobrist_stm;
 }
 
+void MakeNullMove(Board *board){
+
+    if (board->en_passant_square != -1){
+        board->zobrist_hash ^= zobrist_ep_squares[board->en_passant_square];
+    }
+
+    board->en_passant_square = -1;
+
+    board->white_to_move = !board->white_to_move;
+    board->zobrist_hash ^= zobrist_stm;
+}
+
 void PrintBoard(const Board* board) {
     char pieces[64];
     for (int i = 0; i < 64; i++) {
@@ -448,6 +460,12 @@ uint64_t GetWhiteBitboard(const Board *board) {
 
 uint64_t GetBlackBitboard(const Board *board) {
     return board->bitboards[BlackPawn] | board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen] | board->bitboards[BlackKing];
+}
+
+bool HasNonPawnKing(const Board *board){
+    uint64_t bitboard = board->bitboards[WhiteKnight] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] |
+                        board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen];
+    return bitboard != 0;
 }
 
 uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)

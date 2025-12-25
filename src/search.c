@@ -119,6 +119,20 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         return static_eval;
     }
 
+    const Board copy = *board;
+    if (!is_pv && !in_check && depth >= 3 && HasNonPawnKing(board)){
+        int r = 3;
+        MakeNullMove(board);
+        stack->hash_index++;
+        PVariation null_pv;
+        int score = -Negamax(stack, board, -beta, -beta + 1, depth - r, ply + 1, &null_pv);
+        *board = copy;
+        stack->hash_index--;
+        if (score >= beta){
+            return score;
+        }
+    }
+
     int num_legal_moves = 0;
     int num_moves = 0;
     Move moves[256];
@@ -130,7 +144,6 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
     OrderMoves(board, moves, num_moves, ply, tt_move);
 
-    const Board copy = *board;
     bool alpha_raised = false;
     int best_score = NEG_INF;
     Move best_move = MoveConstructor(0, 0, 0);
