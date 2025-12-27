@@ -69,6 +69,29 @@ Move ConvertMove(Move move) {
 
 }
 
+bool IsCheckmate(Board* board){
+    int num_moves = 0;
+    Move moves[256];
+    GetMoves(board, moves, &num_moves);
+    const Board copy = *board;
+    for (int i = 0; i < num_moves; i++) {
+
+        if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
+            continue;
+        }
+        assert(moves[i].value != 0);
+        MakeMove(board, moves[i]);
+        if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
+            *board = copy;
+            continue;
+        }
+        *board = copy;
+
+        return false;
+    }
+    return true;
+}
+
 Board GenerateRandomPosition(unsigned long long *seed) {
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     Board prev_copy = board;
@@ -109,6 +132,11 @@ Board GenerateRandomPosition(unsigned long long *seed) {
         }
         prev_copy = copy;
         free(legal_moves);
+        if (IsCheckmate(&board)){
+            board = prev_copy;
+            num_deep--;
+            PseudorandomNumber(seed);
+        }
     }
     return board;
 }
@@ -144,7 +172,6 @@ Board PrepareGame(Thread *this) {
         if (abs(result.score) < 750) break;
         rand_pos = GenerateRandomPosition(seed);
     }
-
     this->game.occupied = GetViriOccupied(&rand_pos);
 
     for (int i = 0; i < 16; i++) this->game.pieces[i] = 0;
@@ -191,29 +218,6 @@ Board PrepareGame(Thread *this) {
     return rand_pos;
 }
 
-bool IsCheckmate(Board* board){
-    int num_moves = 0;
-    Move moves[256];
-    GetMoves(board, moves, &num_moves);
-    const Board copy = *board;
-    for (int i = 0; i < num_moves; i++) {
-
-        if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
-            continue;
-        }
-        assert(moves[i].value != 0);
-        MakeMove(board, moves[i]);
-        if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
-            *board = copy;
-            continue;
-        }
-        *board = copy;
-
-        return false;
-    }
-    return true;
-}
-
 double PlayGame(Thread *this) {
     Board board = PrepareGame(this);
 
@@ -226,6 +230,7 @@ double PlayGame(Thread *this) {
             .time_limit = INT_MAX,
             .hash_index = 0
     };
+
     while (1){
         stack.hashes[stack.hash_index] = board.zobrist_hash;
 
@@ -238,14 +243,12 @@ double PlayGame(Thread *this) {
             break;
         }
 
-
         const SearchResult result = search(&board, &stack);
         assert(result.best_move.value != 0);
 
         stack.nodes = 0;
         const Move converted_move = ConvertMove(result.best_move);
         MakeMove(&board, result.best_move);
-
         this->game.moves[stack.hash_index] = 0;
         this->game.moves[stack.hash_index] |= converted_move.value;
         this->game.moves[stack.hash_index] |= ((board.white_to_move ? -1 : 1) * result.score) << 16;
@@ -313,7 +316,9 @@ void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed) {
         AssignProcessToJobObject(hJob, pi.hProcess);
 
         char cmdLine[256];
-        seed = PseudorandomNumber(&seed);
+        uint64_t num_0 = PseudorandomNumber(&seed);
+        uint64_t num_1 = PseudorandomNumber(&seed);
+        seed += num_0 + num_1;
         sprintf(cmdLine, "datagen seed %llu output %s", seed, file_path);
         printf("%s this %s\n", cmdLine, this_path);
         if (!CreateProcess(
