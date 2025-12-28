@@ -226,7 +226,7 @@ double PlayGame(Thread *this) {
             .node_limit = 500000,
             .print_info = false,
             .depth_limit = 255,
-            .soft_node_limit = 50000,
+            .soft_node_limit = 25000,
             .time_limit = INT_MAX,
             .hash_index = 0
     };
