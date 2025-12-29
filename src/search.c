@@ -36,7 +36,23 @@ static void init_table(){
 int qSearch(Stack *stack, Board *board, int alpha, int beta){
     int static_eval = eval(board);
 
-    int best_score = static_eval;
+    const bool is_pv = beta - alpha > 1;
+    const uint64_t tt_index = board->zobrist_hash % tt.num_entries;
+    const Entry entry = tt.entries[tt_index];
+    const bool tt_hit = board->zobrist_hash == entry.hash;
+
+    if (!is_pv && tt_hit) {
+        int type = GetEntryType(entry);
+        if (((type & EXACT) == EXACT) ||
+            ((type & UPPER) == UPPER && entry.score <= alpha) ||
+            ((type & LOWER) == LOWER && entry.score >= beta)) {
+
+            return entry.score;
+        }
+    }
+
+
+    int best_score = tt_hit ? entry.score : static_eval;
     if( best_score >= beta )
         return best_score;
     if( best_score > alpha )
