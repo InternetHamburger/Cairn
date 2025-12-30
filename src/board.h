@@ -51,6 +51,7 @@ typedef struct{
 } Board;
 
 void MakeMove(Board *board, Move move);
+void MakeNullMove(Board *board);
 void PrintBoard(const Board* board);
 bool InCheck(const Board *board);
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
@@ -60,6 +61,7 @@ PieceType PromotionType(Move move);
 uint64_t GetOccupied(const Board *board);
 uint64_t GetWhiteBitboard(const Board *board);
 uint64_t GetBlackBitboard(const Board *board);
+bool HasNonPawnKing(const Board *board);
 int staticExchangeEvaluation(Board *board, Move move, int threshold);
 
 
