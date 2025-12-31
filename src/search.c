@@ -167,20 +167,24 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     for (int i = 0; i < num_moves; i++) {
 
         const bool is_capture = board->squares[TargetSquare(moves[i])] != None;
-        // Late move pruning
-        if (ply > 0 && !in_check && !is_capture && i >= 5 + 2 * depth * depth)
+        // Move loop pruning
+        if (best_score > CHECKMATE + 255)
         {
-            continue;
+            if (ply > 0 && !in_check && !is_capture && i >= 5 + 2 * depth * depth)
+            {
+                continue;
+            }
+
+            if (num_legal_moves > 0 && !in_check && !is_capture && !is_pv && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
+            {
+                continue;
+            }
+
+            if (!is_capture && ply > 0 && depth <= 8 && !staticExchangeEvaluation(board, moves[i], -60 * depth)){
+                continue;
+            }
         }
 
-        if (num_legal_moves > 0 && !in_check && !is_capture && !is_pv && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
-        {
-            continue;
-        }
-
-        if (!is_capture && ply > 0 && depth <= 8 && !staticExchangeEvaluation(board, moves[i], -60 * depth)){
-            continue;
-        }
 
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
