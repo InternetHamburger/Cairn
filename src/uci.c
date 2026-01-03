@@ -13,72 +13,31 @@
 #include <string.h>
 #include <assert.h>
 
-
-int MatchPatterns(char* string, const char* patterns[], size_t num_patterns, int *patlength) {
-    int matched_pattern = -1;
-    for (size_t i = 0; i < num_patterns; i++) {
-        const size_t patlen = strlen(patterns[i]);
-        if (strncmp(string, patterns[i], patlen) == 0) {
-            matched_pattern = (int)i;
-            *patlength = (int)patlen;
-            break;
-        }
-    }
-    return matched_pattern;
-}
-
-int MatchPattern(char* string, const char* pattern, int *patlength) {
-    int matched_pattern = -1;
-    const size_t patlen = strlen(pattern);
-    if (strncmp(string, pattern, patlen) == 0) {
-        matched_pattern = 0;
-        *patlength = (int)patlen;
-    }
-    return matched_pattern;
-}
-
 void ParseMoves(Board *board, char* moves, Stack *stack){
-    while (1){
-        moves++;
-        char* move = malloc(4 + 1);
+    char* token;
+    const char delimiter[] = " ";
+    token = strtok(moves, delimiter);
 
-        for (int i = 0; i < 4; i++){
-            move[i] = moves[0];
-            moves++;
-        }
-        move[4] = '\0';
-        if (moves[0] == 'q' || moves[0] == 'r' || moves[0] == 'b' || moves[0] == 'n'){
+    while (token != NULL){
 
-            move = realloc(move, 6);
-            move[4] = moves[0];
-            moves++;
-            move[5] = '\0';
-        }
-        Move make_move = StringToMove(move, board);
+        Move make_move = StringToMove(token, board);
         assert(make_move.value != 0);
         MakeMove(board, make_move);
+
         stack->hash_index++;
         stack->hashes[stack->hash_index] = board->zobrist_hash;
-        free(move);
-        if (moves[0] == '\n') break;
+
+        token = strtok(NULL, delimiter);
     }
 }
 
 void SetPosition(char* line, Board *board, Stack *stack) {
-    const char* position_types[] = {
-        "fen",
-        "startpos"
-    };
+    char* token;
+    const char delimiter[] = " ";
+    token = strtok(line, delimiter);
 
-
-
-    int num = -1900000;
-    const int pos_type = MatchPatterns(line, position_types, 2, &num);
-    line += num + 1;
-    if (pos_type == -1) {
-        printf("Invalid position type\n");
-    }else if (pos_type == 0) {
-
+    if (strncmp(token, "fen", 3) == 0){
+        line += 4;
         // Extract fen
         int empty_encounters = 0;
         int fen_length = 0;
@@ -92,17 +51,22 @@ void SetPosition(char* line, Board *board, Stack *stack) {
 
         *board = BoardConstructor(line);
         line += fen_length;
-    }else if (pos_type == 1) {
+    }
+    else if (strncmp(token, "startpos", 8) == 0){
+        line += 9;
         *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
+    else{
+        printf("Invalid position type\n");
+        return;
+    }
+
     stack->hash_index = 0;
     stack->hashes[stack->hash_index] = board->zobrist_hash;
 
-    const int parse_moves = MatchPattern(line, "moves", &num);
-    line += num;
-
-
-    if (parse_moves != -1){
+    token = strtok(line, delimiter);
+    if (token != NULL && strncmp(token, "moves", 5) == 0){
+        line += 6;
         ParseMoves(board, line, stack);
     }
 }
@@ -235,79 +199,62 @@ void SetOption(char* line){
 }
 
 void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
-    const char* commands[] = {
-        "position",
-        "go",
-        "isready",
-        "quit",
-        "ucinewgame",
-        "uci",
-        "datagen",
-        "d",
-        "eval",
-        "r",
-        "setoption"
-    };
+    char* token;
+    const char delimiter[] = " ";
+    token = strtok(line, delimiter);
 
-    int patlength = 0;
-    const int matched_pattern = MatchPatterns(line, commands, 11, &patlength);
-    line += patlength + 1;
-    switch (matched_pattern) {
-        case -1:
-            printf("Invalid command\n");
-            return;
-        case 0:
-            SetPosition(line, board, stack);
-            break;
-        case 1:
-            GoCommand(line, board, stack);
-            break;
-        case 2:
-            printf("readyok\n");
-            return;
-        case 3:
-            exit(0);
-        case 4:
-            ZeroTT();
-            ZeroHist();
-            *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-            Stack new = {
-                    .nodes = 0,
-                    .node_limit = INT64_MAX,
-                    .print_info = true,
-                    .depth_limit = 255,
-                    .soft_node_limit = INT64_MAX,
-                    .time_limit = INT64_MAX,
-                    .hash_index = 0
-            };
-            *stack = new;
-            break;
-        case 5:
-            printf("id name Cairn\nid author InternetHamburger\n\n"
-                   "option name Hash type spin default 16 min 1 max 33554432\n"
-                   "option name Threads type spin default 1 min 1 max 1\n"
-                   "uciok\n");
-            break;
-        case 6:
-            RunDatagen(line, this_path);
-            break;
-        case 7:
-            PrintBoard(board);
-            printf("Fen: %s\n", BoardToFen(board));
-            printf("Key: %llu\n", board->zobrist_hash);
-            break;
-        case 8:
-            printf("Raw eval: %d\n", eval(board));
-            break;
-        case 9:
-            int margin;
-            char move_str[6];
-            sscanf(line, "%d %s", &margin, move_str);
-            Move move = StringToMove(move_str, board);
-            printf("%s: %d %d\r\n", MoveToString(move), staticExchangeEvaluation(board, move, margin), staticExchangeEvaluation(board, move, margin) != staticExchangeEvaluation(board, move, margin + 1));
-            break;
-        case 10:
-            SetOption(line);
-            break;
+    if (strncmp(token, "position", 8) == 0){
+        line += 9;
+        SetPosition(line, board, stack);
+    }
+    else if (strncmp(token, "go", 2) == 0){
+        line += 3;
+        GoCommand(line, board, stack);
+    }
+    else if (strncmp(token, "isready", 7) == 0){
+        printf("readyok\n");
+    }
+    else if (strncmp(token, "quit", 4) == 0){
+        exit(0);
+    }
+    else if (strncmp(token, "ucinewgame", 10) == 0){
+        ZeroTT();
+        ZeroHist();
+        *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        Stack new = {
+                .nodes = 0,
+                .node_limit = INT64_MAX,
+                .print_info = true,
+                .depth_limit = 255,
+                .soft_node_limit = INT64_MAX,
+                .time_limit = INT64_MAX,
+                .hash_index = 0
+        };
+        *stack = new;
+    }
+    else if (strncmp(token, "uci", 3) == 0){
+        printf("id name Cairn\nid author InternetHamburger\n\n"
+               "option name Hash type spin default 16 min 1 max 33554432\n"
+               "option name Threads type spin default 1 min 1 max 1\n"
+               "uciok\n");
+    }
+    else if (strncmp(token, "datagen", 7) == 0){
+        line += 8;
+        RunDatagen(line, this_path);
+    }
+    else if (strncmp(token, "d", 1) == 0){
+        PrintBoard(board);
+        printf("Fen: %s\n", BoardToFen(board));
+        printf("Key: %llu\n", board->zobrist_hash);
+    }
+    else if (strncmp(token, "eval", 4) == 0){
+        printf("Raw eval: %d\n", eval(board));
+    }
+    else if (strncmp(token, "setoption", 9) == 0){
+        line += 10;
+        SetOption(line);
+    }
+    else{
+        printf("Invalid command\n");
     }
 }
