@@ -1,18 +1,18 @@
 #include "uci.h"
 #include "board.h"
+#include "perft.h"
 #include "search.h"
 #include "utility.h"
+#include "datagen.h"
+#include "evaluation.h"
+#include "moveOrderer.h"
 #include "transposition.h"
-#include "perft.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 
-#include "datagen.h"
-#include "evaluation.h"
-#include "moveOrderer.h"
-#include "moveGeneration.h"
 
 int MatchPatterns(char* string, const char* patterns[], size_t num_patterns, int *patlength) {
     int matched_pattern = -1;
@@ -108,19 +108,6 @@ void SetPosition(char* line, Board *board, Stack *stack) {
 }
 
 void GoCommand(char* line, Board *board, Stack *stack) {
-    const char* go_types[] = {
-        "movetime",
-        "nodes",
-        "depth",
-        "wtime", // Assumes btime winc and binc follow
-        "perft",
-        "softnodes",
-    };
-    int patlength;
-    int go_type = MatchPatterns(line, go_types, 6, &patlength);
-    line += 1 + patlength;
-
-
     stack->nodes = 0;
     stack->node_limit = INT_MAX;
     stack->print_info = true;
@@ -128,64 +115,73 @@ void GoCommand(char* line, Board *board, Stack *stack) {
     stack->soft_node_limit = INT_MAX;
     stack->time_limit = INT_MAX;
 
+    int movetime = INT_MAX;
+    int nodes = INT_MAX;
+    int softnodes = INT_MAX;
+    int depth = 255;
+    int wtime = INT_MAX;
+    int btime = INT_MAX;
+    int winc = 0;
+    int binc = 0;
 
-    switch (go_type) {
-        case -1:
-            // Go infinite
-            break;
-        case 0:
-            int time;
-            sscanf(line, "%d", &time);
-            stack->time_limit = time;
-            search(board, stack);
-            break;
-        case 1:
-            int nodes;
-            sscanf(line, "%d", &nodes);
-            stack->node_limit = nodes;
-            search(board, stack);
-            break;
-        case 2:
-            int depth;
-            sscanf(line, "%d", &depth);
-            stack->depth_limit = depth;
-            search(board, stack);
-            break;
-        case 3:
-            int white_time;
-            int black_time;
-            int white_inc;
-            int black_inc;
-            sscanf(line, "%d", &white_time);
-            while (line[0] != ' ') line++;
-            line += 2 + 5;
-            sscanf(line, "%d", &black_time);
-            while (line[0] != ' ') line++;
-            line += 2 + 4;
-            sscanf(line, "%d", &white_inc);
-            while (line[0] != ' ') line++;
-            line += 2 + 4;
-            sscanf(line, "%d", &black_inc);
+    char* token;
+    const char delimiter[] = " ";
 
-            int time_left = board->white_to_move ? white_time : black_time;
-            int increment = board->white_to_move ? white_inc : black_inc;
-
-            int time_limit = time_left / 20 + increment / 2;
-            stack->time_limit = time_limit;
-            search(board, stack);
-            break;
-        case 4:
+    token = strtok(line, delimiter);
+    while (token){
+        if (strncmp(token, "movetime", 8) == 0){
+            token = strtok(NULL, delimiter);
+            sscanf(token, "%d", &movetime);
+        }
+        else if (strncmp(token, "nodes", 5) == 0){
+            token = strtok(NULL, delimiter);
+            sscanf(token, "%d", &nodes);
+        }
+        else if (strncmp(token, "softnodes", 9) == 0){
+            token = strtok(NULL, delimiter);
+            sscanf(token, "%d", &softnodes);
+        }
+        else if (strncmp(token, "depth", 5) == 0){
+            token = strtok(NULL, delimiter);
+            sscanf(token, "%d", &depth);
+        }
+        else if (strncmp(token, "wtime", 5) == 0){
+            token = strtok(NULL, delimiter);
+            sscanf(token, "%d", &wtime);
+        }
+        else if (strncmp(token, "btime", 5) == 0){
+            token = strtok(NULL, delimiter);
+            sscanf(token, "%d", &btime);
+        }
+        else if (strncmp(token, "winc", 4) == 0){
+            token = strtok(NULL, delimiter);
+            sscanf(token, "%d", &winc);
+        }
+        else if (strncmp(token, "binc", 4) == 0){
+            token = strtok(NULL, delimiter);
+            sscanf(token, "%d", &binc);
+        }
+        else if (strncmp(token, "perft", 5) == 0){
+            token = strtok(NULL, delimiter);
             int perft_depth;
-            sscanf(line, "%d", &perft_depth);
+            sscanf(token, "%d", &perft_depth);
             splitPerft(board, perft_depth);
-            break;
-        case 5:
-            int soft_nodes;
-            sscanf(line, "%d", &soft_nodes);
-            stack->soft_node_limit = soft_nodes;
-            search(board, stack);
-            break;
+            return;
+        }
+        token = strtok(NULL, delimiter);
     }
+
+    int time_left = board->white_to_move ? wtime : btime;
+    int increment = board->white_to_move ? winc : binc;
+
+    int time_limit = time_left / 20 + increment / 2;
+
+    stack->node_limit = nodes;
+    stack->print_info = true;
+    stack->depth_limit = depth;
+    stack->soft_node_limit = softnodes;
+    stack->time_limit = __min(time_limit, movetime);
+    search(board, stack);
 }
 
 void RunDatagen(char* line, char* this_path){
@@ -214,42 +210,27 @@ void RunDatagen(char* line, char* this_path){
 void SetOption(char* line){
     line += strlen("name ");
 
-    const char* option_types[] = {
-            "Hash",
-            "Threads"
-    };
+    char* token;
+    const char delimiter[] = " ";
+    token = strtok(line, delimiter);
 
-    int patlength;
-    int option_type = MatchPatterns(line, option_types, 6, &patlength);
+    if (strncmp(token, "Hash", 4) == 0){
+        token = strtok(NULL, delimiter);
+        token = strtok(NULL, delimiter);
+        uint64_t hash_size;
+        sscanf(token, "%llu", &hash_size);
+        free(tt.entries);
+        int num_entries = (int)(hash_size * 1000000 / sizeof(Entry));
+        Entry* entries = malloc(num_entries * sizeof(Entry));
+        memset(entries, 0, num_entries * sizeof(Entry));
+        tt.num_entries = num_entries;
+        tt.entries = entries;
+    }
+    else if (strncmp(token, "Threads", 7) == 0){
 
-    line += 1 + patlength;
-    line += strlen("value ");
-
-    switch (option_type) {
-        case -1:
-            printf("Invalid option type\n");
-            break;
-        case 0:
-            uint64_t hash_size;
-            sscanf(line, "%llu", &hash_size);
-
-            free(tt.entries);
-            int num_entries = (int)(hash_size * 1000000 / sizeof(Entry));
-            Entry* entries = malloc(num_entries * sizeof(Entry));
-            tt.num_entries = num_entries;
-            tt.entries = entries;
-            for (int i = 0; i < tt.num_entries; i++) {
-                tt.entries[i].hash = 0;
-                tt.entries[i].best_move.value = 0;
-                tt.entries[i].score = 0;
-                tt.entries[i].depth_node_type = 0;
-            }
-            break;
-        case 1:
-            break;
-        default:
-            printf("Invalid option type\n");
-            break;
+    }
+    else{
+        printf("Invalid option type\n");
     }
 }
 
@@ -302,7 +283,7 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
             *stack = new;
             break;
         case 5:
-            printf("id name Cairn\n"
+            printf("id name Cairn\nid author InternetHamburger\n\n"
                    "option name Hash type spin default 16 min 1 max 33554432\n"
                    "option name Threads type spin default 1 min 1 max 1\n"
                    "uciok\n");
