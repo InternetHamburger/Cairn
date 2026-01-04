@@ -1,4 +1,7 @@
 #include "evaluation.h"
+
+#include <stdlib.h>
+
 #include "utility.h"
 #include "board.h"
 
@@ -174,20 +177,24 @@ static void init_table(void) {
     }
 }
 
+const int piece_game_phase[] = {0, 0, 1, 1, 2, 4, 0};
+
 int eval(const Board *board) {
     uint64_t occupied = GetOccupied(board);
-    int num_pieces = __builtin_popcountll(occupied);
 
     int mg_eval = 0;
     int eg_eval = 0;
+    int phase = 0;
     while (occupied){
         const int square = poplsb(&occupied);
         mg_eval += mg_piece_square_values[board->squares[square]][square];
         eg_eval += eg_piece_square_values[board->squares[square]][square];
+        phase += piece_game_phase[GetType(board->squares[square])];
     }
 
     // Interpolate based on number of pieces
-    int eval = (mg_eval * num_pieces + eg_eval * (32 - num_pieces)) / 32;
+    phase = __min(24, phase);
+    int eval = (mg_eval * phase + eg_eval * (24 - phase)) / 24;
 
     return eval * (board->white_to_move ? 1 : -1);
 }
