@@ -220,7 +220,12 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
             if (score > alpha)
             {
-                score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
+                if (is_pv)
+                {
+                    score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1, ply + 1, &lpv);
+                }
+                if (score > alpha)
+                    score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
             }
         }
         else
