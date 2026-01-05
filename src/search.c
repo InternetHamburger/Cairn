@@ -98,6 +98,23 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
         }
     }
 
+    int type = EXACT;
+    if (best_score >= beta)
+    {
+        type = LOWER;
+    }
+    else if (best_score <= alpha)
+    {
+        type = UPPER;
+    }
+
+    Entry new_entry = {
+        .hash = board->zobrist_hash,
+        .best_move = MoveConstructor(0, 0, 0),
+        .score = (int16_t)best_score,
+        .depth_node_type = type | 0
+    };
+    tt.entries[tt_index] = new_entry;
     return best_score;
 }
 
