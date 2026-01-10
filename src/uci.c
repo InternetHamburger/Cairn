@@ -83,8 +83,8 @@ void GoCommand(char* line, Board *board, Stack *stack) {
     int nodes = INT_MAX;
     int softnodes = INT_MAX;
     int depth = 255;
-    int wtime = 0;
-    int btime = 0;
+    int wtime = INT_MAX;
+    int btime = INT_MAX;
     int winc = 0;
     int binc = 0;
 
