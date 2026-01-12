@@ -332,7 +332,13 @@ int CountHashFull()
 void UCIReport(Stack *stack, PVariation *lpv, int depth, int score, int time_elapsed)
 {
     printf("info depth %d", depth);
-    printf(" score cp %d", score);
+    if (abs(score) > -(CHECKMATE + 255))
+    {
+        printf(" score mate %d", (score < 0 ? -1 : 1) * (-CHECKMATE - abs(score) + 1) / 2);
+    }else
+    {
+        printf(" score cp %d", score);
+    }
     printf(" nodes %llu", stack->nodes);
     printf(" nps %llu", stack->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
     printf(" hashfull %d", CountHashFull());
