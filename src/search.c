@@ -154,7 +154,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
     const Board copy = *board;
     if (!is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
-        int r = 3;
+        int r = 2 + depth / 3;
         MakeNullMove(board);
         stack->hash_index++;
         PVariation null_pv;
