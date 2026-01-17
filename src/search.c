@@ -162,7 +162,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         *board = copy;
         stack->hash_index--;
         if (score >= beta){
-            return score;
+            return score > -(CHECKMATE + 255) ? beta : score;
         }
     }
 
