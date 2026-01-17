@@ -18,6 +18,10 @@ const int piece_scores[] = {0, 1, 3, 3, 5, 9, 0};
 void ZeroHist()
 {
     memset(history_table, 0, sizeof(history_table));
+}
+
+void ZeroKillers()
+{
     memset(killer_moves, 0, sizeof(Move) * 256);
 }
 

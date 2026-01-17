@@ -19,7 +19,7 @@ constexpr int ASP_MIN_DEPTH = 5;
 
 void Init()
 {
-    ZeroHist();
+    ZeroKillers();
 }
 
 int lmr_reduction[255][218]; // Indexed by [depth][move_num]

@@ -220,6 +220,7 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
     else if (strncmp(token, "ucinewgame", 10) == 0){
         ZeroTT();
         ZeroHist();
+        ZeroKillers();
         *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         Stack new = {
                 .nodes = 0,

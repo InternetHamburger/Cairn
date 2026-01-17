@@ -12,5 +12,6 @@ Move GetKillerMove(int ply);
 void OrderMoves(Board *board, Move* moves, int move_length, int ply, Move tt_move);
 void OrderCaptures(Board *board, Move* moves, int move_length);
 void ZeroHist();
+void ZeroKillers();
 
 #endif //CAIRN_MOVEORDERER_H
