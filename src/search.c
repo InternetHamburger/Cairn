@@ -103,7 +103,7 @@ int qSearch(Stack *stack, Board *board, int alpha, int beta){
     {
         type = LOWER;
     }
-    else if (best_score <= alpha)
+    else if (best_score < alpha)
     {
         type = UPPER;
     }
