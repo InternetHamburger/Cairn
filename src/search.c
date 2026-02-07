@@ -231,7 +231,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         {
             int r = lmr_reduction[depth][num_legal_moves];
             r -= is_pv;
-            r -= is_capture;
+            r -= is_capture * 2;
             r -= GetKillerMove(ply).value == moves[i].value;
             r = __max(r, 0);
             score = -Negamax(stack, board, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
