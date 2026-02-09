@@ -187,7 +187,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         // Move loop pruning
         if (best_score > CHECKMATE + 255)
         {
-            if (ply > 0 && !in_check && !is_capture && i >= 5 + 2 * depth * depth)
+            if (ply > 0 && !in_check && !is_capture && i >= 6 + depth * depth)
             {
                 continue;
             }
