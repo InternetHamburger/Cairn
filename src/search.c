@@ -177,7 +177,7 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
     OrderMoves(board, moves, num_moves, ply, tt_move);
 
-    bool alpha_raised = false;
+    int alphaOrig = alpha;
     int best_score = NEG_INF;
     Move best_move = MoveConstructor(0, 0, 0);
 
@@ -262,7 +262,6 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         }
 
         if (score > best_score) {
-            alpha_raised = true;
             best_score = score;
             best_move = moves[i];
             if (score > alpha){
@@ -307,13 +306,13 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
             .best_move = best_move,
             .score = (int16_t)best_score,
     };
-    if (alpha_raised)
+    if (best_score <= alphaOrig)
     {
-        new_entry.depth_node_type = EXACT | depth;
+        new_entry.depth_node_type = UPPER | depth;
     }
     else
     {
-        new_entry.depth_node_type = UPPER | depth;
+        new_entry.depth_node_type = EXACT | depth;
     }
     tt.entries[tt_index] = new_entry;
     return best_score;
