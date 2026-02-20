@@ -141,9 +141,11 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
         if ((GetEntryType(entry) & EXACT) == EXACT)
-        {
             return entry.score;
-        }
+        if ((GetEntryType(entry) & LOWER) == LOWER && entry.score >= beta)
+            return entry.score;
+        if ((GetEntryType(entry) & UPPER) == UPPER && entry.score <= alpha)
+            return entry.score;
     }
 
     const int static_eval = eval(board);
