@@ -214,8 +214,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
         if (score > best_score) {
             best_score = score;
-            best_move = tt_move;
             if (score > alpha){
+                best_move = tt_move;
                 alpha = score;
                 pv->length = 1 + lpv.length;
                 pv->line[0] = tt_move;
@@ -335,8 +335,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
         if (score > best_score) {
             best_score = score;
-            best_move = moves[i];
             if (score > alpha){
+                best_move = moves[i];
                 alpha = score;
                 pv->length = 1 + lpv.length;
                 pv->line[0] = moves[i];
