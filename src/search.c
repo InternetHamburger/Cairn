@@ -170,21 +170,91 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
 
     int num_legal_moves = 0;
     int num_moves = 0;
-    Move moves[256];
-    GetMoves(board, moves, &num_moves);
+    Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
 
-    Move quiet_moves[num_moves];
+
+
+    Move quiet_moves[218];
+
     int num_quiets = 0;
 
-    Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
-    OrderMoves(board, moves, num_moves, ply, tt_move);
+
 
     int alphaOrig = alpha;
     int best_score = NEG_INF;
     Move best_move = MoveConstructor(0, 0, 0);
 
-    for (int i = 0; i < num_moves; i++) {
+    if (tt_hit && tt_move.value)
+    {
+        const bool is_capture = board->squares[TargetSquare(tt_move)] != None;
 
+
+        assert(tt_move.value != 0);
+        MakeMove(board, tt_move);
+
+        if (!is_capture)
+        {
+            quiet_moves[num_quiets++] = tt_move;
+        }
+
+        stack->nodes++;
+        num_legal_moves++;
+
+        stack->hash_index++;
+        int score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
+
+        stack->hash_index--;
+        *board = copy;
+
+        if (stack->nodes > stack->node_limit || clock() - stack->start_time > stack->time_limit) {
+            if (ply == 0)
+                return best_score;
+            return NEG_INF;
+        }
+
+        if (score > best_score) {
+            best_score = score;
+            best_move = tt_move;
+            if (score > alpha){
+                alpha = score;
+                pv->length = 1 + lpv.length;
+                pv->line[0] = tt_move;
+                memcpy(pv->line + 1, lpv.line, sizeof(Move) * lpv.length);
+            }
+        }
+
+        if (score >= beta) {
+            if (!is_capture){
+                UpdateKillers(tt_move, ply);
+                for (int j = 0; j < num_quiets; j++)
+                {
+                    if (quiet_moves[j].value == tt_move.value)
+                    {
+                        UpdateHistTable(board, tt_move, depth * depth);
+                    }else
+                    {
+                        UpdateHistTable(board, quiet_moves[j], -depth * depth);
+                    }
+                }
+            }
+            const Entry new_entry = {
+                    .hash = board->zobrist_hash,
+                    .best_move = best_move,
+                    .score = (int16_t)best_score,
+                    .depth_node_type = LOWER | depth
+            };
+            tt.entries[tt_index] = new_entry;
+
+            return best_score;
+        }
+    }
+
+    Move moves[256];
+    GetMoves(board, moves, &num_moves);
+    OrderMoves(board, moves, num_moves, ply, tt_move);
+
+    for (int i = 0; i < num_moves; i++) {
+        if (moves[i].value == tt_move.value) continue;
         const bool is_capture = board->squares[TargetSquare(moves[i])] != None;
         // Move loop pruning
         if (best_score > CHECKMATE + 255)
