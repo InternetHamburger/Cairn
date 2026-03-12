@@ -351,10 +351,10 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
                 {
                     if (quiet_moves[j].value == moves[i].value)
                     {
-                        UpdateHistTable(board, moves[i], depth * depth);
+                        UpdateHistTable(board, moves[i], 300 * depth - 250);
                     }else
                     {
-                        UpdateHistTable(board, quiet_moves[j], -depth * depth);
+                        UpdateHistTable(board, quiet_moves[j], -(300 * depth - 250));
                     }
                 }
             }
