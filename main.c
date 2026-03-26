@@ -19,7 +19,7 @@ int main(int argc, char *args[]) {
     if (argc > 1 && (strncmp(args[offset], "datagen", strlen("datagen")) == 0)){
         uint64_t seed;
         sscanf(args[2 + offset], "%llu", &seed);
-        FILE *file = fopen(args[4 + offset], "ab");
+        FILE *file = fopen(args[4 + offset], "a");
 
         Thread state = {
                 .thread_id = seed,

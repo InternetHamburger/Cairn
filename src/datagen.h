@@ -7,19 +7,13 @@
 
 typedef struct { // In viriformat: https://github.com/cosmobobak/viriformat
     // Packed board
-    unsigned long long occupied;
-    uint8_t pieces[16];
-    uint8_t stm_enPassant;
-    uint8_t half_move;
-    uint16_t full_move;
-    int16_t score;
     uint8_t result;
 
     // NOTE: DO NOT WRITE TO GAME FILE
     int ply;
 
-    // Combined moves and scores
-    unsigned long moves[MAX_NUM_PLY]; // Longest possible game;
+    Board end_positions[1024];
+    int scores[1024];
 } Game;
 
 typedef struct {

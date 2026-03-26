@@ -530,7 +530,8 @@ SearchResult search(Board *board, Stack *stack) {
             .best_move = best_move,
             .score = best_score,
             .depth = depth,
-            .nodes = stack->nodes
+            .nodes = stack->nodes,
+            .pv = lpv
     };
 
     assert(best_move.value != 0);

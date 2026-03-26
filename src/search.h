@@ -29,6 +29,7 @@ typedef struct{
     int score;
     uint64_t nodes;
     int depth;
+    PVariation pv;
 } SearchResult;
 
 

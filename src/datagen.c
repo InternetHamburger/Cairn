@@ -172,47 +172,6 @@ Board PrepareGame(Thread *this) {
         if (abs(result.score) < 750) break;
         rand_pos = GenerateRandomPosition(seed);
     }
-    this->game.occupied = GetViriOccupied(&rand_pos);
-
-    for (int i = 0; i < 16; i++) this->game.pieces[i] = 0;
-
-    int index = 0;
-    for (int i = 0; i < 64; i++) {
-        const int square = FlipSquare(i);
-        if (this->game.occupied & (1ULL << i)) {
-            uint8_t piece = ConvertPiece(rand_pos.squares[square]);
-
-            if ((piece & 0b0111) == 0b0011) {// Is a rook
-                piece &= 0b1000;
-                if (rand_pos.white_kingside && square == 63) {
-                    piece |= 0b0110;
-                }
-                else if (rand_pos.white_queenside && square == 56) {
-                    piece |= 0b0110;
-                }
-                else if (rand_pos.black_kingside && square == 7) {
-                    piece |= 0b0110;
-                }
-                else if (rand_pos.black_queenside && square == 0) {
-                    piece |= 0b0110;
-                }
-                else {
-                    piece |= 0b0011;
-                }
-            }
-
-            this->game.pieces[index / 2] |= piece << ((index % 2) * 4);
-            index++;
-        }
-    }
-
-    this->game.stm_enPassant = 0;
-    this->game.stm_enPassant |= rand_pos.en_passant_square == -1 ? 64 : rand_pos.en_passant_square;
-    this->game.stm_enPassant |= !rand_pos.white_to_move << 7;
-
-    this->game.half_move = 0;
-    this->game.full_move = 1;
-    this->game.score = 0;
 
     this->game.result = 3;
     return rand_pos;
@@ -231,6 +190,8 @@ double PlayGame(Thread *this) {
             .hash_index = 0
     };
 
+
+    Board end_position;
     while (1){
         stack.hashes[stack.hash_index] = board.zobrist_hash;
 
@@ -248,11 +209,15 @@ double PlayGame(Thread *this) {
 
         stack.nodes = 0;
         const Move converted_move = ConvertMove(result.best_move);
-        MakeMove(&board, result.best_move);
-        this->game.moves[stack.hash_index] = 0;
-        this->game.moves[stack.hash_index] |= converted_move.value;
-        this->game.moves[stack.hash_index] |= ((board.white_to_move ? -1 : 1) * result.score) << 16;
+        this->game.scores[stack.hash_index] = (board.white_to_move ? 1 : -1) * result.score;
 
+        end_position = board;
+        for (int move = 0; move < result.pv.length; move++){
+            MakeMove(&end_position, result.pv.line[move]);
+        }
+        this->game.end_positions[stack.hash_index] = end_position;
+
+        MakeMove(&board, result.best_move);
         stack.hash_index++;
 
     }
@@ -264,22 +229,10 @@ double PlayGame(Thread *this) {
 }
 
 void WriteGame(Game *game, FILE *file) {
-    fwrite(&game->occupied, sizeof(unsigned long long), 1, file);
-    fwrite(&game->pieces, sizeof(uint8_t), 16, file);
-    fwrite(&game->stm_enPassant, sizeof(uint8_t), 1, file);
-
-    fwrite(&game->half_move, sizeof(uint8_t), 1, file);
-    fwrite(&game->full_move, sizeof(uint16_t), 1, file);
-    fwrite(&game->score, sizeof(int16_t), 1, file);
-    fwrite(&game->result, sizeof(uint8_t), 1, file);
-
-    constexpr uint8_t padding = 0;
-    fwrite(&padding, sizeof(uint8_t), 1, file); // Padding
-
-    fwrite(&game->moves, sizeof(unsigned long), game->ply, file);
-
-    constexpr unsigned int num = 0;
-    fwrite(&num, sizeof(unsigned int), 1, file); // End of game
+    for (int pos = 0; pos < game->ply; pos++){
+        char* fen = BoardToFen(&game->end_positions[pos]);
+        fprintf(file, "%s | %d | %f\n", fen, game->scores[pos], game->result / 2.0);
+    }
     fflush(file);
 }
 
@@ -293,6 +246,7 @@ void* GameLoop(Thread *this) {
         WaitForSingleObject(hMutex, INFINITE);
         WriteGame(&this->game, this->file);
         ReleaseMutex(hMutex);
+        break;
     }
     return NULL;
 }
