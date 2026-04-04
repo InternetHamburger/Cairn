@@ -13,24 +13,24 @@
 #include <string.h>
 #include <assert.h>
 
-void ParseMoves(Board *board, char* moves, Stack *stack){
+void ParseMoves(char* moves, Thread *thread){
     char* token;
     const char delimiter[] = " ";
     token = strtok(moves, delimiter);
 
     while (token != NULL){
 
-        Move make_move = StringToMove(token, board);
+        Move make_move = StringToMove(token, &thread->board);
         assert(make_move.value != 0);
-        MakeMove(board, make_move);
+        MakeMove(&thread->board, make_move);
 
-        stack->hashes[board->game_ply] = board->zobrist_hash;
+        thread->hashes[thread->board.game_ply] = thread->board.zobrist_hash;
 
-        token = strtok(NULL, delimiter);
+        token = strtok(nullptr, delimiter);
     }
 }
 
-void SetPosition(char* line, Board *board, Stack *stack) {
+void SetPosition(char* line, Thread *thread) {
     char* token;
     const char delimiter[] = " ";
     token = strtok(line, delimiter);
@@ -48,34 +48,34 @@ void SetPosition(char* line, Board *board, Stack *stack) {
             if (empty_encounters == 6) break;
         }
 
-        *board = BoardConstructor(line);
+        thread->board = BoardConstructor(line);
         line += fen_length;
     }
     else if (strncmp(token, "startpos", 8) == 0){
         line += 9;
-        *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        thread->board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
     else{
         printf("Invalid position type\n");
         return;
     }
 
-    stack->hashes[0] = board->zobrist_hash;
+    thread->hashes[0] = thread->board.zobrist_hash;
 
     token = strtok(line, delimiter);
     if (token != NULL && strncmp(token, "moves", 5) == 0){
         line += 6;
-        ParseMoves(board, line, stack);
+        ParseMoves(line, thread);
     }
 }
 
-void GoCommand(char* line, Board *board, Stack *stack) {
-    stack->nodes = 0;
-    stack->node_limit = INT_MAX;
-    stack->print_info = true;
-    stack->depth_limit = 255;
-    stack->soft_node_limit = INT_MAX;
-    stack->time_limit = INT_MAX;
+void GoCommand(char* line, Thread *thread) {
+    thread->nodes = 0;
+    thread->node_limit = INT_MAX;
+    thread->print_info = true;
+    thread->depth_limit = 255;
+    thread->soft_node_limit = INT_MAX;
+    thread->time_limit = INT_MAX;
 
     int movetime = INT_MAX;
     int nodes = INT_MAX;
@@ -127,23 +127,23 @@ void GoCommand(char* line, Board *board, Stack *stack) {
             token = strtok(NULL, delimiter);
             int perft_depth;
             sscanf(token, "%d", &perft_depth);
-            splitPerft(board, perft_depth);
+            splitPerft(&thread->board, perft_depth);
             return;
         }
         token = strtok(NULL, delimiter);
     }
 
-    int time_left = board->white_to_move ? wtime : btime;
-    int increment = board->white_to_move ? winc : binc;
+    int time_left = thread->board.white_to_move ? wtime : btime;
+    int increment = thread->board.white_to_move ? winc : binc;
 
     int time_limit = time_left / 20 + increment / 2;
 
-    stack->node_limit = nodes;
-    stack->print_info = true;
-    stack->depth_limit = depth;
-    stack->soft_node_limit = softnodes;
-    stack->time_limit = __min(time_limit, movetime);
-    search(board, stack);
+    thread->node_limit = nodes;
+    thread->print_info = true;
+    thread->depth_limit = depth;
+    thread->soft_node_limit = softnodes;
+    thread->time_limit = __min(time_limit, movetime);
+    search(thread);
 }
 
 void RunDatagen(char* line, char* this_path){
@@ -196,18 +196,18 @@ void SetOption(char* line){
     }
 }
 
-void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
+void ReceiveCommand(char* line, char* this_path, Thread *thread) {
     char* token;
     const char delimiter[] = " ";
     token = strtok(line, delimiter);
 
     if (strncmp(token, "position", 8) == 0){
         line += 9;
-        SetPosition(line, board, stack);
+        SetPosition(line, thread);
     }
     else if (strncmp(token, "go", 2) == 0){
         line += 3;
-        GoCommand(line, board, stack);
+        GoCommand(line, thread);
     }
     else if (strncmp(token, "isready", 7) == 0){
         printf("readyok\n");
@@ -219,16 +219,17 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
         ZeroTT();
         ZeroHist();
         ZeroKillers();
-        *board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        Stack new = {
+        Thread new = {
                 .nodes = 0,
                 .node_limit = INT64_MAX,
                 .print_info = true,
                 .depth_limit = 255,
                 .soft_node_limit = INT64_MAX,
                 .time_limit = INT64_MAX,
+                .board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
+                .ss = {0}
         };
-        *stack = new;
+        *thread = new;
     }
     else if (strncmp(token, "uci", 3) == 0){
         printf("id name Cairn\nid author InternetHamburger\n\n"
@@ -241,12 +242,12 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
         RunDatagen(line, this_path);
     }
     else if (strncmp(token, "d", 1) == 0){
-        PrintBoard(board);
-        printf("Fen: %s\n", BoardToFen(board));
-        printf("Key: %llu\n", board->zobrist_hash);
+        PrintBoard(&thread->board);
+        printf("Fen: %s\n", BoardToFen(&thread->board));
+        printf("Key: %llu\n", thread->board.zobrist_hash);
     }
     else if (strncmp(token, "eval", 4) == 0){
-        printf("Raw eval: %d\n", eval(board));
+        printf("Raw eval: %d\n", eval(&thread->board));
     }
     else if (strncmp(token, "setoption", 9) == 0){
         line += 10;

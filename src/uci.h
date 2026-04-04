@@ -3,11 +3,7 @@
 #include "board.h"
 #include "search.h"
 
-void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack);
+void ReceiveCommand(char* line, char* this_path, Thread *thread);
 
-typedef struct {
-    void (*function)(void *arg);
-    void *arg;
-} task_t;
 
 #endif //CAIRN_UCI_H

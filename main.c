@@ -21,7 +21,7 @@ int main(int argc, char *args[]) {
         sscanf(args[2 + offset], "%llu", &seed);
         FILE *file = fopen(args[4 + offset], "ab");
 
-        Thread state = {
+        DatagenInfo state = {
                 .thread_id = seed,
                 .file = file
         };
@@ -31,13 +31,15 @@ int main(int argc, char *args[]) {
     }
 
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    Stack stack = {
+    Thread thread = {
             .nodes = 0,
             .node_limit = INT64_MAX,
             .print_info = true,
             .depth_limit = 255,
             .soft_node_limit = INT64_MAX,
             .time_limit = INT64_MAX,
+            .board = board,
+            .ss = {0}
     };
 
     while (1) {
@@ -49,7 +51,7 @@ int main(int argc, char *args[]) {
             input[i] = line[i];
         }
         input[strlen(line)] = '\0';
-        ReceiveCommand(input, &board, args[0], &stack);
+        ReceiveCommand(input, args[0], &thread);
 
     }
     return 0;

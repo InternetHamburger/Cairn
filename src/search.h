@@ -6,6 +6,10 @@
 #define NEG_INF (-32767)
 #define CHECKMATE (-32567)
 
+typedef struct{
+    int static_eval;
+} Stack;
+
 typedef struct {
     uint64_t nodes;
     double start_time;
@@ -15,7 +19,11 @@ typedef struct {
     uint64_t soft_node_limit;
     bool print_info;
     uint64_t hashes[MAX_NUM_PLY]; // For threefold repetition
-} Stack;
+
+    Board board;
+    Stack ss[512];
+} Thread;
+
 
 
 typedef struct {
@@ -31,6 +39,6 @@ typedef struct{
 } SearchResult;
 
 
-SearchResult search(Board *board, Stack *stack);
+SearchResult search(Thread *thread);
 
 #endif //CAIRN_SEARCH_H

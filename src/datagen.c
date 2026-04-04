@@ -92,7 +92,7 @@ bool IsCheckmate(Board* board){
     return true;
 }
 
-Board GenerateRandomPosition(unsigned long long *seed) {
+Board GenerateRandomPosition(uint64_t *seed) {
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     Board prev_copy = board;
     int num_rand_moves = ((*seed >> 43) & 1ULL) == 1 ? 8 : 9;
@@ -153,21 +153,23 @@ unsigned long long GetViriOccupied(Board *board) {
     return occupied;
 }
 
-Board PrepareGame(Thread *this) {
+Board PrepareGame(DatagenInfo *this) {
     unsigned long long* seed = &this->thread_id;
     PseudorandomNumber(seed);
     Board rand_pos = GenerateRandomPosition(seed);
     // Try at most 100 different positions
     for (int i = 0; i < 100; i++){
-        Stack stack = {
+        Thread thread = {
                 .nodes = 0,
                 .node_limit = 500000,
                 .print_info = false,
                 .depth_limit = 255,
                 .soft_node_limit = 8000,
                 .time_limit = INT64_MAX,
+                .board = rand_pos,
+                .ss = {0}
         };
-        const SearchResult result = search(&rand_pos, &stack);
+        const SearchResult result = search(&thread);
         if (abs(result.score) < 750) break;
         rand_pos = GenerateRandomPosition(seed);
     }
@@ -217,45 +219,47 @@ Board PrepareGame(Thread *this) {
     return rand_pos;
 }
 
-double PlayGame(Thread *this) {
-    Board board = PrepareGame(this);
+double PlayGame(DatagenInfo *this) {
 
-    Stack stack = {
+
+    Thread thread = {
             .nodes = 0,
             .node_limit = 500000,
             .print_info = false,
             .depth_limit = 255,
             .soft_node_limit = 5000,
             .time_limit = INT_MAX,
+            .board = PrepareGame(this),
+            .ss = {0}
     };
-
+    Board* board = &thread.board;
     while (1){
-        stack.hashes[board.game_ply] = board.zobrist_hash;
+        thread.hashes[board->game_ply] = board->zobrist_hash;
 
-        if (IsCheckmate(&board)){
-            this->game.result = board.white_to_move ? 0 : 2;
+        if (IsCheckmate(board)){
+            this->game.result = board->white_to_move ? 0 : 2;
             break;
         }
-        if (IsRepetition(stack.hashes, board.game_ply) || board.fifty_move_counter >= 100 || board.game_ply > 512){ // Hard limit on length
+        if (IsRepetition(thread.hashes, board->game_ply) || board->fifty_move_counter >= 100 || board->game_ply > 512){ // Hard limit on length
             this->game.result = 1;
             break;
         }
 
-        const SearchResult result = search(&board, &stack);
+        const SearchResult result = search(&thread);
         assert(result.best_move.value != 0);
 
-        stack.nodes = 0;
+        thread.nodes = 0;
         const Move converted_move = ConvertMove(result.best_move);
 
-        this->game.moves[board.game_ply] = 0;
-        this->game.moves[board.game_ply] |= converted_move.value;
-        this->game.moves[board.game_ply] |= ((board.white_to_move ? 1 : -1) * result.score) << 16;
+        this->game.moves[board->game_ply] = 0;
+        this->game.moves[board->game_ply] |= converted_move.value;
+        this->game.moves[board->game_ply] |= ((board->white_to_move ? 1 : -1) * result.score) << 16;
 
-        MakeMove(&board, result.best_move);
+        MakeMove(board, result.best_move);
 
     }
 
-    this->game.ply = board.game_ply;
+    this->game.ply = board->game_ply;
     this->thread_id = PseudorandomNumber(&this->thread_id);
 
     return 0;
@@ -281,7 +285,7 @@ void WriteGame(Game *game, FILE *file) {
     fflush(file);
 }
 
-void* GameLoop(Thread *this) {
+void* GameLoop(DatagenInfo *this) {
 
     HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
 
