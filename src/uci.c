@@ -227,7 +227,8 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
                 .soft_node_limit = INT64_MAX,
                 .time_limit = INT64_MAX,
                 .board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-                .ss = {0}
+                .ss = {0},
+                .tt = thread->tt
         };
         *thread = new;
     }
