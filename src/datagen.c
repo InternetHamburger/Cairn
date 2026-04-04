@@ -166,7 +166,6 @@ Board PrepareGame(Thread *this) {
                 .depth_limit = 255,
                 .soft_node_limit = 8000,
                 .time_limit = INT64_MAX,
-                .hash_index = 0
         };
         const SearchResult result = search(&rand_pos, &stack);
         if (abs(result.score) < 750) break;
@@ -228,17 +227,16 @@ double PlayGame(Thread *this) {
             .depth_limit = 255,
             .soft_node_limit = 5000,
             .time_limit = INT_MAX,
-            .hash_index = 0
     };
 
     while (1){
-        stack.hashes[stack.hash_index] = board.zobrist_hash;
+        stack.hashes[board.game_ply] = board.zobrist_hash;
 
         if (IsCheckmate(&board)){
             this->game.result = board.white_to_move ? 0 : 2;
             break;
         }
-        if (IsRepetition(stack.hashes, stack.hash_index) || board.fifty_move_counter >= 100 || stack.hash_index > 512){ // Hard limit on length
+        if (IsRepetition(stack.hashes, board.game_ply) || board.fifty_move_counter >= 100 || board.game_ply > 512){ // Hard limit on length
             this->game.result = 1;
             break;
         }
@@ -248,16 +246,16 @@ double PlayGame(Thread *this) {
 
         stack.nodes = 0;
         const Move converted_move = ConvertMove(result.best_move);
-        MakeMove(&board, result.best_move);
-        this->game.moves[stack.hash_index] = 0;
-        this->game.moves[stack.hash_index] |= converted_move.value;
-        this->game.moves[stack.hash_index] |= ((board.white_to_move ? -1 : 1) * result.score) << 16;
 
-        stack.hash_index++;
+        this->game.moves[board.game_ply] = 0;
+        this->game.moves[board.game_ply] |= converted_move.value;
+        this->game.moves[board.game_ply] |= ((board.white_to_move ? 1 : -1) * result.score) << 16;
+
+        MakeMove(&board, result.best_move);
 
     }
 
-    this->game.ply = stack.hash_index;
+    this->game.ply = board.game_ply;
     this->thread_id = PseudorandomNumber(&this->thread_id);
 
     return 0;

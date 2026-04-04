@@ -128,8 +128,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     if (in_check)
         depth++;
     if (depth <= 0) return qSearch(stack, board, alpha, beta);
-    stack->hashes[stack->hash_index] = board->zobrist_hash;
-    if ((IsRepetition(stack->hashes, stack->hash_index) || board->fifty_move_counter >= 100) && ply > 0){
+    stack->hashes[board->game_ply] = board->zobrist_hash;
+    if ((IsRepetition(stack->hashes, board->game_ply) || board->fifty_move_counter >= 100) && ply > 0){
         return 0;
     }
     const bool is_pv = beta - alpha > 1;
@@ -158,11 +158,9 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
     if (!is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
         int r = 3 + depth / 4;
         MakeNullMove(board);
-        stack->hash_index++;
         PVariation null_pv;
         int score = -Negamax(stack, board, -beta, -beta + 1, depth - r, ply + 1, &null_pv);
         *board = copy;
-        stack->hash_index--;
         if (score >= beta){
             return score > -(CHECKMATE + 255) ? beta : score;
         }
@@ -200,10 +198,8 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         stack->nodes++;
         num_legal_moves++;
 
-        stack->hash_index++;
         int score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
 
-        stack->hash_index--;
         *board = copy;
 
         if (stack->nodes > stack->node_limit || clock() - stack->start_time > stack->time_limit) {
@@ -293,7 +289,6 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
         stack->nodes++;
         num_legal_moves++;
 
-        stack->hash_index++;
         int score;
         if (i == 0)
         {
@@ -324,7 +319,6 @@ int Negamax(Stack *stack, Board *board, int alpha, int beta, int depth, int ply,
                 score = -Negamax(stack, board, -beta, -alpha, depth - 1, ply + 1, &lpv);
             }
         }
-        stack->hash_index--;
         *board = copy;
 
         if (stack->nodes > stack->node_limit || clock() - stack->start_time > stack->time_limit) {

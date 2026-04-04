@@ -164,6 +164,7 @@ void MakeMove(Board *board, const Move move) {
 
     board->white_to_move = !board->white_to_move;
     board->zobrist_hash ^= zobrist_stm;
+    board->game_ply++;
 }
 
 void MakeNullMove(Board *board){
@@ -176,6 +177,7 @@ void MakeNullMove(Board *board){
 
     board->white_to_move = !board->white_to_move;
     board->zobrist_hash ^= zobrist_stm;
+    board->game_ply++;
 }
 
 void PrintBoard(const Board* board) {
@@ -396,7 +398,8 @@ Board BoardConstructor(const char* fen){
             .en_passant_square = en_passant_square,
             .black_king_square = black_king_square,
             .white_king_square = white_king_square,
-            .fifty_move_counter = 0
+            .fifty_move_counter = 0,
+            .game_ply = 0
     };
 
     board.zobrist_hash = 958761493876598375ULL; // Initial hash
@@ -422,8 +425,8 @@ Board BoardConstructor(const char* fen){
     return board;
 }
 
-bool IsRepetition(const unsigned long long hashes[MAX_NUM_PLY], int idx){
-    unsigned long long curr_hash = hashes[idx];
+bool IsRepetition(const uint64_t hashes[MAX_NUM_PLY], int idx){
+    uint64_t curr_hash = hashes[idx];
     int num_occasions = 1; // Already seen board once (right now)
     for (int i = idx; i >= 0; i--){
         if (hashes[i] == curr_hash) num_occasions++;

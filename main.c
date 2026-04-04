@@ -38,7 +38,6 @@ int main(int argc, char *args[]) {
             .depth_limit = 255,
             .soft_node_limit = INT64_MAX,
             .time_limit = INT64_MAX,
-            .hash_index = 0
     };
 
     while (1) {

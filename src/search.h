@@ -15,9 +15,8 @@ typedef struct {
     uint64_t soft_node_limit;
     bool print_info;
     uint64_t hashes[MAX_NUM_PLY]; // For threefold repetition
-    int hash_index;
-    Move pv_table[257][218];
 } Stack;
+
 
 typedef struct {
     int length, score;

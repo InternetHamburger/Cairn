@@ -24,8 +24,7 @@ void ParseMoves(Board *board, char* moves, Stack *stack){
         assert(make_move.value != 0);
         MakeMove(board, make_move);
 
-        stack->hash_index++;
-        stack->hashes[stack->hash_index] = board->zobrist_hash;
+        stack->hashes[board->game_ply] = board->zobrist_hash;
 
         token = strtok(NULL, delimiter);
     }
@@ -61,8 +60,7 @@ void SetPosition(char* line, Board *board, Stack *stack) {
         return;
     }
 
-    stack->hash_index = 0;
-    stack->hashes[stack->hash_index] = board->zobrist_hash;
+    stack->hashes[0] = board->zobrist_hash;
 
     token = strtok(line, delimiter);
     if (token != NULL && strncmp(token, "moves", 5) == 0){
@@ -229,7 +227,6 @@ void ReceiveCommand(char* line, Board *board, char* this_path, Stack *stack) {
                 .depth_limit = 255,
                 .soft_node_limit = INT64_MAX,
                 .time_limit = INT64_MAX,
-                .hash_index = 0
         };
         *stack = new;
     }

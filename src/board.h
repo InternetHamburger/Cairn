@@ -48,6 +48,7 @@ typedef struct{
     uint64_t bitboards[BlackKing + 1];
     uint64_t zobrist_hash;
     int fifty_move_counter;
+    int game_ply;
 } Board;
 
 void MakeMove(Board *board, Move move);
