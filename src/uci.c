@@ -169,7 +169,7 @@ void RunDatagen(char* line, char* this_path){
     Datagen(line, this_path, num_threads, seed);
 }
 
-void SetOption(char* line){
+void SetOption(char* line, Thread* thread){
     line += strlen("name ");
 
     char* token;
@@ -181,12 +181,12 @@ void SetOption(char* line){
         token = strtok(NULL, delimiter);
         uint64_t hash_size;
         sscanf(token, "%llu", &hash_size);
-        free(tt.entries);
+        free(thread->tt.entries);
         int num_entries = (int)(hash_size * 1000000 / sizeof(Entry));
         Entry* entries = malloc(num_entries * sizeof(Entry));
         memset(entries, 0, num_entries * sizeof(Entry));
-        tt.num_entries = num_entries;
-        tt.entries = entries;
+        thread->tt.num_entries = num_entries;
+        thread->tt.entries = entries;
     }
     else if (strncmp(token, "Threads", 7) == 0){
 
@@ -216,9 +216,9 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
         exit(0);
     }
     else if (strncmp(token, "ucinewgame", 10) == 0){
-        ZeroTT();
-        ZeroHist();
-        ZeroKillers();
+        ZeroTT(&thread->tt);
+        ZeroHist(thread);
+        ZeroKillers(thread);
         Thread new = {
                 .nodes = 0,
                 .node_limit = INT64_MAX,
@@ -251,7 +251,7 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
     }
     else if (strncmp(token, "setoption", 9) == 0){
         line += 10;
-        SetOption(line);
+        SetOption(line, thread);
     }
     else{
         printf("Invalid command\n");

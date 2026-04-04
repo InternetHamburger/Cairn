@@ -9,10 +9,10 @@
 #include "move.h"
 #include "moveGeneration.h"
 
-unsigned long long perft(Board *board, const int depth) {
+uint64_t perft(Board *board, const int depth) {
     if (depth == 0) return 1;
 
-    unsigned long long nodes = 0;
+    uint64_t nodes = 0;
 
     int num_moves = 0;
     Move moves[256];
@@ -28,7 +28,7 @@ unsigned long long perft(Board *board, const int depth) {
             *board = copy;
             continue;
         }
-        const unsigned long long u = perft(board, depth - 1);
+        const uint64_t u = perft(board, depth - 1);
         nodes += u;
         *board = copy;
     }
@@ -36,8 +36,8 @@ unsigned long long perft(Board *board, const int depth) {
     return nodes;
 }
 
-unsigned long long splitPerft(Board *board, const int depth) {
-    unsigned long long nodes = 0;
+uint64_t splitPerft(Board *board, const int depth) {
+    uint64_t nodes = 0;
 
     int num_moves = 0;
     Move moves[256];

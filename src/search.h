@@ -2,6 +2,7 @@
 #define CAIRN_SEARCH_H
 
 #include "board.h"
+#include "transposition.h"
 
 #define NEG_INF (-32767)
 #define CHECKMATE (-32567)
@@ -22,6 +23,11 @@ typedef struct {
 
     Board board;
     Stack ss[512];
+
+    int history_table[BlackKing + 1][64];
+    Move killer_moves[256];
+
+    TT tt;
 } Thread;
 
 

@@ -1,67 +1,58 @@
 #include "moveOrderer.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "board.h"
 #include "utility.h"
 
-
-
-
-int history_table[BlackKing + 1][64];
-Move killer_moves[256];
-
 const int piece_scores[] = {0, 1, 3, 3, 5, 9, 0};
 
-void ZeroHist()
+void ZeroHist(Thread* thread)
 {
-    memset(history_table, 0, sizeof(history_table));
+    memset(thread->history_table, 0, sizeof(thread->history_table));
 }
 
-void ZeroKillers()
+void ZeroKillers(Thread* thread)
 {
-    memset(killer_moves, 0, sizeof(Move) * 256);
+    memset(thread->killer_moves, 0, sizeof(Move) * 256);
 }
 
-void UpdateHistTable(const Board* board, const Move move, const int bonus)
+void UpdateHistTable(Thread* thread, const Move move, const int bonus)
 {
-    int* hist_value = &history_table[board->squares[StartSquare(move)]][TargetSquare(move)];
+    int* hist_value = &thread->history_table[thread->board.squares[StartSquare(move)]][TargetSquare(move)];
     *hist_value += bonus - *hist_value * abs(bonus) / MAX_HISTORY;
 }
 
-void UpdateKillers(const Move move, const int ply)
+void UpdateKillers(Thread* thread, const Move move, const int ply)
 {
-    killer_moves[ply] = move;
+    thread->killer_moves[ply] = move;
 }
 
-Move GetKillerMove(const int ply)
+int mvv_lva(Move move, Board *board)
 {
-    return killer_moves[ply];
-}
-
-int mvv_lva(Move move, Board *board){
     return 100 * piece_scores[GetType(board->squares[TargetSquare(move)])] - piece_scores[GetType(board->squares[StartSquare(move)])];
 }
 
-int move_score(Move move, Board* board, Move tt_move, int ply){
+int move_score(Thread* thread, Move move, Move tt_move, int ply)
+{
     if (move.value == tt_move.value){
         return 100000;
     }
-    if (board->squares[TargetSquare(move)] != None){
-        return mvv_lva(move, board) - !staticExchangeEvaluation(board, move, 0) * 100000;
+    if (thread->board.squares[TargetSquare(move)] != None){
+        return mvv_lva(move, &thread->board) - !staticExchangeEvaluation(&thread->board, move, 0) * 100000;
     }
-    if (move.value == killer_moves[ply].value){
+    if (move.value == thread->killer_moves[ply].value){
         return 1;
     }
-    return history_table[board->squares[StartSquare(move)]][TargetSquare(move)] - MAX_HISTORY; // Ensure quiet moves are ordered last
+    return thread->history_table[thread->board.squares[StartSquare(move)]][TargetSquare(move)] - MAX_HISTORY; // Ensure quiet moves are ordered last
 }
 
-void OrderMoves(Board *board, Move* moves, int move_length, int ply, Move tt_move){
+void OrderMoves(Thread* thread, Move* moves, int move_length, int ply, Move tt_move)
+{
     int move_scores[move_length];
     for (int i = 0; i < move_length; i++){
-        move_scores[i] = move_score(moves[i], board, tt_move, ply);
+        move_scores[i] = move_score(thread, moves[i], tt_move, ply);
     }
 
     // Insertion sort implementation
@@ -81,10 +72,11 @@ void OrderMoves(Board *board, Move* moves, int move_length, int ply, Move tt_mov
     }
 }
 
-void OrderCaptures(Board *board, Move* moves, int move_length){
+void OrderCaptures(Board *board, Move* moves, int move_length)
+{
     int move_scores[move_length];
     for (int i = 0; i < move_length; i++){
-        move_scores[i] = mvv_lva(moves[i], board);// + staticExchangeEvaluation(board, moves[i], 0) * 1000;
+        move_scores[i] = mvv_lva(moves[i], board);
     }
 
     // Insertion sort implementation

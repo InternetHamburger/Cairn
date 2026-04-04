@@ -8,11 +8,23 @@
 
 int main(int argc, char *args[]) {
 
+    Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    Thread thread = {
+            .nodes = 0,
+            .node_limit = INT64_MAX,
+            .print_info = true,
+            .depth_limit = 255,
+            .soft_node_limit = INT64_MAX,
+            .time_limit = INT64_MAX,
+            .board = board,
+            .ss = {0}
+    };
+
     int num_entries = 16 * 1000000 / sizeof(Entry);
     Entry* entries = malloc(num_entries * sizeof(Entry));
-    tt.num_entries = num_entries;
-    tt.entries = entries;
-    ZeroTT();
+    thread.tt.num_entries = num_entries;
+    thread.tt.entries = entries;
+    ZeroTT(&thread.tt);
 
     int offset = argc > 1 && (strncmp(args[1], "datagen", strlen("datagen")) == 0) ? 1 : 0;
 
@@ -30,17 +42,7 @@ int main(int argc, char *args[]) {
         return 0;
     }
 
-    Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    Thread thread = {
-            .nodes = 0,
-            .node_limit = INT64_MAX,
-            .print_info = true,
-            .depth_limit = 255,
-            .soft_node_limit = INT64_MAX,
-            .time_limit = INT64_MAX,
-            .board = board,
-            .ss = {0}
-    };
+
 
     while (1) {
         char line[20000];
