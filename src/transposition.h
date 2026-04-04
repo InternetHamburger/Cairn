@@ -21,11 +21,9 @@ typedef struct{
     Entry* entries;
 } TT;
 
-extern TT tt;
-
 int GetDepth(Entry entry);
 int GetEntryType(Entry entry);
-void ZeroTT();
+void ZeroTT(TT* tt);
 bool IsNull(Entry entry);
 
 #endif //CAIRN_TRANSPOSITION_H

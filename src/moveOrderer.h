@@ -2,16 +2,16 @@
 #define CAIRN_MOVEORDERER_H
 
 #include "board.h"
+#include "search.h"
 #include "utility.h"
 
 #define MAX_HISTORY 16384
 
-void UpdateHistTable(const Board* board, Move move, int bonus);
-void UpdateKillers(Move move, int ply);
-Move GetKillerMove(int ply);
-void OrderMoves(Board *board, Move* moves, int move_length, int ply, Move tt_move);
+void ZeroHist(Thread* thread);
+void ZeroKillers(Thread* thread);
+void UpdateHistTable(Thread* thread, Move move, int bonus);
+void UpdateKillers(Thread* thread,  Move move, int ply);
+void OrderMoves(Thread* thread, Move* moves, int move_length, int ply, Move tt_move);
 void OrderCaptures(Board *board, Move* moves, int move_length);
-void ZeroHist();
-void ZeroKillers();
 
 #endif //CAIRN_MOVEORDERER_H
