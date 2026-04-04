@@ -1,4 +1,5 @@
 #include "transposition.h"
+#include <string.h>
 
 int GetDepth(Entry entry){
     return entry.depth_node_type & 0b00111111;
@@ -14,10 +15,5 @@ bool IsNull(Entry entry)
 }
 
 void ZeroTT(TT* tt){
-    for (int i = 0; i < tt->num_entries; i++) {
-        tt->entries[i].hash = 0;
-        tt->entries[i].best_move.value = 0;
-        tt->entries[i].score = 0;
-        tt->entries[i].depth_node_type = 0;
-    }
+    memset(tt->entries, 0, sizeof(Entry) * tt->num_entries);
 }
