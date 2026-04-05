@@ -8,7 +8,8 @@
 #define CHECKMATE (-32567)
 
 typedef struct{
-    int static_eval;
+    int static_eval, to_square;
+    Piece moved_piece;
 } Stack;
 
 typedef struct {
@@ -24,7 +25,8 @@ typedef struct {
     Board board;
     Stack ss[512];
 
-    int history_table[BlackKing + 1][64];
+    int quiet_history[BlackKing + 1][64];
+    int cont_hist[BlackKing + 1][64][BlackKing + 1][64];
     Move killer_moves[256];
 
     TT tt;

@@ -194,7 +194,8 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     if (tt_hit && tt_move.value)
     {
         const bool is_capture = board->squares[TargetSquare(tt_move)] != None;
-
+        thread->ss[ply].to_square = TargetSquare(tt_move);
+        thread->ss[ply].moved_piece = board->squares[StartSquare(tt_move)];
 
         assert(tt_move.value != 0);
         MakeMove(board, tt_move);
@@ -235,10 +236,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                 {
                     if (quiet_moves[j].value == tt_move.value)
                     {
-                        UpdateHistTable(thread, tt_move, depth * depth);
+                        UpdateHistTable(thread, ply, tt_move, depth * depth);
                     }else
                     {
-                        UpdateHistTable(thread, quiet_moves[j], -depth * depth);
+                        UpdateHistTable(thread, ply, quiet_moves[j], -depth * depth);
                     }
                 }
             }
@@ -261,6 +262,8 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     for (int i = 0; i < num_moves; i++) {
         if (moves[i].value == tt_move.value) continue;
         const bool is_capture = board->squares[TargetSquare(moves[i])] != None;
+        thread->ss[ply].to_square = TargetSquare(moves[i]);
+        thread->ss[ply].moved_piece = board->squares[StartSquare(moves[i])];
         // Move loop pruning
         if (best_score > CHECKMATE + 255)
         {
@@ -355,10 +358,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                 {
                     if (quiet_moves[j].value == moves[i].value)
                     {
-                        UpdateHistTable(thread, moves[i], 300 * depth - 250);
+                        UpdateHistTable(thread, ply, moves[i], 300 * depth - 250);
                     }else
                     {
-                        UpdateHistTable(thread, quiet_moves[j], -(300 * depth - 250));
+                        UpdateHistTable(thread, ply, quiet_moves[j], -(300 * depth - 250));
                     }
                 }
             }
