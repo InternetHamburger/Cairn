@@ -17,9 +17,9 @@
 
 constexpr int ASP_MIN_DEPTH = 5;
 
-void Init()
+void Init(Thread* thread)
 {
-    ZeroKillers();
+    ZeroKillers(thread);
 }
 
 int lmr_reduction[255][218]; // Indexed by [depth][move_num]
@@ -39,8 +39,8 @@ int qSearch(Thread *thread, int alpha, int beta){
     int static_eval = eval(board);
 
     const bool is_pv = beta - alpha > 1;
-    const uint64_t tt_index = board->zobrist_hash % tt.num_entries;
-    const Entry entry = tt.entries[tt_index];
+    const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
+    const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
 
     if (!is_pv && tt_hit) {
@@ -116,7 +116,7 @@ int qSearch(Thread *thread, int alpha, int beta){
         .score = (int16_t)best_score,
         .depth_node_type = type | 0
     };
-    tt.entries[tt_index] = new_entry;
+    thread->tt.entries[tt_index] = new_entry;
     return best_score;
 }
 
@@ -137,8 +137,8 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     }
     const bool is_pv = beta - alpha > 1;
 
-    const uint64_t tt_index = board->zobrist_hash % tt.num_entries;
-    const Entry entry = tt.entries[tt_index];
+    const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
+    const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
 
     if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
@@ -226,15 +226,15 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
         if (score >= beta) {
             if (!is_capture){
-                UpdateKillers(tt_move, ply);
+                UpdateKillers(thread, tt_move, ply);
                 for (int j = 0; j < num_quiets; j++)
                 {
                     if (quiet_moves[j].value == tt_move.value)
                     {
-                        UpdateHistTable(board, tt_move, depth * depth);
+                        UpdateHistTable(thread, tt_move, depth * depth);
                     }else
                     {
-                        UpdateHistTable(board, quiet_moves[j], -depth * depth);
+                        UpdateHistTable(thread, quiet_moves[j], -depth * depth);
                     }
                 }
             }
@@ -244,7 +244,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                     .score = (int16_t)best_score,
                     .depth_node_type = LOWER | depth
             };
-            tt.entries[tt_index] = new_entry;
+            thread->tt.entries[tt_index] = new_entry;
 
             return best_score;
         }
@@ -252,7 +252,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
     Move moves[256];
     GetMoves(board, moves, &num_moves);
-    OrderMoves(board, moves, num_moves, ply, tt_move);
+    OrderMoves(thread, moves, num_moves, ply, tt_move);
 
     for (int i = 0; i < num_moves; i++) {
         if (moves[i].value == tt_move.value) continue;
@@ -304,7 +304,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             int r = lmr_reduction[depth][num_legal_moves];
             r -= is_pv;
             r -= is_capture * 2;
-            r -= GetKillerMove(ply).value == moves[i].value;
+            r -= thread->killer_moves[ply].value == moves[i].value;
             r = __max(r, 0);
             score = -Negamax(thread, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
             if (score > alpha && is_pv)
@@ -345,15 +345,15 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
         if (score >= beta) {
             if (!is_capture){
-                UpdateKillers(moves[i], ply);
+                UpdateKillers(thread, moves[i], ply);
                 for (int j = 0; j < num_quiets; j++)
                 {
                     if (quiet_moves[j].value == moves[i].value)
                     {
-                        UpdateHistTable(board, moves[i], 300 * depth - 250);
+                        UpdateHistTable(thread, moves[i], 300 * depth - 250);
                     }else
                     {
-                        UpdateHistTable(board, quiet_moves[j], -(300 * depth - 250));
+                        UpdateHistTable(thread, quiet_moves[j], -(300 * depth - 250));
                     }
                 }
             }
@@ -363,7 +363,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                     .score = (int16_t)best_score,
                     .depth_node_type = LOWER | depth
             };
-            tt.entries[tt_index] = new_entry;
+            thread->tt.entries[tt_index] = new_entry;
 
             return best_score;
         }
@@ -385,16 +385,16 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     {
         new_entry.depth_node_type = EXACT | depth;
     }
-    tt.entries[tt_index] = new_entry;
+    thread->tt.entries[tt_index] = new_entry;
     return best_score;
 }
 
-int CountHashFull()
+int CountHashFull(Thread* thread)
 {
     int num = 0;
     for (int i = 0; i < 1000; i++)
     {
-        num += !IsNull(tt.entries[i]);
+        num += !IsNull(thread->tt.entries[i]);
     }
     return num;
 }
@@ -411,7 +411,7 @@ void UCIReport(Thread *thread, PVariation *lpv, int depth, int score, int time_e
     }
     printf(" nodes %llu", thread->nodes);
     printf(" nps %llu", thread->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
-    printf(" hashfull %d", CountHashFull());
+    printf(" hashfull %d", CountHashFull(thread));
     printf(" time %d", time_elapsed);
 
     printf(" pv ");
@@ -423,7 +423,7 @@ void UCIReport(Thread *thread, PVariation *lpv, int depth, int score, int time_e
 }
 
 SearchResult search(Thread *thread) {
-    Init();
+    Init(thread);
     Move best_move = MoveConstructor(0, 0, 0);
     int best_score = NEG_INF;
     thread->start_time = clock();
