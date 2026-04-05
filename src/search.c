@@ -151,8 +151,12 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             return entry.score;
     }
 
-    const int static_eval = eval(board);
+    const int static_eval = in_check ? -NEG_INF : eval(board);
     thread->ss[ply].static_eval = static_eval;
+
+    bool improving = false;
+    if (!in_check && ply > 1 && static_eval > thread->ss[ply - 2].static_eval)
+        improving = true;
 
     if (static_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
@@ -305,6 +309,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             r -= is_pv;
             r -= is_capture * 2;
             r -= thread->killer_moves[ply].value == moves[i].value;
+            r -= improving;
             r = __max(r, 0);
             score = -Negamax(thread, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
             if (score > alpha && is_pv)
