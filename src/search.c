@@ -62,7 +62,7 @@ int correct_eval(Thread* thread, int eval){
 int qSearch(Thread *thread, int alpha, int beta){
     Board* board = &thread->board;
 
-    int static_eval = eval(board);
+    int static_eval = correct_eval(thread, eval(board));
 
     const bool is_pv = beta - alpha > 1;
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
