@@ -47,6 +47,7 @@ typedef struct{
     int black_king_square;
     uint64_t bitboards[BlackKing + 1];
     uint64_t zobrist_hash;
+    uint64_t pawn_key;
     int fifty_move_counter;
     int game_ply;
 } Board;

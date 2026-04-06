@@ -14,6 +14,7 @@
 #include <math.h>
 #include <string.h>
 
+#define CLAMP(x, a, b) __min(__max(x, a), b)
 
 constexpr int ASP_MIN_DEPTH = 5;
 
@@ -32,6 +33,31 @@ static void init_table(){
         }
     }
 }
+
+void update_corrhist(Thread* thread, int depth, int bonus){
+    bonus *= 256;
+    int color = thread->board.white_to_move;
+    int weight = 2 * __min(1 + depth, 16);
+
+    int* entry = &thread->pawn_corr_hist[color][thread->board.pawn_key % 16384];
+
+    int new_value = (*entry * (256 - weight) + bonus * weight) / 256;
+    new_value = CLAMP(new_value, *entry - 2000, *entry + 2000);
+    *entry = CLAMP(new_value, -8192, 8192);
+}
+
+int correct_eval(Thread* thread, int eval){
+    int color = thread->board.white_to_move;
+
+    int pawn_entry = thread->pawn_corr_hist[color][thread->board.pawn_key % 16384];
+
+
+    int correction = 256 * pawn_entry;
+
+    int corrected = eval + correction / (256 * 256);
+    return CLAMP(corrected, CHECKMATE + 256, -(CHECKMATE + 256));
+}
+
 
 int qSearch(Thread *thread, int alpha, int beta){
     Board* board = &thread->board;
@@ -151,7 +177,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             return entry.score;
     }
 
-    const int static_eval = in_check ? -NEG_INF : eval(board);
+    int static_eval = in_check ? -NEG_INF : correct_eval(thread, eval(board));
     thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;
@@ -394,6 +420,16 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         new_entry.depth_node_type = EXACT | depth;
     }
     thread->tt.entries[tt_index] = new_entry;
+
+    const bool is_capture = board->squares[TargetSquare(best_move)] != None;
+    if (!in_check && (best_move.value == 0 || !is_capture)
+        && !((GetEntryType(entry) & LOWER) == LOWER && static_eval >= best_score)
+        && !((GetEntryType(entry) & UPPER) == UPPER && static_eval <= best_score))
+    {
+        update_corrhist(thread, depth, best_score - static_eval);
+    }
+
+
     return best_score;
 }
 

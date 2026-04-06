@@ -5,7 +5,7 @@
 #include "transposition.h"
 
 #define NEG_INF (-32767)
-#define CHECKMATE (-32567)
+#define CHECKMATE (-32000)
 
 typedef struct{
     int static_eval, to_square;
@@ -28,6 +28,8 @@ typedef struct {
     int quiet_history[BlackKing + 1][64];
     int cont_hist[BlackKing + 1][64][BlackKing + 1][64];
     Move killer_moves[256];
+
+    int pawn_corr_hist[2][16384];
 
     TT tt;
 } Thread;

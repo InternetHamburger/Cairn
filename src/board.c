@@ -45,6 +45,10 @@ void MakeMove(Board *board, const Move move) {
         board->fifty_move_counter = 0;
     }
 
+    if (GetType(captured_piece) == Pawn){
+        board->pawn_key ^= zobrist_squares[target_square][captured_piece];
+    }
+
     if (target_square == 63 || start_square == 63) {
         board->white_kingside = false;
     }
@@ -72,10 +76,13 @@ void MakeMove(Board *board, const Move move) {
     if (GetType(moved_piece) == Pawn)
     {
         board->fifty_move_counter = 0;
+        board->pawn_key ^= zobrist_squares[start_square][moved_piece];
+        board->pawn_key ^= zobrist_squares[target_square][moved_piece];
     }
 
     if (IsPromotion(move)) {
         board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
+        board->pawn_key ^= zobrist_squares[target_square][moved_piece];
         board->bitboards[moved_piece] ^= (1ULL << target_square);
         switch (flag) {
             case PromoteQueen:
@@ -104,7 +111,6 @@ void MakeMove(Board *board, const Move move) {
     }
 
     if (flag == DoublePush) {
-
         board->en_passant_square = target_square + (board->white_to_move ? 8 : -8);
         board->zobrist_hash ^= zobrist_ep_squares[board->en_passant_square];
     }
@@ -116,12 +122,14 @@ void MakeMove(Board *board, const Move move) {
             board->squares[new_square] = 0;
             board->bitboards[board->white_to_move ? BlackPawn : WhitePawn] ^= (1ULL << new_square);
             board->zobrist_hash ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
+            board->pawn_key ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
         }
         else {
             const int new_square = start_square + 1;
             board->squares[new_square] = 0;
             board->bitboards[board->white_to_move ? BlackPawn : WhitePawn] ^= (1ULL << new_square);
             board->zobrist_hash ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
+            board->pawn_key ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
         }
     }
 
@@ -401,13 +409,16 @@ Board BoardConstructor(const char* fen){
             .fifty_move_counter = 0,
             .game_ply = 0
     };
-
-    board.zobrist_hash = 958761493876598375ULL; // Initial hash
+    // Initial hash
+    board.zobrist_hash = 958761493876598375ULL;
+    board.pawn_key = 16598769873467589623ULL;
     for (i = 0; i < 64; i++) {
         board.squares[i] = squares[i];
 
         if (board.squares[i] != None)
             board.zobrist_hash ^= zobrist_squares[i][squares[i]];
+        if (GetType(board.squares[i]) == Pawn)
+            board.pawn_key ^= zobrist_squares[i][squares[i]];
     }
     for (i = 0; i < BlackKing + 1; i++) {
         board.bitboards[i] = bitboards[i];

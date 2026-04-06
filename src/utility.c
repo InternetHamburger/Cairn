@@ -78,7 +78,7 @@ char* MoveToString(const Move move){
     char* from = SquareToString(StartSquare(move));
     char* to = SquareToString(TargetSquare(move));
 
-    char* string_move = malloc(5);
+    char* string_move = malloc(6);
 
     string_move[0] = from[0];
     string_move[1] = from[1];
@@ -86,7 +86,6 @@ char* MoveToString(const Move move){
     string_move[3] = to[1];
     string_move[4] = '\0';  // null-terminate
     if (IsPromotion(move)){
-        string_move = realloc(string_move, 6);
         string_move[4] = PieceToChar(GetPromotionPiece(move));
         string_move[5] = '\0';  // null-terminate
     }
