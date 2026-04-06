@@ -21,19 +21,33 @@ void ZeroKillers(Thread* thread)
 
 void UpdateHistTable(Thread* thread, const int ply, const Move move, const int bonus)
 {
+    const Piece piece = thread->board.squares[StartSquare(move)];
+    const int to_square = TargetSquare(move);
+
     if (ply > 0){
-        int* cont_value = &thread->cont_hist[thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square][thread->board.squares[StartSquare(move)]][TargetSquare(move)];
+        int* cont_value = &thread->cont_hist[thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square][piece][to_square];
+        *cont_value += bonus - *cont_value * abs(bonus) / MAX_HISTORY;
+    }
+    if (ply > 1){
+        int* cont_value = &thread->cont_hist[thread->ss[ply - 2].moved_piece][thread->ss[ply - 2].to_square][piece][to_square];
         *cont_value += bonus - *cont_value * abs(bonus) / MAX_HISTORY;
     }
 
-    int* quiet_value = &thread->quiet_history[thread->board.squares[StartSquare(move)]][TargetSquare(move)];
+    int* quiet_value = &thread->quiet_history[piece][to_square];
     *quiet_value += bonus - *quiet_value * abs(bonus) / MAX_HISTORY;
 }
 
 int get_history(Thread* thread, const Move move, const int ply){
 
-    int cont_value = ply < 1 ? 0 : thread->cont_hist[thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square][thread->board.squares[StartSquare(move)]][TargetSquare(move)];
-    int quiet_value = thread->quiet_history[thread->board.squares[StartSquare(move)]][TargetSquare(move)];
+    const Piece piece = thread->board.squares[StartSquare(move)];
+    const int to_square = TargetSquare(move);
+
+    int cont_value = 0;
+    cont_value = ply < 1 ? 0 : thread->cont_hist[thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square][piece][to_square];
+    cont_value += ply < 2 ? 0 : thread->cont_hist[thread->ss[ply - 2].moved_piece][thread->ss[ply - 2].to_square][piece][to_square];
+
+    int quiet_value = thread->quiet_history[piece][to_square];
+
     return cont_value + quiet_value;
 }
 
@@ -58,7 +72,7 @@ int move_score(Thread* thread, Move move, Move tt_move, int ply)
     if (move.value == thread->killer_moves[ply].value){
         return 1;
     }
-    return get_history(thread, move, ply) - 2 * MAX_HISTORY; // Ensure quiet moves are ordered last
+    return get_history(thread, move, ply) - 3 * MAX_HISTORY; // Ensure quiet moves are ordered last
 }
 
 void OrderMoves(Thread* thread, Move* moves, int move_length, int ply, Move tt_move)
