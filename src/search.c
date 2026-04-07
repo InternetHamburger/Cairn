@@ -293,6 +293,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         // Move loop pruning
         if (best_score > CHECKMATE + 255)
         {
+            if (depth <= 4 && !in_check && !is_capture && get_history(thread, moves[i], ply) < depth * -2048) {
+                break;
+            }
+
             if (ply > 0 && !in_check && !is_capture && i >= (6 + depth * depth) / (2 - improving))
             {
                 continue;
