@@ -26,6 +26,7 @@ typedef struct {
     Stack ss[512];
 
     int quiet_history[BlackKing + 1][64];
+    int capture_history[BlackKing + 1][64][BlackKing + 1];
     int cont_hist[BlackKing + 1][64][BlackKing + 1][64];
     Move killer_moves[256];
 

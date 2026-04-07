@@ -89,7 +89,7 @@ int qSearch(Thread *thread, int alpha, int beta){
     int num_moves = 0;
     Move moves[256];
     GetMoves(board, moves, &num_moves);
-    OrderCaptures(board, moves, num_moves);
+    OrderCaptures(thread, moves, num_moves);
     const Board copy = *board;
 
     for (int i = 0; i < num_moves; i++) {
@@ -208,8 +208,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
 
     Move quiet_moves[218];
+    Move captures[218];
 
     int num_quiets = 0;
+    int num_captures = 0;
 
 
 
@@ -229,6 +231,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         if (!is_capture)
         {
             quiet_moves[num_quiets++] = tt_move;
+        }
+        else
+        {
+            captures[num_captures++] = tt_move;
         }
 
         thread->nodes++;
@@ -266,6 +272,19 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                     }else
                     {
                         UpdateHistTable(thread, ply, quiet_moves[j], -depth * depth);
+                    }
+                }
+            }
+            else
+            {
+                for (int j = 0; j < num_captures; j++)
+                {
+                    if (captures[j].value == tt_move.value)
+                    {
+                        update_caphist(thread, tt_move, 300 * depth - 250);
+                    }else
+                    {
+                        update_caphist(thread, captures[j], -(300 * depth - 250));
                     }
                 }
             }
@@ -326,6 +345,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         if (!is_capture)
         {
             quiet_moves[num_quiets++] = moves[i];
+        }
+        else
+        {
+            captures[num_captures++] = moves[i];
         }
 
         thread->nodes++;
@@ -392,6 +415,19 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                     }else
                     {
                         UpdateHistTable(thread, ply, quiet_moves[j], -(300 * depth - 250));
+                    }
+                }
+            }
+            else
+            {
+                for (int j = 0; j < num_captures; j++)
+                {
+                    if (captures[j].value == moves[i].value)
+                    {
+                        update_caphist(thread, moves[i], 300 * depth - 250);
+                    }else
+                    {
+                        update_caphist(thread, captures[j], -(300 * depth - 250));
                     }
                 }
             }
