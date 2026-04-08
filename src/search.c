@@ -326,7 +326,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                 continue;
             }
 
-            if (ply > 0 && depth <= 8 && !staticExchangeEvaluation(board, moves[i], (is_capture ? -90 : -60) * depth)){
+            if (ply > 0 && depth <= 8 && !staticExchangeEvaluation(board, moves[i], (is_capture ? -50 * depth : -60) * depth)){
                 continue;
             }
         }
