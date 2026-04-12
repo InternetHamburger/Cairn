@@ -2,6 +2,8 @@
 #define CAIRN_DATAGEN_H
 
 #include "board.h"
+#include "search.h"
+#include "transposition.h"
 #include <stdio.h>
 #include <stdint.h>
 
@@ -29,8 +31,7 @@ typedef struct {
 } DatagenInfo;
 
 Piece ConvertPiece(Piece piece);
-Board GenerateRandomPosition(uint64_t *seed);
 void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed);
-void* GameLoop(DatagenInfo *this);
+void* GameLoop(DatagenInfo *this, Thread* thread);
 
 #endif //CAIRN_DATAGEN_H

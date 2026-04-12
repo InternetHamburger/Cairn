@@ -38,7 +38,7 @@ int main(int argc, char *args[]) {
                 .file = file
         };
 
-        GameLoop(&state);
+        GameLoop(&state, &thread);
         return 0;
     }
 

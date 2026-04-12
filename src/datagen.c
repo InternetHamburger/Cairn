@@ -141,8 +141,8 @@ Board GenerateRandomPosition(uint64_t *seed) {
     return board;
 }
 
-unsigned long long GetViriOccupied(Board *board) {
-    unsigned long long occupied = 0;
+uint64_t GetViriOccupied(Board *board) {
+    uint64_t occupied = 0;
 
     for (int i = 0; i < 64; i++) {
         if (board->squares[FlipSquare(i)]) {
@@ -153,24 +153,15 @@ unsigned long long GetViriOccupied(Board *board) {
     return occupied;
 }
 
-Board PrepareGame(DatagenInfo *this) {
-    unsigned long long* seed = &this->thread_id;
+Board PrepareGame(DatagenInfo *this, Thread* thread) {
+    uint64_t* seed = &this->thread_id;
     PseudorandomNumber(seed);
     Board rand_pos = GenerateRandomPosition(seed);
     // Try at most 100 different positions
     for (int i = 0; i < 100; i++){
-        Thread thread = {
-                .nodes = 0,
-                .node_limit = 500000,
-                .print_info = false,
-                .depth_limit = 255,
-                .soft_node_limit = 8000,
-                .time_limit = INT64_MAX,
-                .board = rand_pos,
-                .ss = {0}
-        };
-        const SearchResult result = search(&thread);
-        if (abs(result.score) < 750) break;
+        thread->board = rand_pos;
+        const SearchResult result = search(thread);
+        if (abs(result.score) < 2000) break;
         rand_pos = GenerateRandomPosition(seed);
     }
     this->game.occupied = GetViriOccupied(&rand_pos);
@@ -219,47 +210,43 @@ Board PrepareGame(DatagenInfo *this) {
     return rand_pos;
 }
 
-double PlayGame(DatagenInfo *this) {
+double PlayGame(DatagenInfo *this, Thread* thread) {
 
+    thread->nodes = 0;
+    thread->node_limit = 500000;
+    thread->print_info = false;
+    thread->soft_node_limit = 5000;
+    thread->board = PrepareGame(this, thread);
 
-    Thread thread = {
-            .nodes = 0,
-            .node_limit = 500000,
-            .print_info = false,
-            .depth_limit = 255,
-            .soft_node_limit = 5000,
-            .time_limit = INT_MAX,
-            .board = PrepareGame(this),
-            .ss = {0}
-    };
-    Board* board = &thread.board;
+    Board* board = &thread->board;
+    int hash_idx = 0;
     while (1){
-        thread.hashes[board->game_ply] = board->zobrist_hash;
+        thread->hashes[hash_idx] = board->zobrist_hash;
 
         if (IsCheckmate(board)){
             this->game.result = board->white_to_move ? 0 : 2;
             break;
         }
-        if (IsRepetition(thread.hashes, board->game_ply) || board->fifty_move_counter >= 100 || board->game_ply > 512){ // Hard limit on length
+        if (IsRepetition(thread->hashes, hash_idx) || board->fifty_move_counter >= 100 || board->game_ply > 512){ // Hard limit on length
             this->game.result = 1;
             break;
         }
 
-        const SearchResult result = search(&thread);
+        const SearchResult result = search(thread);
         assert(result.best_move.value != 0);
 
-        thread.nodes = 0;
+        thread->nodes = 0;
         const Move converted_move = ConvertMove(result.best_move);
 
-        this->game.moves[board->game_ply] = 0;
-        this->game.moves[board->game_ply] |= converted_move.value;
-        this->game.moves[board->game_ply] |= ((board->white_to_move ? 1 : -1) * result.score) << 16;
+        this->game.moves[hash_idx] = 0;
+        this->game.moves[hash_idx] |= converted_move.value;
+        this->game.moves[hash_idx] |= ((board->white_to_move ? 1 : -1) * result.score) << 16;
 
         MakeMove(board, result.best_move);
-
+        hash_idx++;
     }
 
-    this->game.ply = board->game_ply;
+    this->game.ply = hash_idx;
     this->thread_id = PseudorandomNumber(&this->thread_id);
 
     return 0;
@@ -285,12 +272,12 @@ void WriteGame(Game *game, FILE *file) {
     fflush(file);
 }
 
-void* GameLoop(DatagenInfo *this) {
+void* GameLoop(DatagenInfo *this, Thread* thread) {
 
     HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
 
     while (1) {
-        PlayGame(this);
+        PlayGame(this, thread);
 
         WaitForSingleObject(hMutex, INFINITE);
         WriteGame(&this->game, this->file);
