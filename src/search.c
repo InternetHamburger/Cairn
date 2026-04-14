@@ -165,15 +165,16 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     const Entry entry = thread->tt.entries[tt_index];
+    const uint8_t tt_flag = GetEntryType(entry);
     const bool tt_hit = board->zobrist_hash == entry.hash;
 
     if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
-        if ((GetEntryType(entry) & EXACT) == EXACT)
+        if ((tt_flag & EXACT) == EXACT)
             return entry.score;
-        if ((GetEntryType(entry) & LOWER) == LOWER && entry.score >= beta)
+        if ((tt_flag & LOWER) == LOWER && entry.score >= beta)
             return entry.score;
-        if ((GetEntryType(entry) & UPPER) == UPPER && entry.score <= alpha)
+        if ((tt_flag & UPPER) == UPPER && entry.score <= alpha)
             return entry.score;
     }
 
@@ -464,9 +465,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     thread->tt.entries[tt_index] = new_entry;
 
     const bool is_capture = board->squares[TargetSquare(best_move)] != None;
-    if (!in_check && (best_move.value == 0 || !is_capture)
-        && !((GetEntryType(entry) & LOWER) == LOWER && static_eval >= best_score)
-        && !((GetEntryType(entry) & UPPER) == UPPER && static_eval <= best_score))
+    if (!in_check && (best_move.value == 0 || !is_capture) && (
+        (tt_flag & EXACT) == EXACT ||
+        ((tt_flag & LOWER) == LOWER && static_eval < best_score) ||
+        ((tt_flag & UPPER) == UPPER && static_eval > best_score)))
     {
         update_corrhist(thread, depth, best_score - static_eval);
     }
