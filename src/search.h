@@ -49,7 +49,7 @@ typedef struct{
     int depth;
 } SearchResult;
 
-
+int correct_eval(Thread* thread, int eval);
 SearchResult search(Thread *thread);
 
 #endif //CAIRN_SEARCH_H

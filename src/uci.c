@@ -248,7 +248,9 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
         printf("Key: %llu\n", thread->board.zobrist_hash);
     }
     else if (strncmp(token, "eval", 4) == 0){
-        printf("Raw eval: %d\n", eval(&thread->board));
+        int static_eval = eval(&thread->board);
+        printf("Raw eval: %d\n", static_eval);
+        printf("Corrected eval: %d\n", correct_eval(thread, static_eval));
     }
     else if (strncmp(token, "setoption", 9) == 0){
         line += 10;
