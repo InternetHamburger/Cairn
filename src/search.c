@@ -299,6 +299,14 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             };
             thread->tt.entries[tt_index] = new_entry;
 
+            if (!in_check && (best_move.value == 0 || !is_capture) && (
+                (tt_flag & EXACT) == EXACT ||
+                ((tt_flag & LOWER) == LOWER && static_eval < best_score) ||
+                ((tt_flag & UPPER) == UPPER && static_eval > best_score)))
+            {
+                update_corrhist(thread, depth, best_score - static_eval);
+            }
+
             return best_score;
         }
     }
@@ -441,6 +449,14 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                     .depth_node_type = LOWER | depth
             };
             thread->tt.entries[tt_index] = new_entry;
+
+            if (!in_check && (best_move.value == 0 || !is_capture) && (
+                (tt_flag & EXACT) == EXACT ||
+                ((tt_flag & LOWER) == LOWER && static_eval < best_score) ||
+                ((tt_flag & UPPER) == UPPER && static_eval > best_score)))
+            {
+                update_corrhist(thread, depth, best_score - static_eval);
+            }
 
             return best_score;
         }
