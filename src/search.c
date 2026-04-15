@@ -299,10 +299,8 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             };
             thread->tt.entries[tt_index] = new_entry;
 
-            if (!in_check && (best_move.value == 0 || !is_capture) && (
-                (tt_flag & EXACT) == EXACT ||
-                ((tt_flag & LOWER) == LOWER && static_eval < best_score) ||
-                ((tt_flag & UPPER) == UPPER && static_eval > best_score)))
+            if (!in_check && (best_move.value == 0 || !is_capture) &&
+                static_eval < best_score) // Is always lower bound
             {
                 update_corrhist(thread, depth, best_score - static_eval);
             }
@@ -450,10 +448,8 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             };
             thread->tt.entries[tt_index] = new_entry;
 
-            if (!in_check && (best_move.value == 0 || !is_capture) && (
-                (tt_flag & EXACT) == EXACT ||
-                ((tt_flag & LOWER) == LOWER && static_eval < best_score) ||
-                ((tt_flag & UPPER) == UPPER && static_eval > best_score)))
+            if (!in_check && (best_move.value == 0 || !is_capture) &&
+                static_eval < best_score) // Is always lower bound
             {
                 update_corrhist(thread, depth, best_score - static_eval);
             }
@@ -470,21 +466,23 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             .best_move = best_move,
             .score = (int16_t)best_score,
     };
+    uint8_t new_flag;
     if (best_score <= alphaOrig)
     {
+        new_flag = UPPER;
         new_entry.depth_node_type = UPPER | depth;
     }
     else
     {
+        new_flag = EXACT;
         new_entry.depth_node_type = EXACT | depth;
     }
     thread->tt.entries[tt_index] = new_entry;
 
     const bool is_capture = board->squares[TargetSquare(best_move)] != None;
     if (!in_check && (best_move.value == 0 || !is_capture) && (
-        (tt_flag & EXACT) == EXACT ||
-        ((tt_flag & LOWER) == LOWER && static_eval < best_score) ||
-        ((tt_flag & UPPER) == UPPER && static_eval > best_score)))
+        (new_flag & EXACT) == EXACT ||
+        ((new_flag & UPPER) == UPPER && static_eval > best_score)))
     {
         update_corrhist(thread, depth, best_score - static_eval);
     }
