@@ -181,9 +181,14 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     int static_eval = in_check ? -NEG_INF : correct_eval(thread, eval(board));
     thread->ss[ply].static_eval = static_eval;
 
-    bool improving = false;
-    if (!in_check && ply > 1 && static_eval > thread->ss[ply - 2].static_eval)
-        improving = true;
+    bool improving = true;
+    if (in_check) {
+        improving = false;
+    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != -NEG_INF) {
+        improving = static_eval > thread->ss[ply - 2].static_eval;
+    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != -NEG_INF) {
+        improving = static_eval > thread->ss[ply - 4].static_eval;
+    }
 
     if (static_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
