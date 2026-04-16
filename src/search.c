@@ -221,7 +221,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     int alphaOrig = alpha;
     int best_score = NEG_INF;
     Move best_move = MoveConstructor(0, 0, 0);
-
+    uint8_t new_flag = UPPER;
     if (tt_hit && tt_move.value)
     {
         const bool is_capture = board->squares[TargetSquare(tt_move)] != None;
@@ -256,6 +256,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         if (score > best_score) {
             best_score = score;
             if (score > alpha){
+                new_flag = EXACT;
                 best_move = tt_move;
                 alpha = score;
                 pv->length = 1 + lpv.length;
@@ -405,6 +406,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         if (score > best_score) {
             best_score = score;
             if (score > alpha){
+                new_flag = EXACT;
                 best_move = moves[i];
                 alpha = score;
                 pv->length = 1 + lpv.length;
@@ -414,6 +416,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         }
 
         if (score >= beta) {
+            new_flag = LOWER;
             if (!is_capture){
                 UpdateKillers(thread, moves[i], ply);
                 for (int j = 0; j < num_quiets; j++)
@@ -440,21 +443,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                     }
                 }
             }
-            const Entry new_entry = {
-                    .hash = board->zobrist_hash,
-                    .best_move = best_move,
-                    .score = (int16_t)best_score,
-                    .depth_node_type = LOWER | depth
-            };
-            thread->tt.entries[tt_index] = new_entry;
-
-            if (!in_check && (best_move.value == 0 || !is_capture) &&
-                static_eval < best_score) // Is always lower bound
-            {
-                update_corrhist(thread, depth, best_score - static_eval);
-            }
-
-            return best_score;
+            break;
         }
     }
     if (num_legal_moves == 0) {
@@ -465,24 +454,16 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             .hash = board->zobrist_hash,
             .best_move = best_move,
             .score = (int16_t)best_score,
+            .depth_node_type = new_flag | depth
     };
-    uint8_t new_flag;
-    if (best_score <= alphaOrig)
-    {
-        new_flag = UPPER;
-        new_entry.depth_node_type = UPPER | depth;
-    }
-    else
-    {
-        new_flag = EXACT;
-        new_entry.depth_node_type = EXACT | depth;
-    }
+
     thread->tt.entries[tt_index] = new_entry;
 
     const bool is_capture = board->squares[TargetSquare(best_move)] != None;
     if (!in_check && (best_move.value == 0 || !is_capture) && (
-        (new_flag & EXACT) == EXACT ||
-        ((new_flag & UPPER) == UPPER && static_eval > best_score)))
+            (new_flag & EXACT) == EXACT ||
+            ((new_flag & LOWER) == LOWER && static_eval < best_score) ||
+            ((new_flag & UPPER) == UPPER && static_eval > best_score)))
     {
         update_corrhist(thread, depth, best_score - static_eval);
     }
