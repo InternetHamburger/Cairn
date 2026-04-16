@@ -271,6 +271,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         }
 
         if (score >= beta) {
+            new_flag = LOWER;
             if (!is_capture){
                 UpdateKillers(thread, tt_move, ply);
                 for (int j = 0; j < num_quiets; j++)
@@ -297,21 +298,8 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                     }
                 }
             }
-            const Entry new_entry = {
-                    .hash = board->zobrist_hash,
-                    .best_move = best_move,
-                    .score = (int16_t)best_score,
-                    .depth_node_type = LOWER | depth
-            };
-            thread->tt.entries[tt_index] = new_entry;
 
-            if (!in_check && (best_move.value == 0 || !is_capture) &&
-                static_eval < best_score) // Is always lower bound
-            {
-                update_corrhist(thread, depth, best_score - static_eval);
-            }
-
-            return best_score;
+            goto update;
         }
     }
 
@@ -455,6 +443,9 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         if (InCheck(board)) return CHECKMATE + ply;
         return 0; // Stalemate
     }
+
+    update:
+
     Entry new_entry = {
             .hash = board->zobrist_hash,
             .best_move = best_move,
