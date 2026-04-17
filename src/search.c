@@ -71,12 +71,12 @@ int qSearch(Thread *thread, int alpha, int beta){
 
     if (!is_pv && tt_hit) {
         int type = GetEntryType(entry);
-        if (((type & EXACT) == EXACT) ||
-            ((type & UPPER) == UPPER && entry.score <= alpha) ||
-            ((type & LOWER) == LOWER && entry.score >= beta)) {
-
+        if (type == EXACT)
             return entry.score;
-        }
+        if (type == LOWER && entry.score >= beta)
+            return entry.score;
+        if (type == UPPER && entry.score <= alpha)
+            return entry.score;
     }
 
 
@@ -170,11 +170,11 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
     if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
-        if ((tt_flag & EXACT) == EXACT)
+        if (tt_flag == EXACT)
             return entry.score;
-        if ((tt_flag & LOWER) == LOWER && entry.score >= beta)
+        if (tt_flag == LOWER && entry.score >= beta)
             return entry.score;
-        if ((tt_flag & UPPER) == UPPER && entry.score <= alpha)
+        if (tt_flag == UPPER && entry.score <= alpha)
             return entry.score;
     }
 
