@@ -181,7 +181,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     int static_eval = in_check ? -NEG_INF : correct_eval(thread, eval(board));
     thread->ss[ply].static_eval = static_eval;
 
-    bool improving = true;
+    bool improving = false;
     if (in_check) {
         improving = false;
     } else if (ply >= 2 && thread->ss[ply - 2].static_eval != -NEG_INF) {
