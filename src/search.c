@@ -374,7 +374,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         {
             score = -Negamax(thread, -beta, -alpha, depth - 1, ply + 1, &lpv);
         }
-        else if (depth >= 3)
+        else if (depth >= 3 && i >= 2 + (ply == 0))
         {
             int r = lmr_reduction[depth][num_legal_moves];
             r -= is_pv;
