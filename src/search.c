@@ -37,13 +37,11 @@ static void init_table(){
 void update_corrhist(Thread* thread, int depth, int bonus){
     bonus *= 256;
     int color = thread->board.white_to_move;
-    int weight = 2 * __min(1 + depth, 16);
 
     int* entry = &thread->pawn_corr_hist[color][thread->board.pawn_key % 16384];
 
-    int new_value = (*entry * (256 - weight) + bonus * weight) / 256;
-    new_value = CLAMP(new_value, *entry - 2000, *entry + 2000);
-    *entry = CLAMP(new_value, -8192, 8192);
+    bonus = CLAMP(bonus, -1024, 1024);
+    *entry += bonus - *entry * abs(bonus) / 4096;
 }
 
 int correct_eval(Thread* thread, int eval){
@@ -54,7 +52,7 @@ int correct_eval(Thread* thread, int eval){
 
     int correction = 256 * pawn_entry;
 
-    int corrected = eval + correction / (256 * 256);
+    int corrected = eval + correction / (256 * 128);
     return CLAMP(corrected, CHECKMATE + 256, -(CHECKMATE + 256));
 }
 
