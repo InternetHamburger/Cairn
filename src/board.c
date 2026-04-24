@@ -43,11 +43,15 @@ void MakeMove(Board *board, const Move move) {
         board->bitboards[captured_piece] ^= (1ULL << target_square);
         board->zobrist_hash ^= zobrist_squares[target_square][captured_piece];
         board->fifty_move_counter = 0;
+        if (GetType(captured_piece) == Pawn){
+            board->pawn_key ^= zobrist_squares[target_square][captured_piece];
+        }
+        else{
+            board->non_pawn_key[!board->white_to_move] ^= zobrist_squares[target_square][captured_piece];
+        }
     }
 
-    if (GetType(captured_piece) == Pawn){
-        board->pawn_key ^= zobrist_squares[target_square][captured_piece];
-    }
+
 
     if (target_square == 63 || start_square == 63) {
         board->white_kingside = false;
@@ -79,6 +83,10 @@ void MakeMove(Board *board, const Move move) {
         board->pawn_key ^= zobrist_squares[start_square][moved_piece];
         board->pawn_key ^= zobrist_squares[target_square][moved_piece];
     }
+    else{
+        board->non_pawn_key[board->white_to_move] ^= zobrist_squares[start_square][moved_piece];
+        board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][moved_piece];
+    }
 
     if (IsPromotion(move)) {
         board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
@@ -89,21 +97,25 @@ void MakeMove(Board *board, const Move move) {
                 board->squares[target_square] = board->white_to_move ? WhiteQueen : BlackQueen;
                 board->bitboards[board->white_to_move ? WhiteQueen : BlackQueen] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteQueen : BlackQueen];
+                board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][board->white_to_move ? WhiteQueen : BlackQueen];
                 break;
             case PromoteKnight:
                 board->squares[target_square] = board->white_to_move ? WhiteKnight : BlackKnight;
                 board->bitboards[board->white_to_move ? WhiteKnight : BlackKnight] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteKnight : BlackKnight];
+                board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][board->white_to_move ? WhiteKnight : BlackKnight];
                 break;
             case PromoteBishop:
                 board->squares[target_square] = board->white_to_move ? WhiteBishop : BlackBishop;
                 board->bitboards[board->white_to_move ? WhiteBishop : BlackBishop] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteBishop : BlackBishop];
+                board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][board->white_to_move ? WhiteBishop : BlackBishop];
                 break;
             case PromoteRook:
                 board->squares[target_square] = board->white_to_move ? WhiteRook : BlackRook;
                 board->bitboards[board->white_to_move ? WhiteRook : BlackRook] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteRook : BlackRook];
+                board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][board->white_to_move ? WhiteRook : BlackRook];
                 break;
             default:
                 exit(-1);
@@ -139,6 +151,8 @@ void MakeMove(Board *board, const Move move) {
             board->squares[61] = WhiteRook;
             board->zobrist_hash ^= zobrist_squares[61][WhiteRook];
             board->zobrist_hash ^= zobrist_squares[63][WhiteRook];
+            board->non_pawn_key[board->white_to_move] ^= zobrist_squares[61][WhiteRook];
+            board->non_pawn_key[board->white_to_move] ^= zobrist_squares[63][WhiteRook];
             board->bitboards[WhiteRook] ^= (1ULL << 61) | (1ULL << 63);
         }
         if (target_square == 58) {
@@ -146,6 +160,8 @@ void MakeMove(Board *board, const Move move) {
             board->squares[59] = WhiteRook;
             board->zobrist_hash ^= zobrist_squares[56][WhiteRook];
             board->zobrist_hash ^= zobrist_squares[59][WhiteRook];
+            board->non_pawn_key[board->white_to_move] ^= zobrist_squares[56][WhiteRook];
+            board->non_pawn_key[board->white_to_move] ^= zobrist_squares[59][WhiteRook];
             board->bitboards[WhiteRook] ^= (1ULL << 56) | (1ULL << 59);
 
         }
@@ -154,6 +170,8 @@ void MakeMove(Board *board, const Move move) {
             board->squares[5] = BlackRook;
             board->zobrist_hash ^= zobrist_squares[7][BlackRook];
             board->zobrist_hash ^= zobrist_squares[5][BlackRook];
+            board->non_pawn_key[board->white_to_move] ^= zobrist_squares[7][BlackRook];
+            board->non_pawn_key[board->white_to_move] ^= zobrist_squares[5][BlackRook];
             board->bitboards[BlackRook] ^= (1ULL << 7) | (1ULL << 5);
         }
         if (target_square == 2) {
@@ -161,6 +179,8 @@ void MakeMove(Board *board, const Move move) {
             board->squares[3] = BlackRook;
             board->zobrist_hash ^= zobrist_squares[0][BlackRook];
             board->zobrist_hash ^= zobrist_squares[3][BlackRook];
+            board->non_pawn_key[board->white_to_move] ^= zobrist_squares[0][BlackRook];
+            board->non_pawn_key[board->white_to_move] ^= zobrist_squares[3][BlackRook];
             board->bitboards[BlackRook] ^= (1ULL << 0) | (1ULL << 3);
         }
     }
@@ -412,13 +432,19 @@ Board BoardConstructor(const char* fen){
     // Initial hash
     board.zobrist_hash = 958761493876598375ULL;
     board.pawn_key = 16598769873467589623ULL;
+    board.non_pawn_key[0] = 17457234809701983475ULL;
+    board.non_pawn_key[1] = 11654723480887598375ULL;
     for (i = 0; i < 64; i++) {
         board.squares[i] = squares[i];
 
-        if (board.squares[i] != None)
+        if (board.squares[i] != None) {
+
             board.zobrist_hash ^= zobrist_squares[i][squares[i]];
-        if (GetType(board.squares[i]) == Pawn)
-            board.pawn_key ^= zobrist_squares[i][squares[i]];
+            if (GetType(board.squares[i]) == Pawn)
+                board.pawn_key ^= zobrist_squares[i][squares[i]];
+            else
+                board.non_pawn_key[GetColor(squares[i])] ^= zobrist_squares[i][squares[i]];
+        }
     }
     for (i = 0; i < BlackKing + 1; i++) {
         board.bitboards[i] = bitboards[i];
@@ -431,7 +457,6 @@ Board BoardConstructor(const char* fen){
     if (white_queenside) board.zobrist_hash ^= zobrist_white_queenside;
     if (black_kingside) board.zobrist_hash ^= zobrist_black_kingside;
     if (black_queenside) board.zobrist_hash ^= zobrist_black_queenside;
-
 
     return board;
 }

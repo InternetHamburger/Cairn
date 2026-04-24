@@ -4,6 +4,7 @@
 #include "board.h"
 
 bool IsOppositeColor(bool white_to_move, int piece);
+bool GetColor(Piece piece);
 bool IsColor(bool white_to_move, int piece);
 int FlipSquare(int square);
 char PieceToChar(Piece piece);
