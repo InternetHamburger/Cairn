@@ -48,6 +48,7 @@ typedef struct{
     uint64_t bitboards[BlackKing + 1];
     uint64_t zobrist_hash;
     uint64_t pawn_key;
+    uint64_t minor_key;
     uint64_t non_pawn_key[2];
     int fifty_move_counter;
     int game_ply;

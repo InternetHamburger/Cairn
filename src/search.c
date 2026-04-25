@@ -49,6 +49,8 @@ void update_corrhist(Thread* thread, int depth, int bonus){
     update_entry(entry, bonus);
     entry = &thread->non_pawn_corr_hist[1][color][thread->board.non_pawn_key[1] % 16384];
     update_entry(entry, bonus);
+    entry = &thread->minor_corr_hist[color][thread->board.minor_key % 16384];
+    update_entry(entry, bonus);
 }
 
 int correct_eval(Thread* thread, int eval){
@@ -57,11 +59,13 @@ int correct_eval(Thread* thread, int eval){
     int pawn_entry = thread->pawn_corr_hist[color][thread->board.pawn_key % 16384];
     int s_non_pawn_entry = thread->non_pawn_corr_hist[0][color][thread->board.non_pawn_key[0] % 16384];
     int n_non_pawn_entry = thread->non_pawn_corr_hist[1][color][thread->board.non_pawn_key[1] % 16384];
+    int minor_entry = thread->minor_corr_hist[color][thread->board.minor_key % 16384];
 
     int correction = 0;
     correction += 256 * pawn_entry;
     correction += 256 * s_non_pawn_entry;
     correction += 256 * n_non_pawn_entry;
+    correction += 256 * minor_entry;
 
     int corrected = eval + correction / (256 * 128);
     return CLAMP(corrected, CHECKMATE + 256, -(CHECKMATE + 256));

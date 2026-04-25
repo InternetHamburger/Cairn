@@ -31,6 +31,7 @@ typedef struct {
     Move killer_moves[256];
 
     int pawn_corr_hist[2][16384];
+    int minor_corr_hist[2][16384];
     int non_pawn_corr_hist[2][2][16384];
 
     TT tt;
