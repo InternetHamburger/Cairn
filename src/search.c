@@ -39,7 +39,7 @@ void update_entry(int* entry, int bonus){
 }
 
 void update_corrhist(Thread* thread, int depth, int bonus){
-    bonus *= 256;
+    bonus *= 256 * depth / 8;
     bonus = CLAMP(bonus, -1024, 1024);
     int color = thread->board.white_to_move;
 
