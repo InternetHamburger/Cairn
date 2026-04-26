@@ -15,7 +15,7 @@ bool GetColor(Piece piece){
 
 bool IsMinor(Piece piece){
     PieceType type = GetType(piece);
-    return type == Knight || type == Bishop;
+    return type == Knight || type == Bishop || type == King;
 }
 
 bool IsColor(bool white_to_move, int piece){
