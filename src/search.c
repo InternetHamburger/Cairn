@@ -290,10 +290,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                 {
                     if (quiet_moves[j].value == tt_move.value)
                     {
-                        UpdateHistTable(thread, ply, tt_move, depth * depth);
+                        UpdateHistTable(thread, ply, tt_move, 300 * depth - 250);
                     }else
                     {
-                        UpdateHistTable(thread, ply, quiet_moves[j], -depth * depth);
+                        UpdateHistTable(thread, ply, quiet_moves[j], -(300 * depth - 250));
                     }
                 }
             }
