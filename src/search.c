@@ -548,7 +548,7 @@ SearchResult search(Thread *thread) {
             beta = __min(best_score + delta, -NEG_INF);
             while (1)
             {
-                if (thread->nodes > thread->soft_node_limit || (clock() - thread->start_time) > thread->time_limit || thread->nodes > thread->node_limit) {
+                if (thread->nodes > thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes > thread->node_limit) {
                     break;
                 }
                 score = Negamax(thread, alpha, beta, depth, 0, &pv);
@@ -589,7 +589,7 @@ SearchResult search(Thread *thread) {
             UCIReport(thread, &lpv, depth, best_score, time_elapsed);
         }
         assert(lpv.line[0].value != 0);
-        if (thread->nodes > thread->soft_node_limit || (clock() - thread->start_time) > thread->time_limit || thread->nodes > thread->node_limit) {
+        if (thread->nodes > thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes > thread->node_limit) {
             break;
         }
     }

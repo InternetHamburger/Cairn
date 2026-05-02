@@ -16,6 +16,7 @@ typedef struct {
     uint64_t nodes;
     double start_time;
     uint64_t time_limit;
+    uint64_t soft_time_limit;
     uint64_t node_limit;
     int depth_limit;
     uint64_t soft_node_limit;

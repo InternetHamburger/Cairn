@@ -16,6 +16,7 @@ int main(int argc, char *args[]) {
             .depth_limit = 255,
             .soft_node_limit = INT64_MAX,
             .time_limit = INT64_MAX,
+            .soft_time_limit = INT64_MAX,
             .board = board,
             .ss = {0}
     };

@@ -76,6 +76,7 @@ void GoCommand(char* line, Thread *thread) {
     thread->depth_limit = 255;
     thread->soft_node_limit = INT_MAX;
     thread->time_limit = INT_MAX;
+    thread->soft_time_limit = INT_MAX;
 
     int movetime = INT_MAX;
     int nodes = INT_MAX;
@@ -136,13 +137,15 @@ void GoCommand(char* line, Thread *thread) {
     int time_left = thread->board.white_to_move ? wtime : btime;
     int increment = thread->board.white_to_move ? winc : binc;
 
-    int time_limit = time_left / 20 + increment / 2;
+    int soft_time_limit = time_left / 20 + increment / 2;
+    int hard_time_limit = time_left / 4;
 
     thread->node_limit = nodes;
     thread->print_info = true;
     thread->depth_limit = depth;
     thread->soft_node_limit = softnodes;
-    thread->time_limit = __min(time_limit, movetime);
+    thread->time_limit = __min(hard_time_limit, movetime);
+    thread->soft_time_limit = __min(soft_time_limit, movetime);
     search(thread);
 }
 
@@ -226,6 +229,7 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
                 .depth_limit = 255,
                 .soft_node_limit = INT64_MAX,
                 .time_limit = INT64_MAX,
+                .soft_time_limit = INT64_MAX,
                 .board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
                 .ss = {0},
                 .tt = thread->tt
