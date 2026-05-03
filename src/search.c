@@ -210,7 +210,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
     const Board copy = *board;
     if (!is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
-        int r = 3 + depth / 4;
+        int r = 3 + depth / 4 + improving;
         thread->ss[ply].to_square = 0;
         thread->ss[ply].moved_piece = None;
         MakeNullMove(board);
