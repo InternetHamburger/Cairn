@@ -42,6 +42,10 @@ int main(int argc, char *args[]) {
         GameLoop(&state, &thread);
         return 0;
     }
+    else if (argc > 1 && strncmp(args[1], "bench", 5) == 0){
+        Bench(&thread);
+        return 0;
+    }
 
 
 

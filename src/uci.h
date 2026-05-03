@@ -3,6 +3,7 @@
 #include "board.h"
 #include "search.h"
 
+void Bench(Thread* thread);
 void ReceiveCommand(char* line, char* this_path, Thread *thread);
 
 
