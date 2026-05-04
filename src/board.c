@@ -571,15 +571,17 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
                 break;
             }
 
-            if (IsOrthogonalSlider(pieceOnTargetSquare) && direction > 3 && isOccupied)
-            {
-                attackers |= targetBitboard;
-                break;
-            }
-            if (IsDiagonalSlider(pieceOnTargetSquare) && direction < 4 && isOccupied)
-            {
-                attackers |= targetBitboard;
-                break;
+            if (isOccupied){
+                if (IsOrthogonalSlider(pieceOnTargetSquare) && direction > 3)
+                {
+                    attackers |= targetBitboard;
+                    break;
+                }
+                if (IsDiagonalSlider(pieceOnTargetSquare) && direction < 4)
+                {
+                    attackers |= targetBitboard;
+                    break;
+                }
             }
         }
     }

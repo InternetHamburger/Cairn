@@ -248,34 +248,34 @@ void GetMoves(Board *board, Move* moves, int *num_moves){
     uint64_t enemy_pieces = board->white_to_move ? GetBlackBitboard(board) : GetWhiteBitboard(board);
     uint64_t friendly_pieces = board->white_to_move ? GetWhiteBitboard(board) : GetBlackBitboard(board);
     uint64_t occupied = GetOccupied(board);
+    uint64_t pieces = friendly_pieces;
 
     // Max number of moves in a position is 218
     GetPawnMoves(board, moves, num_moves);
-
     GetKnightMoves(moves, num_moves, board->bitboards[board->white_to_move ? WhiteKnight : BlackKnight], friendly_pieces);
-    for (int square = 0; square < 64; square++){
-        if (friendly_pieces & 1ULL << square){
-            switch (GetType(board->squares[square])) {
-                case Pawn:
-                    break;
-                case Knight:
-                    break;
-                case Bishop:
-                    GetBishopMoves(moves, num_moves, square, enemy_pieces, occupied);
-                    break;
-                case Rook:
-                    GetRookMoves(moves, num_moves, square, enemy_pieces, occupied);
-                    break;
-                case Queen:
-                    GetRookMoves(moves, num_moves, square, enemy_pieces, occupied);
-                    GetBishopMoves(moves, num_moves, square, enemy_pieces, occupied);
-                    break;
-                case King:
-                    GetKingMoves(board, moves, num_moves, square, friendly_pieces);
-                    break;
-                default:
-                    exit(-1);
-            }
+
+    while(pieces){
+        const int square = poplsb(&pieces);
+        switch (GetType(board->squares[square])) {
+            case Pawn:
+                break;
+            case Knight:
+                break;
+            case Bishop:
+                GetBishopMoves(moves, num_moves, square, enemy_pieces, occupied);
+                break;
+            case Rook:
+                GetRookMoves(moves, num_moves, square, enemy_pieces, occupied);
+                break;
+            case Queen:
+                GetRookMoves(moves, num_moves, square, enemy_pieces, occupied);
+                GetBishopMoves(moves, num_moves, square, enemy_pieces, occupied);
+                break;
+            case King:
+                GetKingMoves(board, moves, num_moves, square, friendly_pieces);
+                break;
+            default:
+                exit(-1);
         }
     }
 }
