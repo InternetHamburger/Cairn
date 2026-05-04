@@ -45,7 +45,8 @@ typedef struct{
     int en_passant_square;
     int white_king_square;
     int black_king_square;
-    uint64_t bitboards[BlackKing + 1];
+    uint64_t piece_bbs[King + 1];
+    uint64_t color_bbs[2];
     uint64_t zobrist_hash;
     uint64_t pawn_key;
     uint64_t minor_key;
@@ -63,8 +64,6 @@ Board BoardConstructor(const char* fen);
 bool IsRepetition(const uint64_t hashes[MAX_NUM_PLY], int idx);
 PieceType PromotionType(Move move);
 uint64_t GetOccupied(const Board *board);
-uint64_t GetWhiteBitboard(const Board *board);
-uint64_t GetBlackBitboard(const Board *board);
 bool HasNonPawnKing(const Board *board);
 int staticExchangeEvaluation(Board *board, Move move, int threshold);
 

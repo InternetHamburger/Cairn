@@ -10,7 +10,7 @@ bool IsOppositeColor(bool white_to_move, int piece){
 }
 
 bool GetColor(Piece piece){
-    return !(piece >> 3);
+    return (piece >> 3);
 }
 
 bool IsMinor(Piece piece){

@@ -17,6 +17,9 @@ void MakeMove(Board *board, const Move move) {
     const int moved_piece = board->squares[start_square];
     const int captured_piece = board->squares[target_square];
 
+    const PieceType moved_type = GetType(moved_piece);
+    const PieceType captured_type = GetType(captured_piece);
+
 
     if (board->en_passant_square != -1){
         board->zobrist_hash ^= zobrist_ep_squares[board->en_passant_square];
@@ -32,15 +35,16 @@ void MakeMove(Board *board, const Move move) {
     board->squares[target_square] = board->squares[start_square];
     board->squares[start_square] = 0;
 
-    board->bitboards[moved_piece] ^= (1ULL << start_square) | (1ULL << target_square);
-
+    board->piece_bbs[moved_type] ^= (1ULL << start_square) | (1ULL << target_square);
+    board->color_bbs[!board->white_to_move] ^= (1ULL << start_square) | (1ULL << target_square);
     const int flag = GetFlag(move);
 
     board->zobrist_hash ^= zobrist_squares[start_square][moved_piece];
     board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
 
     if (captured_piece != None){
-        board->bitboards[captured_piece] ^= (1ULL << target_square);
+        board->piece_bbs[captured_type] ^= (1ULL << target_square);
+        board->color_bbs[board->white_to_move] ^= (1ULL << target_square);
         board->zobrist_hash ^= zobrist_squares[target_square][captured_piece];
         board->fifty_move_counter = 0;
         if (GetType(captured_piece) == Pawn){
@@ -98,31 +102,31 @@ void MakeMove(Board *board, const Move move) {
     if (IsPromotion(move)) {
         board->zobrist_hash ^= zobrist_squares[target_square][moved_piece];
         board->pawn_key ^= zobrist_squares[target_square][moved_piece];
-        board->bitboards[moved_piece] ^= (1ULL << target_square);
+        board->piece_bbs[Pawn] ^= (1ULL << target_square);
         switch (flag) {
             case PromoteQueen:
                 board->squares[target_square] = board->white_to_move ? WhiteQueen : BlackQueen;
-                board->bitboards[board->white_to_move ? WhiteQueen : BlackQueen] ^= (1ULL << target_square);
+                board->piece_bbs[Queen] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteQueen : BlackQueen];
                 board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][board->white_to_move ? WhiteQueen : BlackQueen];
                 break;
             case PromoteKnight:
                 board->squares[target_square] = board->white_to_move ? WhiteKnight : BlackKnight;
-                board->bitboards[board->white_to_move ? WhiteKnight : BlackKnight] ^= (1ULL << target_square);
+                board->piece_bbs[Knight] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteKnight : BlackKnight];
                 board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][board->white_to_move ? WhiteKnight : BlackKnight];
                 board->minor_key ^= zobrist_squares[target_square][board->white_to_move ? WhiteKnight : BlackKnight];
                 break;
             case PromoteBishop:
                 board->squares[target_square] = board->white_to_move ? WhiteBishop : BlackBishop;
-                board->bitboards[board->white_to_move ? WhiteBishop : BlackBishop] ^= (1ULL << target_square);
+                board->piece_bbs[Bishop] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteBishop : BlackBishop];
                 board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][board->white_to_move ? WhiteBishop : BlackBishop];
                 board->minor_key ^= zobrist_squares[target_square][board->white_to_move ? WhiteBishop : BlackBishop];
                 break;
             case PromoteRook:
                 board->squares[target_square] = board->white_to_move ? WhiteRook : BlackRook;
-                board->bitboards[board->white_to_move ? WhiteRook : BlackRook] ^= (1ULL << target_square);
+                board->piece_bbs[Rook] ^= (1ULL << target_square);
                 board->zobrist_hash ^= zobrist_squares[target_square][board->white_to_move ? WhiteRook : BlackRook];
                 board->non_pawn_key[board->white_to_move] ^= zobrist_squares[target_square][board->white_to_move ? WhiteRook : BlackRook];
                 break;
@@ -138,19 +142,22 @@ void MakeMove(Board *board, const Move move) {
 
     if (flag == EnPassant) {
         const bool captures_left = (target_square % 8) < (start_square % 8);
+        const Piece captured_pawn = board->white_to_move ? BlackPawn : WhitePawn;
         if (captures_left) {
             const int new_square = start_square - 1;
             board->squares[new_square] = 0;
-            board->bitboards[board->white_to_move ? BlackPawn : WhitePawn] ^= (1ULL << new_square);
-            board->zobrist_hash ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
-            board->pawn_key ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
+            board->piece_bbs[Pawn] ^= (1ULL << new_square);
+            board->color_bbs[board->white_to_move] ^= (1ULL << new_square);
+            board->zobrist_hash ^= zobrist_squares[new_square][captured_pawn];
+            board->pawn_key ^= zobrist_squares[new_square][captured_pawn];
         }
         else {
             const int new_square = start_square + 1;
             board->squares[new_square] = 0;
-            board->bitboards[board->white_to_move ? BlackPawn : WhitePawn] ^= (1ULL << new_square);
-            board->zobrist_hash ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
-            board->pawn_key ^= zobrist_squares[new_square][board->white_to_move ? BlackPawn : WhitePawn];
+            board->piece_bbs[Pawn] ^= (1ULL << new_square);
+            board->color_bbs[board->white_to_move] ^= (1ULL << new_square);
+            board->zobrist_hash ^= zobrist_squares[new_square][captured_pawn];
+            board->pawn_key ^= zobrist_squares[new_square][captured_pawn];
         }
     }
 
@@ -162,7 +169,8 @@ void MakeMove(Board *board, const Move move) {
             board->zobrist_hash ^= zobrist_squares[63][WhiteRook];
             board->non_pawn_key[board->white_to_move] ^= zobrist_squares[61][WhiteRook];
             board->non_pawn_key[board->white_to_move] ^= zobrist_squares[63][WhiteRook];
-            board->bitboards[WhiteRook] ^= (1ULL << 61) | (1ULL << 63);
+            board->piece_bbs[Rook] ^= (1ULL << 61) | (1ULL << 63);
+            board->color_bbs[0] ^= (1ULL << 61) | (1ULL << 63);
         }
         if (target_square == 58) {
             board->squares[56] = 0;
@@ -171,7 +179,8 @@ void MakeMove(Board *board, const Move move) {
             board->zobrist_hash ^= zobrist_squares[59][WhiteRook];
             board->non_pawn_key[board->white_to_move] ^= zobrist_squares[56][WhiteRook];
             board->non_pawn_key[board->white_to_move] ^= zobrist_squares[59][WhiteRook];
-            board->bitboards[WhiteRook] ^= (1ULL << 56) | (1ULL << 59);
+            board->piece_bbs[Rook] ^= (1ULL << 56) | (1ULL << 59);
+            board->color_bbs[0] ^= (1ULL << 56) | (1ULL << 59);
 
         }
         if (target_square == 6) {
@@ -181,7 +190,8 @@ void MakeMove(Board *board, const Move move) {
             board->zobrist_hash ^= zobrist_squares[5][BlackRook];
             board->non_pawn_key[board->white_to_move] ^= zobrist_squares[7][BlackRook];
             board->non_pawn_key[board->white_to_move] ^= zobrist_squares[5][BlackRook];
-            board->bitboards[BlackRook] ^= (1ULL << 7) | (1ULL << 5);
+            board->piece_bbs[Rook] ^= (1ULL << 7) | (1ULL << 5);
+            board->color_bbs[1] ^= (1ULL << 7) | (1ULL << 5);
         }
         if (target_square == 2) {
             board->squares[0] = 0;
@@ -190,7 +200,8 @@ void MakeMove(Board *board, const Move move) {
             board->zobrist_hash ^= zobrist_squares[3][BlackRook];
             board->non_pawn_key[board->white_to_move] ^= zobrist_squares[0][BlackRook];
             board->non_pawn_key[board->white_to_move] ^= zobrist_squares[3][BlackRook];
-            board->bitboards[BlackRook] ^= (1ULL << 0) | (1ULL << 3);
+            board->piece_bbs[Rook] ^= (1ULL << 0) | (1ULL << 3);
+            board->color_bbs[1] ^= (1ULL << 0) | (1ULL << 3);
         }
     }
     if (board->white_kingside != init_white_kingside) board->zobrist_hash ^= zobrist_white_kingside;
@@ -281,8 +292,8 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
         }
     }
 
-    uint64_t knights = board->bitboards[white_to_move ? WhiteKnight : BlackKnight];
-    uint64_t kings = board->bitboards[white_to_move ? WhiteKing : BlackKing];
+    uint64_t knights = board->piece_bbs[Knight] & board->color_bbs[!white_to_move];
+    uint64_t kings = board->piece_bbs[King] & board->color_bbs[!white_to_move];
 
     uint64_t knight_attacks = knight_moves[square];
     uint64_t king_attacks = king_moves[square];
@@ -294,11 +305,11 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
     const int rank_directions[] = {-1, -1, 1, 1, 0, 0, -1, 1};
     const int file_directions[] = {-1, 1, -1, 1, 1, -1, 0, 0};
 
-    uint64_t friendly_pieces = white_to_move ? GetBlackBitboard(board) : GetWhiteBitboard(board);
-    uint64_t enemy_pieces = white_to_move ? GetWhiteBitboard(board) : GetBlackBitboard(board);
+    uint64_t friendly_pieces = board->color_bbs[white_to_move];
+    uint64_t enemy_pieces = board->color_bbs[!white_to_move];
     uint64_t occupied = friendly_pieces | enemy_pieces;
 
-    uint64_t enemy_sliders = white_to_move ? board->bitboards[WhiteQueen] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] : board->bitboards[BlackQueen] | board->bitboards[BlackBishop] | board->bitboards[BlackRook];
+    uint64_t enemy_sliders = board->color_bbs[!white_to_move] & (board->piece_bbs[Queen] | board->piece_bbs[Bishop] | board->piece_bbs[Rook]);
 
     for (int direction = 0; direction < 8; direction++){
         int curr_rank = square / 8;
@@ -339,9 +350,14 @@ Board BoardConstructor(const char* fen){
         squares[i] = None;
     }
 
-    uint64_t bitboards[BlackKing + 1];
-    for (int i = 0; i < BlackKing + 1; i++) {
-        bitboards[i] = 0;
+    uint64_t piece_bbs[King + 1];
+    uint64_t color_bbs[2];
+
+    for (int i = 0; i < King + 1; i++) {
+        piece_bbs[i] = 0;
+    }
+    for (int i = 0; i < 2; i++) {
+        color_bbs[i] = 0;
     }
 
     bool white_to_move = NULL;
@@ -417,7 +433,8 @@ Board BoardConstructor(const char* fen){
         }
         else
         {
-            bitboards[piece] |= 1ULL << square_index;
+            piece_bbs[GetType(piece)] |= 1ULL << square_index;
+            color_bbs[GetColor(piece)] |= 1ULL << square_index;
             if (piece == WhiteKing) white_king_square = square_index;
             if (piece == BlackKing) black_king_square = square_index;
             squares[square_index] = piece;
@@ -453,17 +470,20 @@ Board BoardConstructor(const char* fen){
             if (GetType(board.squares[i]) == Pawn)
                 board.pawn_key ^= zobrist_squares[i][squares[i]];
             else
-                board.non_pawn_key[GetColor(squares[i])] ^= zobrist_squares[i][squares[i]];
+                board.non_pawn_key[!GetColor(squares[i])] ^= zobrist_squares[i][squares[i]];
 
             if (IsMinor(squares[i])){
                 board.minor_key ^= zobrist_squares[i][squares[i]];
             }
         }
     }
-    for (i = 0; i < BlackKing + 1; i++) {
-        board.bitboards[i] = bitboards[i];
-    }
 
+    for (i = 0; i < King + 1; i++) {
+        board.piece_bbs[i] = piece_bbs[i];
+    }
+    for (i = 0; i < 2; i++) {
+        board.color_bbs[i] = color_bbs[i];
+    }
     if (en_passant_square != -1) board.zobrist_hash ^= zobrist_ep_squares[en_passant_square];
 
     if (white_to_move) board.zobrist_hash ^= zobrist_stm;
@@ -503,21 +523,20 @@ PieceType PromotionType(const Move move){
 }
 
 uint64_t GetOccupied(const Board *board) {
-    return board->bitboards[WhitePawn] | board->bitboards[WhiteKnight] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] | board->bitboards[WhiteKing] |
-           board->bitboards[BlackPawn] | board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen] | board->bitboards[BlackKing];
+    return board->color_bbs[0] | board->color_bbs[1];
 }
 
 uint64_t GetWhiteBitboard(const Board *board) {
-    return board->bitboards[WhitePawn] | board->bitboards[WhiteKnight] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] | board->bitboards[WhiteKing];
+    return board->color_bbs[0];
 }
 
 uint64_t GetBlackBitboard(const Board *board) {
-    return board->bitboards[BlackPawn] | board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen] | board->bitboards[BlackKing];
+    return board->color_bbs[1];
 }
 
 bool HasNonPawnKing(const Board *board){
-    uint64_t bitboard = board->bitboards[WhiteKnight] | board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] |
-                        board->bitboards[BlackKnight] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen];
+    uint64_t bitboard = board->piece_bbs[Knight] | board->piece_bbs[Bishop] |
+                        board->piece_bbs[Rook] | board->piece_bbs[Queen];
     return bitboard != 0;
 }
 
@@ -529,15 +548,20 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
     const uint64_t capture_right_mask = ~(a_file << 7);
     const uint64_t capture_left_mask = ~a_file;
 
-    attackers |= squareBitboard << 7 & (board->bitboards[WhitePawn] & capture_right_mask);
-    attackers |= squareBitboard << 9 & (board->bitboards[WhitePawn] & capture_left_mask);
-    attackers |= squareBitboard >> 9 & (board->bitboards[BlackPawn] & capture_right_mask);
-    attackers |= squareBitboard >> 7 & (board->bitboards[BlackPawn] & capture_left_mask);
+    uint64_t white_pawns = board->piece_bbs[Pawn] & board->color_bbs[0];
+    uint64_t black_pawns = board->piece_bbs[Pawn] & board->color_bbs[1];
 
-    attackers |= knight_moves[square] & (board->bitboards[WhiteKnight] | board->bitboards[BlackKnight]);
-    attackers |= king_moves[square] & (board->bitboards[WhiteKing] | board->bitboards[BlackKing]);
+    attackers |= squareBitboard << 7 & (white_pawns & capture_right_mask);
+    attackers |= squareBitboard << 9 & (white_pawns & capture_left_mask);
+    attackers |= squareBitboard >> 9 & (black_pawns & capture_right_mask);
+    attackers |= squareBitboard >> 7 & (black_pawns & capture_left_mask);
 
-    uint64_t sliders = (board->bitboards[WhiteBishop] | board->bitboards[WhiteRook] | board->bitboards[WhiteQueen] | board->bitboards[BlackBishop] | board->bitboards[BlackRook] | board->bitboards[BlackQueen]) & occupied;
+    attackers |= knight_moves[square] & board->piece_bbs[Knight];
+    attackers |= king_moves[square] & board->piece_bbs[King];
+
+    uint64_t diagonal_sliders = (board->piece_bbs[Bishop] | board->piece_bbs[Queen]) & occupied;
+    uint64_t orthogonal_sliders = (board->piece_bbs[Rook] | board->piece_bbs[Queen]) & occupied;
+    uint64_t sliders = diagonal_sliders | orthogonal_sliders;
     uint64_t nonSliders = (GetOccupied(board) ^ sliders) & occupied;
 
     // right-up, left-up, right-down, left-down, right, left, up, down
@@ -548,7 +572,8 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
 
     for (int direction = 0; direction < 8; direction++)
     {
-        if (!(sliders & rays[square][direction])) continue;
+        if (direction > 3 && !(orthogonal_sliders & rays[square][direction])) continue;
+        if (direction < 4 && !(diagonal_sliders & rays[square][direction])) continue;
         int curr_rank = square / 8;
         int curr_file = square % 8;
         while (1)
@@ -572,12 +597,12 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
             }
 
             if (isOccupied){
-                if (IsOrthogonalSlider(pieceOnTargetSquare) && direction > 3)
+                if (targetBitboard & orthogonal_sliders && direction > 3)
                 {
                     attackers |= targetBitboard;
                     break;
                 }
-                if (IsDiagonalSlider(pieceOnTargetSquare) && direction < 4)
+                if (targetBitboard & diagonal_sliders && direction < 4)
                 {
                     attackers |= targetBitboard;
                     break;
@@ -652,12 +677,12 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
     colour = !board->white_to_move;
     while (1) {
         // If we have no more attackers left we lose
-        myAttackers = attackers & (colour ? GetWhiteBitboard(board) : GetBlackBitboard(board));
+        myAttackers = attackers & board->color_bbs[!colour];
         if (myAttackers == 0ull) break;
 
         // Find our weakest piece to attack with
         for (nextVictim = Pawn; nextVictim <= King; nextVictim++){
-            if (myAttackers & (board->bitboards[nextVictim] | board->bitboards[nextVictim + 8]))
+            if (myAttackers & board->piece_bbs[nextVictim])
             {
                 break;
             }
@@ -665,7 +690,7 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
 
         // Remove this attacker from the occupied
 
-        occupied ^= (1ull << getlsb(myAttackers & (board->bitboards[nextVictim] | board->bitboards[nextVictim + 8])));
+        occupied ^= (1ull << getlsb(myAttackers & board->piece_bbs[nextVictim]));
 
         attackers = AttackersToSquare(board, to, occupied) & occupied;
         // Swap the turn
@@ -680,7 +705,7 @@ int staticExchangeEvaluation(Board *board, Move move, int threshold){
             // As a slide speed up for move legality checking, if our last attacking
             // piece is a king, and our opponent still has attackers, then we've
             // lost as the move we followed would be illegal
-            if (nextVictim == King && (attackers & (colour ? GetWhiteBitboard(board) : GetBlackBitboard(board))))
+            if (nextVictim == King && (attackers & board->color_bbs[!colour]))
                 colour = !colour;
 
             break;

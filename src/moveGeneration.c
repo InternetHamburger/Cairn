@@ -111,10 +111,10 @@ void GetKingMoves(Board *board, Move *moves, int *num_moves, int square, uint64_
 void GetPawnMoves(Board *board, Move *moves, int *num_moves) {
     const bool can_en_passant = board->en_passant_square != -1;
 
-    const uint64_t pawns = board->bitboards[board->white_to_move ? WhitePawn : BlackPawn];
+    const uint64_t pawns = board->color_bbs[!board->white_to_move] & board->piece_bbs[Pawn];
     const uint64_t occupied = GetOccupied(board);
     const uint64_t empty = ~occupied;
-    const uint64_t enemy_pieces = board->white_to_move ? GetBlackBitboard(board) : GetWhiteBitboard(board);
+    const uint64_t enemy_pieces = board->color_bbs[board->white_to_move];
 
     const uint64_t capture_right_mask = ~(a_file << 7);
     const uint64_t capture_left_mask = ~a_file;
@@ -245,14 +245,14 @@ void GetPawnMoves(Board *board, Move *moves, int *num_moves) {
 
 /// Pseudolegal moves
 void GetMoves(Board *board, Move* moves, int *num_moves){
-    uint64_t enemy_pieces = board->white_to_move ? GetBlackBitboard(board) : GetWhiteBitboard(board);
-    uint64_t friendly_pieces = board->white_to_move ? GetWhiteBitboard(board) : GetBlackBitboard(board);
+    uint64_t enemy_pieces = board->color_bbs[board->white_to_move];
+    uint64_t friendly_pieces = board->color_bbs[!board->white_to_move];
     uint64_t occupied = GetOccupied(board);
     uint64_t pieces = friendly_pieces;
 
     // Max number of moves in a position is 218
     GetPawnMoves(board, moves, num_moves);
-    GetKnightMoves(moves, num_moves, board->bitboards[board->white_to_move ? WhiteKnight : BlackKnight], friendly_pieces);
+    GetKnightMoves(moves, num_moves, board->color_bbs[!board->white_to_move] & board->piece_bbs[Knight], friendly_pieces);
 
     while(pieces){
         const int square = poplsb(&pieces);

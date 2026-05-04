@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "src/board.h"
 #include "src/datagen.h"
+#include "src/utility.h"
 #include "src/uci.h"
 #include "src/transposition.h"
 #include <stdlib.h>
