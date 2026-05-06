@@ -47,7 +47,10 @@ int main(int argc, char *args[]) {
         Bench(&thread);
         return 0;
     }
-
+    else if (argc > 1 && strncmp(args[1], "perftsuite", 10) == 0){
+        PerftSuite(&thread);
+        return 0;
+    }
 
 
     while (1) {

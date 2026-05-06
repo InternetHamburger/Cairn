@@ -4,6 +4,7 @@
 #include "search.h"
 
 void Bench(Thread* thread);
+void PerftSuite(Thread* thread);
 void ReceiveCommand(char* line, char* this_path, Thread *thread);
 
 
