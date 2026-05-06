@@ -291,17 +291,12 @@ void Bench(Thread* thread){
     thread->print_info = true;
 }
 
-void PerftSuite(Thread* thread){
+void PerftSuite(){
     uint64_t total_nodes = 0;
     uint64_t start = clock();
-    char fen[256];
     for (int i = 0; i < 50; i++){
-        char go[] = "perft 4";
-        sprintf(fen, "fen %s\n", bench_positions[i]);
-
-        SetPosition(fen, thread);
-        GoCommand(go, thread);
-        total_nodes += thread->nodes;
+        Board board = BoardConstructor(bench_positions[i]);
+        total_nodes += perft(&board, 4);
     }
     printf("nodes %llu nps %llu\n", total_nodes, total_nodes * 1000 / (clock() - start));
 }
@@ -356,7 +351,7 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
         Bench(thread);
     }
     else if (strncmp(token, "perftsuite", 10) == 0){
-        PerftSuite(thread);
+        PerftSuite();
     }
     else{
         printf("Invalid command\n");

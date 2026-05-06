@@ -104,7 +104,7 @@ int qSearch(Thread *thread, int alpha, int beta){
     GetMoves(board, moves, &num_moves);
     OrderCaptures(thread, moves, num_moves);
     const Board copy = *board;
-
+    Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
@@ -130,6 +130,7 @@ int qSearch(Thread *thread, int alpha, int beta){
         if (score > best_score) {
             best_score = score;
             if (score > alpha){
+                best_move = moves[i];
                 alpha = score;
             }
         }
@@ -151,7 +152,7 @@ int qSearch(Thread *thread, int alpha, int beta){
 
     Entry new_entry = {
         .hash = board->zobrist_hash,
-        .best_move = MoveConstructor(0, 0, 0),
+        .best_move = best_move,
         .score = (int16_t)best_score,
         .depth_node_type = type | 0
     };
