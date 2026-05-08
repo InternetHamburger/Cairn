@@ -16,6 +16,7 @@ typedef struct
 uint64_t diagonalAttacks(uint64_t occ, int sq);
 uint64_t antiDiagAttacks(uint64_t occ, int sq);
 uint64_t fileAttacks(uint64_t occ, int sq);
+uint64_t rankAttacks(uint64_t occ, int sq);
 uint64_t allAttacks(uint64_t occ, int sq);
 
 extern uint64_t knight_moves[TABLE_SIZE];

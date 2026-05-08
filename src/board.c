@@ -569,47 +569,8 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
     const int file_directions[] = {-1, 1, -1, 1, 1, -1, 0, 0};
 
 
-
-    for (int direction = 0; direction < 8; direction++)
-    {
-        if (direction > 3 && !(orthogonal_sliders & rays[square][direction])) continue;
-        if (direction < 4 && !(diagonal_sliders & rays[square][direction])) continue;
-        int curr_rank = square / 8;
-        int curr_file = square % 8;
-        while (1)
-        {
-            curr_rank += rank_directions[direction];
-            curr_file += file_directions[direction];
-
-            int target_square = 8 * curr_rank + curr_file;
-            uint64_t targetBitboard = 1ULL << target_square;
-            Piece pieceOnTargetSquare = board->squares[target_square];
-            bool isOccupied = targetBitboard & occupied;
-
-            if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
-                break; // Outside board
-            }
-
-            // Blocked by non-slider piece
-            if (targetBitboard & nonSliders)
-            {
-                break;
-            }
-
-            if (isOccupied){
-                if (targetBitboard & orthogonal_sliders && direction > 3)
-                {
-                    attackers |= targetBitboard;
-                    break;
-                }
-                if (targetBitboard & diagonal_sliders && direction < 4)
-                {
-                    attackers |= targetBitboard;
-                    break;
-                }
-            }
-        }
-    }
+    attackers |= diagonal_sliders & (diagonalAttacks(occupied, square) | antiDiagAttacks(occupied, square));
+    attackers |= orthogonal_sliders & (fileAttacks(occupied, square) | rankAttacks(occupied, square));
 
     return attackers;
 }

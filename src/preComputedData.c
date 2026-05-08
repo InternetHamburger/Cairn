@@ -96,7 +96,7 @@ static void init_table(void) {
     for (int i = 0; i < 64; i++)
     {
         masks[i].bitMask = 1ULL << i;
-        masks[i].fileMaskEx = files[i % 8];
+        masks[i].fileMaskEx = files[i % 8] - (1ULL << i);
         masks[i].antidiagMaskEx = antiDiagMask(i) - (1ULL << i);
         masks[i].diagonalMaskEx = diagonalMask(i) - (1ULL << i);
     }
