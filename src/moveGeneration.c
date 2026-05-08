@@ -71,14 +71,13 @@ void GetBishopMoves(Move *moves, int *num_moves, int square, uint64_t enemy_piec
 void GetKnightMoves(Move *moves, int *num_moves, uint64_t knights, uint64_t friendly_pieces){
     while (knights){
         const int square = poplsb(&knights);
-        unsigned long long bitboard = knight_moves[square] & ~friendly_pieces;
+        uint64_t bitboard = knight_moves[square] & ~friendly_pieces;
 
         while(bitboard){
             const int target_square = poplsb(&bitboard);
             moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
         }
     }
-
 }
 
 void GetKingMoves(Board *board, Move *moves, int *num_moves, int square, uint64_t friendly_pieces){
@@ -247,12 +246,11 @@ void GetPawnMoves(Board *board, Move *moves, int *num_moves) {
 void GetMoves(Board *board, Move* moves, int *num_moves){
     uint64_t enemy_pieces = board->color_bbs[board->white_to_move];
     uint64_t friendly_pieces = board->color_bbs[!board->white_to_move];
-    uint64_t occupied = GetOccupied(board);
+    uint64_t occupied = enemy_pieces | friendly_pieces;
     uint64_t pieces = friendly_pieces;
 
-    // Max number of moves in a position is 218
     GetPawnMoves(board, moves, num_moves);
-    GetKnightMoves(moves, num_moves, board->color_bbs[!board->white_to_move] & board->piece_bbs[Knight], friendly_pieces);
+    GetKnightMoves(moves, num_moves, friendly_pieces & board->piece_bbs[Knight], friendly_pieces);
 
     while(pieces){
         const int square = poplsb(&pieces);
