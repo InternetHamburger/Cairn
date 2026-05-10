@@ -126,18 +126,19 @@ void SetPosition(char* line, Thread *thread) {
 
 void GoCommand(char* line, Thread *thread) {
     thread->nodes = 0;
-    thread->node_limit = INT_MAX;
+    thread->node_limit = INT64_MAX;
     thread->depth_limit = 255;
-    thread->soft_node_limit = INT_MAX;
-    thread->time_limit = INT_MAX;
-    thread->soft_time_limit = INT_MAX;
+    thread->soft_node_limit = INT64_MAX;
+    thread->time_limit = INT64_MAX;
+    thread->soft_time_limit = INT64_MAX;
 
-    int movetime = INT_MAX;
-    int nodes = INT_MAX;
-    int softnodes = INT_MAX;
+
+    uint64_t movetime = INT64_MAX;
+    uint64_t nodes = INT64_MAX;
+    uint64_t softnodes = INT64_MAX;
     int depth = 255;
-    int wtime = INT_MAX;
-    int btime = INT_MAX;
+    uint64_t wtime = INT64_MAX;
+    uint64_t btime = INT64_MAX;
     int winc = 0;
     int binc = 0;
 
@@ -148,15 +149,15 @@ void GoCommand(char* line, Thread *thread) {
     while (token){
         if (strncmp(token, "movetime", 8) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%d", &movetime);
+            sscanf(token, "%llu", &movetime);
         }
         else if (strncmp(token, "nodes", 5) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%d", &nodes);
+            sscanf(token, "%llu", &nodes);
         }
         else if (strncmp(token, "softnodes", 9) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%d", &softnodes);
+            sscanf(token, "%llu", &softnodes);
         }
         else if (strncmp(token, "depth", 5) == 0){
             token = strtok(NULL, delimiter);
@@ -164,11 +165,11 @@ void GoCommand(char* line, Thread *thread) {
         }
         else if (strncmp(token, "wtime", 5) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%d", &wtime);
+            sscanf(token, "%llu", &wtime);
         }
         else if (strncmp(token, "btime", 5) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%d", &btime);
+            sscanf(token, "%llu", &btime);
         }
         else if (strncmp(token, "winc", 4) == 0){
             token = strtok(NULL, delimiter);
@@ -188,11 +189,11 @@ void GoCommand(char* line, Thread *thread) {
         token = strtok(NULL, delimiter);
     }
 
-    int time_left = thread->board.white_to_move ? wtime : btime;
+    uint64_t time_left = thread->board.white_to_move ? wtime : btime;
     int increment = thread->board.white_to_move ? winc : binc;
 
-    int soft_time_limit = time_left / 20 + increment / 2;
-    int hard_time_limit = time_left / 4;
+    uint64_t soft_time_limit = time_left / 20 + increment / 2;
+    uint64_t hard_time_limit = time_left / 4;
 
     thread->node_limit = nodes;
     thread->depth_limit = depth;
