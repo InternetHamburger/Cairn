@@ -1,11 +1,13 @@
 #include "preComputedData.h"
+#include "zobrist.h"
+#include "utility.h"
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-unsigned long long knight_moves[64];
-unsigned long long king_moves[64];
+uint64_t knight_moves[64];
+uint64_t king_moves[64];
 
 const uint64_t a_file = 0x0101010101010101;
 const uint64_t first_rank = 0xff00000000000000;
@@ -13,6 +15,12 @@ const uint64_t first_rank = 0xff00000000000000;
 uint64_t rays[64][8];
 uint64_t rank_attacks[256][8];
 smsk masks;
+
+magic_entry rook_magics[64];
+magic_entry bishop_magics[64];
+
+uint64_t rook_table[64][4096];
+uint64_t bishop_table[64][4096];
 
 uint64_t diagonalMask(int sq) {
     const uint64_t maindia = 0x8040201008040201;
@@ -70,6 +78,36 @@ uint64_t allAttacks(uint64_t occ, int sq)
            antiDiagAttacks(occ, sq) +
            fileAttacks(occ, sq) +
            rankAttacks(occ, sq);
+}
+
+uint64_t project_bits(uint64_t mask, uint64_t bits){
+    int idx = 0;
+    uint64_t projected_bb = 0;
+    while (bits){
+        bool set = bits & (1ULL << idx);
+        bits &= ~(1Ull << idx);
+        int n = poplsb(&mask);
+        if (set){
+            projected_bb |= 1Ull << n;
+        }
+        idx++;
+    }
+    return projected_bb;
+}
+
+void fill_magics(){
+    uint64_t seed = 966479893026083835;
+    for (int sq = 0; sq < 1; sq++){
+        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
+        for (uint64_t i = 32; i < 96; i++){
+            uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
+            uint64_t magic = PseudorandomNumber(&seed) & PseudorandomNumber(&seed) & PseudorandomNumber(&seed);
+            uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
+            printf("%llu\n", idx);
+        }
+    }
+
+
 }
 
 __attribute__((constructor))  // runs before main()
@@ -181,4 +219,39 @@ static void init_table(void) {
             }
         }
     }
+
+    const uint64_t h_file = a_file << 7;
+    const uint64_t last_rank = first_rank >> 56;
+
+    for (int sq = 0; sq < 64; sq++){
+        const int file = sq % 8;
+        const int rank = sq / 8;
+        uint64_t rook_attacks = fileAttacks(0, sq) + rankAttacks(0, sq);
+        uint64_t bishop_attacks = diagonalAttacks(0, sq) + antiDiagAttacks(0, sq);
+
+        if (file > 0){
+            rook_attacks &= ~a_file;
+            bishop_attacks &= ~a_file;
+        }
+        if (file < 7){
+            rook_attacks &= ~h_file;
+            bishop_attacks &= ~h_file;
+        }
+        if (rank > 0){
+            rook_attacks &= ~last_rank;
+            bishop_attacks &= ~last_rank;
+        }
+        if (rank < 7){
+            rook_attacks &= ~first_rank;
+            bishop_attacks &= ~first_rank;
+        }
+
+        rook_magics[sq].mask = rook_attacks;
+        rook_magics[sq].shift = 64 - __builtin_popcountll(rook_attacks);
+
+        bishop_magics[sq].mask = bishop_attacks;
+        bishop_magics[sq].mask = 64 - __builtin_popcountll(bishop_attacks);
+    }
+
+    fill_magics();
 }

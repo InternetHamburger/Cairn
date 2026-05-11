@@ -13,6 +13,12 @@ typedef struct
     uint64_t fileMaskEx;
 } smsk[64];
 
+typedef struct{
+    uint64_t mask;
+    uint64_t magic;
+    uint8_t shift;
+} magic_entry;
+
 uint64_t diagonalAttacks(uint64_t occ, int sq);
 uint64_t antiDiagAttacks(uint64_t occ, int sq);
 uint64_t fileAttacks(uint64_t occ, int sq);
@@ -25,5 +31,7 @@ extern const uint64_t a_file;
 extern const uint64_t first_rank;
 extern uint64_t rays[TABLE_SIZE][8];
 extern smsk masks;
+extern magic_entry rook_magics[64];
+extern magic_entry bishop_magics[64];
 
 #endif //CAIRN_PRECOMPUTEDDATA_H
