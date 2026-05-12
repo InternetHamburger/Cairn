@@ -562,8 +562,8 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
     uint64_t diagonal_sliders = (board->piece_bbs[Bishop] | board->piece_bbs[Queen]) & occupied;
     uint64_t orthogonal_sliders = (board->piece_bbs[Rook] | board->piece_bbs[Queen]) & occupied;
 
-    attackers |= diagonal_sliders & (diagonalAttacks(occupied, square) | antiDiagAttacks(occupied, square));
-    attackers |= orthogonal_sliders & (fileAttacks(occupied, square) | rankAttacks(occupied, square));
+    attackers |= diagonal_sliders & bishop_attack(occupied, square);
+    attackers |= orthogonal_sliders & rook_attack(occupied, square);
 
     return attackers;
 }

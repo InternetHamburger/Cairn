@@ -35,8 +35,5 @@ extern const uint64_t a_file;
 extern const uint64_t first_rank;
 extern uint64_t rays[TABLE_SIZE][8];
 extern smsk masks;
-extern uint64_t rook_table[64][4096];
-extern magic_entry rook_magics[64];
-extern magic_entry bishop_magics[64];
 
 #endif //CAIRN_PRECOMPUTEDDATA_H
