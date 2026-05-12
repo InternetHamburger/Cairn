@@ -227,17 +227,12 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     int num_moves = 0;
     Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
 
-
-
     Move quiet_moves[218];
     Move captures[218];
 
     int num_quiets = 0;
     int num_captures = 0;
 
-
-
-    int alphaOrig = alpha;
     int best_score = NEG_INF;
     Move best_move = MoveConstructor(0, 0, 0);
     uint8_t new_flag = UPPER;
