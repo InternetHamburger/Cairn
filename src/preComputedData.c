@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 uint64_t knight_moves[64];
 uint64_t king_moves[64];
@@ -95,19 +96,98 @@ uint64_t project_bits(uint64_t mask, uint64_t bits){
     return projected_bb;
 }
 
+uint64_t rook_attack(uint64_t occ, int sq)
+{
+    occ &= rook_magics[sq].mask;
+    return rook_table[sq][(occ * rook_magics[sq].magic) >> rook_magics[sq].shift];
+}
+
+uint64_t bishop_attack(uint64_t occ, int sq)
+{
+    occ &= bishop_magics[sq].mask;
+    return bishop_table[sq][(occ * bishop_magics[sq].magic) >> bishop_magics[sq].shift];
+}
+
 void fill_magics(){
     uint64_t seed = 966479893026083835;
-    for (int sq = 0; sq < 1; sq++){
+    for (int sq = 0; sq < 64; sq++){
+        iteration_rook:
         uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
-        for (uint64_t i = 32; i < 96; i++){
+        uint64_t magic = PseudorandomNumber(&seed) & PseudorandomNumber(&seed) & PseudorandomNumber(&seed);
+        memset(rook_table[sq], 0, sizeof(uint64_t) * 4096);
+        for (uint64_t i = 0; i < ent; i++){
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
-            uint64_t magic = PseudorandomNumber(&seed) & PseudorandomNumber(&seed) & PseudorandomNumber(&seed);
             uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
-            printf("%llu\n", idx);
+            uint64_t* entry = &rook_table[sq][idx];
+            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
+
+            if (*entry != 0 && *entry != attacks)
+            {
+                goto iteration_rook;
+            }
+            if (*entry == 0 || *entry == attacks)
+            {
+                *entry = attacks;
+            }
+        }
+        rook_magics[sq].magic = magic;
+    }
+    for (int sq = 0; sq < 64; sq++){
+        iteration_bishop:
+        uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
+        uint64_t magic = PseudorandomNumber(&seed) & PseudorandomNumber(&seed) & PseudorandomNumber(&seed);
+        memset(bishop_table[sq], 0, sizeof(uint64_t) * 4096);
+        for (uint64_t i = 0; i < ent; i++){
+            uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
+            uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
+            uint64_t* entry = &bishop_table[sq][idx];
+            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
+
+            if (*entry != 0 && *entry != attacks)
+            {
+                goto iteration_bishop;
+            }
+            if (*entry == 0 || *entry == attacks)
+            {
+                *entry = attacks;
+            }
+        }
+        bishop_magics[sq].magic = magic;
+    }
+}
+
+void verify_magics()
+{
+    for (int sq = 0; sq < 64; sq++)
+    {
+        uint64_t magic = rook_magics[sq].magic;
+        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
+        for (uint64_t i = 0; i < ent; i++)
+        {
+            uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
+            uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
+            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
+            if (rook_table[sq][idx] != attacks)
+            {
+                printf("hmm");
+            }
         }
     }
-
-
+    for (int sq = 0; sq < 64; sq++)
+    {
+        uint64_t magic = bishop_magics[sq].magic;
+        uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
+        for (uint64_t i = 0; i < ent; i++)
+        {
+            uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
+            uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
+            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
+            if (bishop_table[sq][idx] != attacks)
+            {
+                printf("hmm");
+            }
+        }
+    }
 }
 
 __attribute__((constructor))  // runs before main()
@@ -250,8 +330,9 @@ static void init_table(void) {
         rook_magics[sq].shift = 64 - __builtin_popcountll(rook_attacks);
 
         bishop_magics[sq].mask = bishop_attacks;
-        bishop_magics[sq].mask = 64 - __builtin_popcountll(bishop_attacks);
+        bishop_magics[sq].shift = 64 - __builtin_popcountll(bishop_attacks);
     }
 
     fill_magics();
+    verify_magics();
 }
