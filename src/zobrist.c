@@ -1,16 +1,16 @@
 #include "zobrist.h"
 
-unsigned long long zobrist_squares[64][BlackKing + 1];
-unsigned long long zobrist_ep_squares[64];
-unsigned long long zobrist_stm;
-unsigned long long zobrist_white_kingside;
-unsigned long long zobrist_white_queenside;
-unsigned long long zobrist_black_kingside;
-unsigned long long zobrist_black_queenside;
+uint64_t zobrist_squares[64][BlackKing + 1];
+uint64_t zobrist_ep_squares[64];
+uint64_t zobrist_stm;
+uint64_t zobrist_white_kingside;
+uint64_t zobrist_white_queenside;
+uint64_t zobrist_black_kingside;
+uint64_t zobrist_black_queenside;
 
 __attribute__((constructor))
 void Init_tables(){
-    unsigned long long seed = 13738256983174657986ULL;
+    uint64_t seed = 13738256983174657986ULL;
     for (int i = 0; i < 64; i++){
         for (int j = 0; j < 15; j++) {
             zobrist_squares[i][j] = PseudorandomNumber(&seed);
@@ -24,7 +24,7 @@ void Init_tables(){
     zobrist_black_queenside = PseudorandomNumber(&seed);
 }
 
-unsigned long long PseudorandomNumber(unsigned long long *seed) {
+uint64_t PseudorandomNumber(uint64_t *seed) {
     *seed ^= *seed >> 12;
     *seed ^= *seed << 25;
     *seed ^= *seed >> 27;

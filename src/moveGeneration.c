@@ -6,65 +6,19 @@
 #include "board.h"
 #include "move.h"
 
-void GetRookMoves(Move *moves, int *num_moves, int square, uint64_t enemy_pieces, uint64_t occupied){
-
-    // From whites perspective
-    // Right, left, up, down
-    const int rank_directions[] = {0, 0, -1, 1};
-    const int file_directions[] = {1, -1, 0, 0};
-
-    for (int direction = 0; direction < 4; direction++){
-        int curr_rank = square / 8;
-        int curr_file = square % 8;
-        while (1){
-            curr_rank += rank_directions[direction];
-            curr_file += file_directions[direction];
-
-            const int target_square = 8 * curr_rank + curr_file;
-
-            if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
-                break;
-            }
-            if (occupied & 1ULL << target_square){
-                if (enemy_pieces & 1ULL << target_square){
-                    moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
-                }
-                break;
-            }
-            moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
-
-
-        }
+void GetRookMoves(Move *moves, int *num_moves, int square, uint64_t friendly_pieces, uint64_t occupied){
+    uint64_t move_bb = rook_attack(occupied, square) & ~friendly_pieces;
+    while(move_bb){
+        const int target_square = poplsb(&move_bb);
+        moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
     }
-
 }
 
-void GetBishopMoves(Move *moves, int *num_moves, int square, uint64_t enemy_pieces, uint64_t occupied){
-    // From whites perspective
-    // right-up, left-up, right-down, left-down
-    const int rank_directions[] = {-1, -1, 1, 1};
-    const int file_directions[] = {-1, 1, -1, 1};
-
-    for (int direction = 0; direction < 4; direction++){
-        int curr_rank = square / 8;
-        int curr_file = square % 8;
-        while (1){
-            curr_rank += rank_directions[direction];
-            curr_file += file_directions[direction];
-
-            int target_square = 8 * curr_rank + curr_file;
-
-            if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
-                break;
-            }
-            if (occupied & 1ULL << target_square){
-                if (enemy_pieces & 1ULL << target_square){
-                    moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
-                }
-                break;
-            }
-            moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
-        }
+void GetBishopMoves(Move *moves, int *num_moves, int square, uint64_t friendly_pieces, uint64_t occupied){
+    uint64_t move_bb = bishop_attack(occupied, square) & ~friendly_pieces;
+    while(move_bb){
+        const int target_square = poplsb(&move_bb);
+        moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
     }
 }
 
@@ -260,14 +214,14 @@ void GetMoves(Board *board, Move* moves, int *num_moves){
             case Knight:
                 break;
             case Bishop:
-                GetBishopMoves(moves, num_moves, square, enemy_pieces, occupied);
+                GetBishopMoves(moves, num_moves, square, friendly_pieces, occupied);
                 break;
             case Rook:
-                GetRookMoves(moves, num_moves, square, enemy_pieces, occupied);
+                GetRookMoves(moves, num_moves, square, friendly_pieces, occupied);
                 break;
             case Queen:
-                GetRookMoves(moves, num_moves, square, enemy_pieces, occupied);
-                GetBishopMoves(moves, num_moves, square, enemy_pieces, occupied);
+                GetRookMoves(moves, num_moves, square, friendly_pieces, occupied);
+                GetBishopMoves(moves, num_moves, square, friendly_pieces, occupied);
                 break;
             case King:
                 GetKingMoves(board, moves, num_moves, square, friendly_pieces);

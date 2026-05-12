@@ -301,40 +301,17 @@ bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int sq
     if (knight_attacks & knights) return true;
     if (king_attacks & kings) return true;
 
-    // right-up, left-up, right-down, left-down, right, left, up, down
-    const int rank_directions[] = {-1, -1, 1, 1, 0, 0, -1, 1};
-    const int file_directions[] = {-1, 1, -1, 1, 1, -1, 0, 0};
-
     uint64_t friendly_pieces = board->color_bbs[white_to_move];
     uint64_t enemy_pieces = board->color_bbs[!white_to_move];
     uint64_t occupied = friendly_pieces | enemy_pieces;
 
-    uint64_t enemy_sliders = board->color_bbs[!white_to_move] & (board->piece_bbs[Queen] | board->piece_bbs[Bishop] | board->piece_bbs[Rook]);
+    uint64_t diagonal_sliders = enemy_pieces & (board->piece_bbs[Bishop] | board->piece_bbs[Queen]);
+    uint64_t orthogonal_sliders = enemy_pieces & (board->piece_bbs[Rook] | board->piece_bbs[Queen]);
 
-    for (int direction = 0; direction < 8; direction++){
-        int curr_rank = square / 8;
-        int curr_file = square % 8;
-        while (1){
-            if (!(enemy_sliders & rays[square][direction])) break;
-            curr_rank += rank_directions[direction];
-            curr_file += file_directions[direction];
-
-            int target_square = 8 * curr_rank + curr_file;
-            PieceType target_type = board->squares[target_square] & 0b0111;
-            if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
-                break; // Outside board
-            }
-            if (occupied & 1ULL << target_square){
-                if (enemy_pieces & 1ULL << target_square){
-                    if (target_type == Queen) return true;
-                    if (direction < 4 && target_type == Bishop) return true;
-                    if (direction > 3 && target_type == Rook) return true;
-
-                }
-                break;
-            }
-        }
-    }
+    if (rook_attack(occupied, square) & orthogonal_sliders)
+        return true;
+    if (bishop_attack(occupied, square) & diagonal_sliders)
+        return true;
 
     return false;
 }
@@ -562,8 +539,8 @@ uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
     uint64_t diagonal_sliders = (board->piece_bbs[Bishop] | board->piece_bbs[Queen]) & occupied;
     uint64_t orthogonal_sliders = (board->piece_bbs[Rook] | board->piece_bbs[Queen]) & occupied;
 
-    attackers |= diagonal_sliders & (diagonalAttacks(occupied, square) | antiDiagAttacks(occupied, square));
-    attackers |= orthogonal_sliders & (fileAttacks(occupied, square) | rankAttacks(occupied, square));
+    attackers |= diagonal_sliders & bishop_attack(occupied, square);
+    attackers |= orthogonal_sliders & rook_attack(occupied, square);
 
     return attackers;
 }
