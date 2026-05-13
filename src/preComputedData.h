@@ -13,11 +13,20 @@ typedef struct
     uint64_t fileMaskEx;
 } smsk[64];
 
-typedef struct{
+typedef struct
+{
     uint64_t mask;
     uint64_t magic;
     uint8_t shift;
+    uint64_t* table;
+    uint64_t table_size;
 } magic_entry;
+
+typedef struct
+{
+    uint64_t magic;
+    uint64_t table_size;
+} magic_number;
 
 uint64_t rook_attack(uint64_t occ, int sq);
 uint64_t bishop_attack(uint64_t occ, int sq);
