@@ -1,4 +1,7 @@
 #include "preComputedData.h"
+
+#include <corecrt_startup.h>
+
 #include "zobrist.h"
 #include "utility.h"
 
@@ -113,18 +116,20 @@ uint64_t bishop_attack(uint64_t occ, int sq)
     return bishop_magics[sq].table[(occ * bishop_magic_numbers[sq]) >> bishop_magics[sq].shift];
 }
 
-magic_number find_rook_magic(uint64_t* seed, int sq, int initial_size, double start_time)
+magic_number find_rook_magic(uint64_t* seed, int sq, int table_size)
 {
+    double start = clock();
     magic_number number = {
-        .table_size = initial_size,
+        .table_size = table_size,
         .magic = 0
     };
-    while (clock() - start_time < 1000)
+    uint64_t num_blocker_bbs = table_size;
+    iteration_rook:
+    while (clock() - start < 1000)
     {
-        iteration_rook:
         const uint64_t magic = PseudorandomNumber(seed) & PseudorandomNumber(seed) & PseudorandomNumber(seed);
-        memset(rook_magics[sq].table, 0, sizeof(uint64_t) * initial_size);
-        for (uint64_t i = 0; i < initial_size; i++){
+        memset(rook_magics[sq].table, 0, sizeof(uint64_t) * table_size);
+        for (uint64_t i = 0; i < num_blocker_bbs; i++){
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
             uint64_t* entry = &rook_magics[sq].table[idx];
@@ -138,27 +143,28 @@ magic_number find_rook_magic(uint64_t* seed, int sq, int initial_size, double st
             {
                 goto iteration_rook;
             }
-
         }
         number.magic = magic;
-        number.table_size = initial_size;
-        initial_size--;
+        number.table_size = table_size;
+        table_size--;
     }
     return number;
 }
 
-magic_number find_bishop_magic(uint64_t* seed, int sq, int initial_size, double start_time)
+magic_number find_bishop_magic(uint64_t* seed, int sq, int table_size)
 {
+    double start = clock();
     magic_number number = {
-        .table_size = initial_size,
+        .table_size = table_size,
         .magic = 0
     };
-    while (clock() - start_time < 1000)
+    uint64_t num_blocker_bbs = table_size;
+    while (clock() - start < 1000)
     {
         iteration_bishop:
         const uint64_t magic = PseudorandomNumber(seed) & PseudorandomNumber(seed) & PseudorandomNumber(seed);
-        memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * initial_size);
-        for (uint64_t i = 0; i < initial_size; i++){
+        memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * table_size);
+        for (uint64_t i = 0; i < num_blocker_bbs; i++){
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
             uint64_t* entry = &bishop_magics[sq].table[idx];
@@ -175,14 +181,13 @@ magic_number find_bishop_magic(uint64_t* seed, int sq, int initial_size, double 
 
         }
         number.magic = magic;
-        number.table_size = initial_size;
-        initial_size--;
+        number.table_size = table_size;
+        table_size--;
     }
     return number;
 }
 
 void find_magics(){
-    double start = clock();
     uint64_t seed = 966479893026083835;
 
     for (int sq = 0; sq < 64; sq++)
@@ -196,7 +201,7 @@ void find_magics(){
     }
 
     for (int sq = 0; sq < 64; sq++){
-        magic_number number = find_rook_magic(&seed, sq, 1 << (64 - rook_magics[sq].shift), clock());
+        magic_number number = find_rook_magic(&seed, sq, 1 << (64 - rook_magics[sq].shift));
         rook_magics[sq].magic = number.magic;
         rook_magics[sq].table_size = number.table_size;
     }
