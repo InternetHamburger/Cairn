@@ -201,18 +201,17 @@ void GetMoves(Board *board, Move* moves, int *num_moves){
     uint64_t enemy_pieces = board->color_bbs[board->white_to_move];
     uint64_t friendly_pieces = board->color_bbs[!board->white_to_move];
     uint64_t occupied = enemy_pieces | friendly_pieces;
-    uint64_t pieces = friendly_pieces;
+    uint64_t king = friendly_pieces & board->piece_bbs[King];
+    uint64_t pieces = friendly_pieces & ~(board->piece_bbs[Knight] | board->piece_bbs[Pawn] | king);
+
 
     GetPawnMoves(board, moves, num_moves);
     GetKnightMoves(moves, num_moves, friendly_pieces & board->piece_bbs[Knight], friendly_pieces);
+    GetKingMoves(board, moves, num_moves, poplsb(&king), friendly_pieces);
 
     while(pieces){
         const int square = poplsb(&pieces);
         switch (GetType(board->squares[square])) {
-            case Pawn:
-                break;
-            case Knight:
-                break;
             case Bishop:
                 GetBishopMoves(moves, num_moves, square, friendly_pieces, occupied);
                 break;
@@ -222,9 +221,6 @@ void GetMoves(Board *board, Move* moves, int *num_moves){
             case Queen:
                 GetRookMoves(moves, num_moves, square, friendly_pieces, occupied);
                 GetBishopMoves(moves, num_moves, square, friendly_pieces, occupied);
-                break;
-            case King:
-                GetKingMoves(board, moves, num_moves, square, friendly_pieces);
                 break;
             default:
                 exit(-1);

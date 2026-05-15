@@ -17,6 +17,7 @@ typedef struct{
     uint64_t mask;
     uint64_t magic;
     uint8_t shift;
+    uint64_t* table;
 } magic_entry;
 
 uint64_t rook_attack(uint64_t occ, int sq);

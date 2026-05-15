@@ -13,7 +13,6 @@ uint64_t king_moves[64];
 const uint64_t a_file = 0x0101010101010101;
 const uint64_t first_rank = 0xff00000000000000;
 
-uint64_t rays[64][8];
 uint64_t rank_attacks[256][8];
 smsk masks;
 
@@ -26,9 +25,6 @@ uint64_t bishop_magic_numbers[64] = {
 
 magic_entry rook_magics[64];
 magic_entry bishop_magics[64];
-
-uint64_t rook_table[64][4096];
-uint64_t bishop_table[64][4096];
 
 uint64_t diagonalMask(int sq) {
     const uint64_t maindia = 0x8040201008040201;
@@ -106,13 +102,13 @@ uint64_t project_bits(uint64_t mask, uint64_t bits){
 uint64_t rook_attack(uint64_t occ, int sq)
 {
     occ &= rook_magics[sq].mask;
-    return rook_table[sq][(occ * rook_magic_numbers[sq]) >> rook_magics[sq].shift];
+    return rook_magics[sq].table[(occ * rook_magic_numbers[sq]) >> rook_magics[sq].shift];
 }
 
 uint64_t bishop_attack(uint64_t occ, int sq)
 {
     occ &= bishop_magics[sq].mask;
-    return bishop_table[sq][(occ * bishop_magic_numbers[sq]) >> bishop_magics[sq].shift];
+    return bishop_magics[sq].table[(occ * bishop_magic_numbers[sq]) >> bishop_magics[sq].shift];
 }
 
 void find_magics(){
@@ -121,11 +117,11 @@ void find_magics(){
         iteration_rook:
         uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
         uint64_t magic = PseudorandomNumber(&seed) & PseudorandomNumber(&seed) & PseudorandomNumber(&seed);
-        memset(rook_table[sq], 0, sizeof(uint64_t) * 4096);
+        memset(rook_magics[sq].table, 0, sizeof(uint64_t) * 4096);
         for (uint64_t i = 0; i < ent; i++){
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
-            uint64_t* entry = &rook_table[sq][idx];
+            uint64_t* entry = &rook_magics[sq].table[idx];
             uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
 
             if (*entry != 0 && *entry != attacks)
@@ -143,11 +139,11 @@ void find_magics(){
         iteration_bishop:
         uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
         uint64_t magic = PseudorandomNumber(&seed) & PseudorandomNumber(&seed) & PseudorandomNumber(&seed);
-        memset(bishop_table[sq], 0, sizeof(uint64_t) * 4096);
+        memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * 4096);
         for (uint64_t i = 0; i < ent; i++){
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
-            uint64_t* entry = &bishop_table[sq][idx];
+            uint64_t* entry = &bishop_magics[sq].table[idx];
             uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
 
             if (*entry != 0 && *entry != attacks)
@@ -179,24 +175,33 @@ void find_magics(){
 
 void fill_tables()
 {
+    for (int sq = 0; sq < 64; sq++)
+    {
+        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
+        rook_magics[sq].table = malloc(sizeof(uint64_t) * ent);
+
+        ent = 1ULL << (64 - bishop_magics[sq].shift);
+        bishop_magics[sq].table = malloc(sizeof(uint64_t) * ent);
+    }
+
     for (int sq = 0; sq < 64; sq++){
         uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
-        memset(rook_table[sq], 0, sizeof(uint64_t) * 4096);
+        memset(rook_magics[sq].table, 0, sizeof(uint64_t) * ent);
         for (uint64_t i = 0; i < ent; i++){
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (rook_magic_numbers[sq] * blocker_bb) >> rook_magics[sq].shift;
-            uint64_t* entry = &rook_table[sq][idx];
+            uint64_t* entry = &rook_magics[sq].table[idx];
             uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
             *entry = attacks;
         }
     }
     for (int sq = 0; sq < 64; sq++){
         uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
-        memset(bishop_table[sq], 0, sizeof(uint64_t) * 4096);
+        memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * ent);
         for (uint64_t i = 0; i < ent; i++){
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (bishop_magic_numbers[sq] * blocker_bb) >> bishop_magics[sq].shift;
-            uint64_t* entry = &bishop_table[sq][idx];
+            uint64_t* entry = &bishop_magics[sq].table[idx];
             uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
             *entry = attacks;
         }
@@ -214,7 +219,7 @@ void verify_magics()
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
             uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
-            if (rook_table[sq][idx] != attacks)
+            if (rook_magics[sq].table[idx] != attacks)
             {
                 printf("hmm\n");
             }
@@ -230,7 +235,7 @@ void verify_magics()
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
             uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
-            if (bishop_table[sq][idx] != attacks)
+            if (bishop_magics[sq].table[idx] != attacks)
             {
                 printf("hmm");
             }
@@ -247,10 +252,6 @@ static void init_table(void) {
     // Right, left, up, down, right-up, left-up, right-down, left-down
     const int king_rank_changes[] = {0, 0, -1, 1, -1, -1, 1, 1};
     const int king_file_changes[] = {1, -1, 0, 0, -1, 1, -1, 1};
-
-    // right-up, left-up, right-down, left-down, right, left, up, down
-    const int rank_directions[] = {-1, -1, 1, 1, 0, 0, -1, 1};
-    const int file_directions[] = {-1, 1, -1, 1, 1, -1, 0, 0};
 
     uint64_t files[8] = {0};
 
@@ -328,24 +329,6 @@ static void init_table(void) {
         }
         knight_moves[i] = knight_bitboard;
         king_moves[i] = king_bitboard;
-
-        for (int direction = 0; direction < 8; direction++){
-            uint64_t ray = 0;
-            int curr_rank = i / 8;
-            int curr_file = i % 8;
-            while (1){
-                curr_rank += rank_directions[direction];
-                curr_file += file_directions[direction];
-
-                int target_square = 8 * curr_rank + curr_file;
-
-                if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
-                    rays[i][direction] = ray;
-                    break; // Outside board
-                }
-                ray |= 1ULL << target_square;
-            }
-        }
     }
 
     const uint64_t h_file = a_file << 7;
