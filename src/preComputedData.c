@@ -17,7 +17,6 @@ uint64_t king_moves[64];
 const uint64_t a_file = 0x0101010101010101;
 const uint64_t first_rank = 0xff00000000000000;
 
-uint64_t rays[64][8];
 uint64_t rank_attacks[256][8];
 smsk masks;
 
@@ -81,14 +80,6 @@ uint64_t rankAttacks(uint64_t occ, int sq)
     return rank_attacks[occ >> (8 * (sq >> 3)) & 0b11111111][sq & 7] << (8 * (sq >> 3));
 }
 
-uint64_t allAttacks(uint64_t occ, int sq)
-{
-    return diagonalAttacks(occ, sq) +
-           antiDiagAttacks(occ, sq) +
-           fileAttacks(occ, sq) +
-           rankAttacks(occ, sq);
-}
-
 uint64_t project_bits(uint64_t mask, uint64_t bits){
     int idx = 0;
     uint64_t projected_bb = 0;
@@ -116,22 +107,29 @@ uint64_t bishop_attack(uint64_t occ, int sq)
     return bishop_magics[sq].table[(occ * bishop_magic_numbers[sq]) >> bishop_magics[sq].shift];
 }
 
-magic_number find_rook_magic(uint64_t* seed, int sq, int table_size)
+magic_number find_rook_magic(uint64_t* seed, int sq)
 {
     double start = clock();
+    uint64_t table_size = 1ULL << (64 - rook_magics[sq].shift);
+    rook_magics[sq].table = malloc(sizeof(uint64_t) * table_size);
     magic_number number = {
         .table_size = table_size,
         .magic = 0
     };
     uint64_t num_blocker_bbs = table_size;
     iteration_rook:
-    while (clock() - start < 1000)
+    while (clock() - start < 100 || number.magic == 0)
     {
         const uint64_t magic = PseudorandomNumber(seed) & PseudorandomNumber(seed) & PseudorandomNumber(seed);
         memset(rook_magics[sq].table, 0, sizeof(uint64_t) * table_size);
         for (uint64_t i = 0; i < num_blocker_bbs; i++){
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
+
+            if (idx >= table_size){
+                goto iteration_rook;
+            }
+
             uint64_t* entry = &rook_magics[sq].table[idx];
             uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
 
@@ -147,28 +145,37 @@ magic_number find_rook_magic(uint64_t* seed, int sq, int table_size)
         number.magic = magic;
         number.table_size = table_size;
         table_size--;
+        printf("%.2s: %llu\n", SquareToString(sq), magic);
     }
+    free(bishop_magics[sq].table);
     return number;
 }
 
-magic_number find_bishop_magic(uint64_t* seed, int sq, int table_size)
+magic_number find_bishop_magic(uint64_t* seed, int sq)
 {
     double start = clock();
+    uint64_t table_size = 1ULL << (64 - bishop_magics[sq].shift);
+    bishop_magics[sq].table = malloc(sizeof(uint64_t) * table_size);
     magic_number number = {
         .table_size = table_size,
         .magic = 0
     };
     uint64_t num_blocker_bbs = table_size;
-    while (clock() - start < 1000)
+    iteration_bishop:
+    while (clock() - start < 100 || number.magic == 0)
     {
-        iteration_bishop:
         const uint64_t magic = PseudorandomNumber(seed) & PseudorandomNumber(seed) & PseudorandomNumber(seed);
         memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * table_size);
         for (uint64_t i = 0; i < num_blocker_bbs; i++){
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
+
+            if (idx >= table_size){
+                goto iteration_bishop;
+            }
+
             uint64_t* entry = &bishop_magics[sq].table[idx];
-            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
+            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
 
             if (*entry == 0)
             {
@@ -184,48 +191,22 @@ magic_number find_bishop_magic(uint64_t* seed, int sq, int table_size)
         number.table_size = table_size;
         table_size--;
     }
+    free(bishop_magics[sq].table);
     return number;
 }
 
 void find_magics(){
     uint64_t seed = 966479893026083835;
 
-    for (int sq = 0; sq < 64; sq++)
-    {
-        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
-        rook_magics[sq].table = calloc(ent, sizeof(uint64_t));
-        rook_magics[sq].table_size = ent;
-        ent = 1ULL << (64 - bishop_magics[sq].shift);
-        bishop_magics[sq].table = calloc(ent, sizeof(uint64_t));
-        bishop_magics[sq].table_size = ent;
-    }
-
     for (int sq = 0; sq < 64; sq++){
-        magic_number number = find_rook_magic(&seed, sq, 1 << (64 - rook_magics[sq].shift));
+        magic_number number = find_rook_magic(&seed, sq);
         rook_magics[sq].magic = number.magic;
         rook_magics[sq].table_size = number.table_size;
     }
     for (int sq = 0; sq < 64; sq++){
-        iteration_bishop:
-        uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
-        uint64_t magic = PseudorandomNumber(&seed) & PseudorandomNumber(&seed) & PseudorandomNumber(&seed);
-        memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * ent);
-        for (uint64_t i = 0; i < ent; i++){
-            uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
-            uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
-            uint64_t* entry = &bishop_magics[sq].table[idx];
-            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
-
-            if (*entry != 0 && *entry != attacks)
-            {
-                goto iteration_bishop;
-            }
-            if (*entry == 0 || *entry == attacks)
-            {
-                *entry = attacks;
-            }
-        }
-        bishop_magics[sq].magic = magic;
+        magic_number number = find_bishop_magic(&seed, sq);
+        bishop_magics[sq].magic = number.magic;
+        bishop_magics[sq].table_size = number.table_size;
     }
 
     printf("uint64_t rook_magic_numbers[64] = {\n    ");
@@ -247,7 +228,7 @@ void fill_tables()
 {
     for (int sq = 0; sq < 64; sq++){
         uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
-        rook_magics[sq].table = calloc(ent, sizeof(uint64_t));
+        rook_magics[sq].table = calloc(rook_magics[sq].table_size, sizeof(uint64_t));
         for (uint64_t i = 0; i < ent; i++){
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (rook_magic_numbers[sq] * blocker_bb) >> rook_magics[sq].shift;
@@ -258,7 +239,7 @@ void fill_tables()
     }
     for (int sq = 0; sq < 64; sq++){
         uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
-        bishop_magics[sq].table = calloc(ent, sizeof(uint64_t));
+        bishop_magics[sq].table = calloc(bishop_magics[sq].table_size, sizeof(uint64_t));
         for (uint64_t i = 0; i < ent; i++){
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (bishop_magic_numbers[sq] * blocker_bb) >> bishop_magics[sq].shift;
@@ -283,6 +264,7 @@ void verify_magics()
             if (rook_magics[sq].table[idx] != attacks)
             {
                 printf("hmm\n");
+                exit(-1);
             }
         }
     }
@@ -298,7 +280,8 @@ void verify_magics()
             uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
             if (bishop_magics[sq].table[idx] != attacks)
             {
-                printf("hmm");
+                printf("hmm\n");
+                exit(-1);
             }
         }
     }
@@ -313,10 +296,6 @@ static void init_table(void) {
     // Right, left, up, down, right-up, left-up, right-down, left-down
     const int king_rank_changes[] = {0, 0, -1, 1, -1, -1, 1, 1};
     const int king_file_changes[] = {1, -1, 0, 0, -1, 1, -1, 1};
-
-    // right-up, left-up, right-down, left-down, right, left, up, down
-    const int rank_directions[] = {-1, -1, 1, 1, 0, 0, -1, 1};
-    const int file_directions[] = {-1, 1, -1, 1, 1, -1, 0, 0};
 
     uint64_t files[8] = {0};
 
@@ -394,24 +373,6 @@ static void init_table(void) {
         }
         knight_moves[i] = knight_bitboard;
         king_moves[i] = king_bitboard;
-
-        for (int direction = 0; direction < 8; direction++){
-            uint64_t ray = 0;
-            int curr_rank = i / 8;
-            int curr_file = i % 8;
-            while (1){
-                curr_rank += rank_directions[direction];
-                curr_file += file_directions[direction];
-
-                int target_square = 8 * curr_rank + curr_file;
-
-                if (!(curr_rank >= 0 && curr_rank < 8 && curr_file >= 0 && curr_file < 8)){
-                    rays[i][direction] = ray;
-                    break; // Outside board
-                }
-                ray |= 1ULL << target_square;
-            }
-        }
     }
 
     const uint64_t h_file = a_file << 7;
@@ -447,6 +408,9 @@ static void init_table(void) {
         bishop_magics[sq].shift = 64 - __builtin_popcountll(bishop_attacks);
     }
 
-    find_magics();
-    verify_magics();
+    uint64_t seed = 966479893026083835;
+    find_bishop_magic(&seed, 0);
+//    find_magics();
+//    fill_tables();
+//    verify_magics();
 }
