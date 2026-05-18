@@ -74,11 +74,12 @@ int correct_eval(Thread* thread, int eval){
 
 int qSearch(Thread *thread, int alpha, int beta){
     Board* board = &thread->board;
+    const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
+    __builtin_prefetch(&thread->tt.entries[tt_index]);
 
     int static_eval = correct_eval(thread, eval(board));
 
     const bool is_pv = beta - alpha > 1;
-    const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
 
@@ -162,6 +163,8 @@ int qSearch(Thread *thread, int alpha, int beta){
 
 int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation *pv) {
     Board* board = &thread->board;
+    const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
+    __builtin_prefetch(&thread->tt.entries[tt_index]);
 
     const bool in_check = InCheck(board);
     PVariation lpv;
@@ -176,8 +179,6 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         return 0;
     }
     const bool is_pv = beta - alpha > 1;
-
-    const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     const Entry entry = thread->tt.entries[tt_index];
     const uint8_t tt_flag = GetEntryType(entry);
     const bool tt_hit = board->zobrist_hash == entry.hash;
