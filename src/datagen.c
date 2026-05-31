@@ -70,9 +70,8 @@ Move ConvertMove(Move move) {
 }
 
 bool IsCheckmate(Board* board){
-    int num_moves = 0;
     Move moves[256];
-    GetMoves(board, moves, &num_moves);
+    int num_moves = GetMoves(board, moves);
     const Board copy = *board;
     for (int i = 0; i < num_moves; i++) {
 
@@ -97,9 +96,8 @@ Board GenerateRandomPosition(uint64_t *seed) {
     Board prev_copy = board;
     int num_rand_moves = ((*seed >> 43) & 1ULL) == 1 ? 8 : 9;
     for (int num_deep = 0; num_deep < num_rand_moves; num_deep++) {
-        int num_moves = 0;
         Move moves[256];
-        GetMoves(&board, moves, &num_moves);
+        int num_moves = GetMoves(&board, moves);
 
 
         int num_legal_moves = 0;

@@ -8,8 +8,17 @@
 #define CHECKMATE (-32000)
 
 typedef struct{
+    Move tt_move, killer;
+    Move moves[218];
+    int stage;
+    int move_num;
+    int scores[218];
+} MovePicker;
+
+typedef struct{
     int static_eval, to_square;
     Piece moved_piece;
+    MovePicker mp;
 } Stack;
 
 typedef struct {

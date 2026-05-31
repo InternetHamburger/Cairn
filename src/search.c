@@ -7,6 +7,7 @@
 #include "moveGeneration.h"
 #include "zobrist.h"
 #include "moveOrderer.h"
+#include "movepicker.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -100,10 +101,10 @@ int qSearch(Thread *thread, int alpha, int beta){
     if( best_score > alpha )
         alpha = best_score;
 
-    int num_moves = 0;
     Move moves[256];
-    GetMoves(board, moves, &num_moves);
+    int num_moves = GetMoves(board, moves);
     OrderCaptures(thread, moves, num_moves);
+
     const Board copy = *board;
     Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
@@ -164,6 +165,7 @@ int qSearch(Thread *thread, int alpha, int beta){
 int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation *pv) {
     Board* board = &thread->board;
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
+    MovePicker* mp = &thread->ss[ply].mp;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
     const bool in_check = InCheck(board);
@@ -225,7 +227,6 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     }
 
     int num_legal_moves = 0;
-    int num_moves = 0;
     Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
 
     Move quiet_moves[218];
@@ -237,111 +238,21 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     int best_score = NEG_INF;
     Move best_move = MoveConstructor(0, 0, 0);
     uint8_t new_flag = UPPER;
-    if (tt_hit && tt_move.value)
-    {
-        const bool is_capture = board->squares[TargetSquare(tt_move)] != None;
-        thread->ss[ply].to_square = TargetSquare(tt_move);
-        thread->ss[ply].moved_piece = board->squares[StartSquare(tt_move)];
 
-        assert(tt_move.value != 0);
-        MakeMove(board, tt_move);
-
-        if (!is_capture)
-        {
-            quiet_moves[num_quiets++] = tt_move;
-        }
-        else
-        {
-            captures[num_captures++] = tt_move;
-        }
-
-        thread->nodes++;
-        num_legal_moves++;
-
-        int score = -Negamax(thread, -beta, -alpha, depth - 1, ply + 1, &lpv);
-
-        *board = copy;
-
-        if (thread->nodes > thread->node_limit || clock() - thread->start_time > thread->time_limit) {
-            if (ply == 0)
-                return best_score;
-            return NEG_INF;
-        }
-
-        if (score > best_score) {
-            best_score = score;
-            if (score > alpha){
-                new_flag = EXACT;
-                best_move = tt_move;
-                alpha = score;
-                pv->length = 1 + lpv.length;
-                pv->line[0] = tt_move;
-                memcpy(pv->line + 1, lpv.line, sizeof(Move) * lpv.length);
-            }
-        }
-
-        if (score >= beta) {
-            if (!is_capture){
-                UpdateKillers(thread, tt_move, ply);
-                for (int j = 0; j < num_quiets; j++)
-                {
-                    if (quiet_moves[j].value == tt_move.value)
-                    {
-                        UpdateHistTable(thread, ply, tt_move, 300 * depth - 250);
-                    }else
-                    {
-                        UpdateHistTable(thread, ply, quiet_moves[j], -(300 * depth - 250));
-                    }
-                }
-            }
-            else
-            {
-                for (int j = 0; j < num_captures; j++)
-                {
-                    if (captures[j].value == tt_move.value)
-                    {
-                        update_caphist(thread, tt_move, 300 * depth - 250);
-                    }else
-                    {
-                        update_caphist(thread, captures[j], -(300 * depth - 250));
-                    }
-                }
-            }
-            const Entry new_entry = {
-                    .hash = board->zobrist_hash,
-                    .best_move = best_move,
-                    .score = (int16_t)best_score,
-                    .depth_node_type = LOWER | depth
-            };
-            thread->tt.entries[tt_index] = new_entry;
-
-            if (!in_check && (best_move.value == 0 || !is_capture) &&
-                static_eval < best_score) // Is always lower bound
-            {
-                update_corrhist(thread, depth, best_score - static_eval);
-            }
-
-            return best_score;
-        }
-    }
-
-    Move moves[256];
-    GetMoves(board, moves, &num_moves);
-    OrderMoves(thread, moves, num_moves, ply, tt_move);
-
-    for (int i = 0; i < num_moves; i++) {
-        if (moves[i].value == tt_move.value) continue;
-        const bool is_capture = board->squares[TargetSquare(moves[i])] != None;
-        thread->ss[ply].to_square = TargetSquare(moves[i]);
-        thread->ss[ply].moved_piece = board->squares[StartSquare(moves[i])];
+    init_picker(mp, thread, ply, tt_move);
+    Move move;
+    while ((move = next_move(mp, thread, ply)).value != 0) {
+        const bool is_capture = board->squares[TargetSquare(move)] != None;
+        thread->ss[ply].to_square = TargetSquare(move);
+        thread->ss[ply].moved_piece = board->squares[StartSquare(move)];
         // Move loop pruning
         if (best_score > CHECKMATE + 255)
         {
-            if (depth <= 4 && !in_check && !is_capture && get_history(thread, moves[i], ply) < depth * -2048) {
+            if (depth <= 4 && !in_check && !is_capture && get_history(thread, move, ply) < depth * -2048) {
                 continue;
             }
 
-            if (ply > 0 && !in_check && !is_capture && i >= (6 + depth * depth) / (2 - improving))
+            if (ply > 0 && !in_check && !is_capture && num_legal_moves >= (6 + depth * depth) / (2 - improving))
             {
                 continue;
             }
@@ -351,17 +262,17 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                 continue;
             }
 
-            if (ply > 0 && depth <= 8 && !staticExchangeEvaluation(board, moves[i], (is_capture ? -50 * depth : -60) * depth)){
+            if (ply > 0 && depth <= 8 && !staticExchangeEvaluation(board, move, (is_capture ? -50 * depth : -60) * depth)){
                 continue;
             }
         }
 
 
-        if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
+        if (GetFlag(move) == Castle && !IsLegalCastle(board, move)){
             continue;
         }
-        assert(moves[i].value != 0);
-        MakeMove(board, moves[i]);
+        assert(move.value != 0);
+        MakeMove(board, move);
         if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
             *board = copy;
             continue;
@@ -369,27 +280,27 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
         if (!is_capture)
         {
-            quiet_moves[num_quiets++] = moves[i];
+            quiet_moves[num_quiets++] = move;
         }
         else
         {
-            captures[num_captures++] = moves[i];
+            captures[num_captures++] = move;
         }
 
         thread->nodes++;
         num_legal_moves++;
 
         int score;
-        if (i == 0)
+        if (num_legal_moves == 1)
         {
             score = -Negamax(thread, -beta, -alpha, depth - 1, ply + 1, &lpv);
         }
-        else if (depth >= 3 && i >= 2 + (ply == 0))
+        else if (depth >= 3 && num_legal_moves >= 3 + (ply == 0))
         {
             int r = lmr_reduction[depth][num_legal_moves];
             r -= is_pv;
             r -= is_capture * 2;
-            r -= thread->killer_moves[ply].value == moves[i].value;
+            r -= thread->killer_moves[ply].value == move.value;
             r -= improving;
             r = __max(r, 0);
             score = -Negamax(thread, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
@@ -422,10 +333,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             best_score = score;
             if (score > alpha){
                 new_flag = EXACT;
-                best_move = moves[i];
+                best_move = move;
                 alpha = score;
                 pv->length = 1 + lpv.length;
-                pv->line[0] = moves[i];
+                pv->line[0] = move;
                 memcpy(pv->line + 1, lpv.line, sizeof(Move) * lpv.length);
             }
         }
@@ -433,12 +344,12 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         if (score >= beta) {
             new_flag = LOWER;
             if (!is_capture){
-                UpdateKillers(thread, moves[i], ply);
+                UpdateKillers(thread, move, ply);
                 for (int j = 0; j < num_quiets; j++)
                 {
-                    if (quiet_moves[j].value == moves[i].value)
+                    if (quiet_moves[j].value == move.value)
                     {
-                        UpdateHistTable(thread, ply, moves[i], 300 * depth - 250);
+                        UpdateHistTable(thread, ply, move, 300 * depth - 250);
                     }else
                     {
                         UpdateHistTable(thread, ply, quiet_moves[j], -(300 * depth - 250));
@@ -449,9 +360,9 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             {
                 for (int j = 0; j < num_captures; j++)
                 {
-                    if (captures[j].value == moves[i].value)
+                    if (captures[j].value == move.value)
                     {
-                        update_caphist(thread, moves[i], 300 * depth - 250);
+                        update_caphist(thread, move, 300 * depth - 250);
                     }else
                     {
                         update_caphist(thread, captures[j], -(300 * depth - 250));
@@ -594,9 +505,9 @@ SearchResult search(Thread *thread) {
     Board* board = &thread->board;
 
     if (best_move.value == 0){
-        int num_moves = 0;
+
         Move moves[256];
-        GetMoves(board, moves, &num_moves);
+        int num_moves = GetMoves(board, moves);
 
 
         int num_legal_moves = 0;

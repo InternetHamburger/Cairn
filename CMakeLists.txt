@@ -26,5 +26,5 @@ add_executable(Cairn
         src/zobrist.c
         src/moveOrderer.c
         src/transposition.c
-        src/transposition.h
+        src/movepicker.c
 )

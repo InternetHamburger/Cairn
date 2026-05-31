@@ -254,6 +254,186 @@ void PrintBoard(const Board* board) {
     printf("   a   b   c   d   e   f   g   h\n\n");
 }
 
+bool IsPseudoLegal(const Board* board, const Move move){
+    const int start_square = StartSquare(move);
+    const int target_square = TargetSquare(move);
+
+    const uint64_t to_bb = 1ULL << target_square;
+
+    const int from_rank = start_square / 8;
+    const int from_file = start_square % 8;
+    const int to_rank = target_square / 8;
+    const int to_file = target_square % 8;
+
+    const int moved_piece = board->squares[start_square];
+    const int captured_piece = board->squares[target_square];
+
+    const PieceType moved_type = GetType(moved_piece);
+    const int move_flag = GetFlag(move);
+
+    if (start_square == target_square){
+        return false;
+    }
+
+    if (start_square > 63 || start_square < 0 || target_square > 63 || target_square < 0){
+        return false;
+    }
+    if (moved_piece == None){
+        return false;
+    }
+    if (move_flag > 0b0111){
+        return false;
+    }
+    if (GetColor(moved_piece) == board->white_to_move){
+        return false;
+    }
+    if (GetColor(moved_piece) == GetColor(captured_piece) && captured_piece != None){
+        return false;
+    }
+
+    if (move_flag == DoublePush){
+        if (moved_type != Pawn){
+            return false;
+        }
+        if (abs(from_rank - to_rank) != 2){
+            return false;
+        }
+        if ((board->white_to_move && from_rank != 6) || (!board->white_to_move && from_rank != 1)){
+            return false;
+        }
+    }
+
+    const int rank_change = board->white_to_move ? -1 : 1;
+    const int cap_right_change = 1;
+    const int cap_left_change = -1;
+    if (moved_type != Pawn){
+        if (IsPromotion(move)){
+            return false;
+        }
+        if (move_flag == DoublePush){
+            return false;
+        }
+        if (move_flag == EnPassant){
+            return false;
+        }
+    }
+    if (moved_type != King){
+        if (move_flag == Castle){
+            return false;
+        }
+    }
+
+
+    if (moved_type == Pawn){
+        if (move_flag == DoublePush){
+            if (to_rank - from_rank != 2 * rank_change){
+                return false;
+            }
+            if (board->squares[from_file + 8 * (from_rank + rank_change)]){
+                return false;
+            }
+            if (from_file != to_file){
+                return false;
+            }
+        }
+        else{
+            if (to_rank - from_rank != rank_change){
+                return false;
+            }
+        }
+        if (IsPromotion(move)){
+            if (from_rank != (board->white_to_move ? 1 : 6)){
+                return false;
+            }
+        }
+        else{
+            if (from_rank == (board->white_to_move ? 1 : 6)){
+                return false;
+            }
+        }
+        if (move_flag == EnPassant){
+            if (target_square != board->en_passant_square){
+                return false;
+            }
+        }
+        else{
+            if (captured_piece == None && to_file != from_file){
+                return false;
+            }
+            if (captured_piece != None && to_file == from_file){
+                return false;
+            }
+        }
+        if (from_file != to_file && abs(to_file - from_file) != 1){
+            return false;
+        }
+        if (to_file - from_file == cap_right_change && captured_piece != None){
+            return true;
+        }
+        if (to_file - from_file == cap_left_change && captured_piece != None){
+            return true;
+        }
+    }
+    uint64_t enemy_pieces = board->color_bbs[board->white_to_move];
+    uint64_t friendly_pieces = board->color_bbs[!board->white_to_move];
+    uint64_t occupied = enemy_pieces | friendly_pieces;
+
+    if (moved_type == King){
+        if (move_flag == Castle){
+            if (board->white_to_move){
+                if (start_square != 60){
+                    return false;
+                }
+                if (!(target_square == 62 || target_square == 58)){
+                    return false;
+                }
+                if ((target_square == 62 && !board->white_kingside) || (target_square == 58 && !board->white_queenside)){
+                    return false;
+                }
+                if ((target_square == 58 && (occupied & 1008806316530991104)) || (target_square == 62 && (occupied & 6917529027641081856))){
+                    return false;
+                }
+            }
+            else{
+                if (start_square != 4){
+                    return false;
+                }
+                if (!(target_square == 2 || target_square == 6)){
+                    return false;
+                }
+                if ((target_square == 6 && !board->black_kingside) || (target_square == 2 && !board->black_queenside)){
+                    return false;
+                }
+                if ((target_square == 2 && (occupied & 14)) || (target_square == 6 && (occupied & 96))){
+                    return false;
+                }
+            }
+        }
+        else{
+            return king_moves[start_square] & to_bb;
+        }
+    }
+
+    if (moved_type == Knight){
+        return knight_moves[start_square] & to_bb;
+    }
+
+    const uint64_t orthogonal_attacks = rook_attack(occupied, start_square);
+    const uint64_t diagonal_attacks = bishop_attack(occupied, start_square);
+
+    if (moved_type == Rook){
+        return (~friendly_pieces & orthogonal_attacks) & to_bb;
+    }
+    if (moved_type == Bishop){
+        return (~friendly_pieces & diagonal_attacks) & to_bb;
+    }
+    if (moved_type == Queen){
+        return (~friendly_pieces & (orthogonal_attacks | diagonal_attacks)) & to_bb;
+    }
+
+    return true;
+}
+
 bool InCheck(const Board *board){
     return IsAttackedBySideToMove(board, !board->white_to_move, board->white_to_move ? board->white_king_square : board->black_king_square);
 }

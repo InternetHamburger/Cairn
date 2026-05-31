@@ -58,6 +58,7 @@ typedef struct{
 void MakeMove(Board *board, Move move);
 void MakeNullMove(Board *board);
 void PrintBoard(const Board* board);
+bool IsPseudoLegal(const Board* board, Move move);
 bool InCheck(const Board *board);
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
 Board BoardConstructor(const char* fen);

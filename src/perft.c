@@ -14,9 +14,8 @@ uint64_t perft(Board *board, const int depth) {
 
     uint64_t nodes = 0;
 
-    int num_moves = 0;
     Move moves[256];
-    GetMoves(board, moves, &num_moves);
+    int num_moves = GetMoves(board, moves);
     const Board copy = *board;
     for (int i = 0; i < num_moves; i++) {
 
@@ -39,9 +38,8 @@ uint64_t perft(Board *board, const int depth) {
 uint64_t splitPerft(Board *board, const int depth) {
     uint64_t nodes = 0;
 
-    int num_moves = 0;
     Move moves[256];
-    GetMoves(board, moves, &num_moves);
+    int num_moves = GetMoves(board, moves);
     const Board copy = *board;
     double start = clock();
     for (int i = 0; i < num_moves; i++) {

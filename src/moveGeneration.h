@@ -4,6 +4,6 @@
 #include "board.h"
 #include "move.h"
 
-void GetMoves(Board *board, Move* moves, int *num_moves);
+int GetMoves(Board *board, Move* moves);
 
 #endif //CAIRN_MOVEGENERATION_H

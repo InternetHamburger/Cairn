@@ -13,6 +13,7 @@ void UpdateHistTable(Thread* thread, int ply, Move move, int bonus);
 void update_caphist(Thread* thread, Move move, int bonus);
 int get_history(Thread* thread, Move move, int ply);
 void UpdateKillers(Thread* thread,  Move move, int ply);
+int move_score(Thread* thread, Move move, Move tt_move, int ply);
 void OrderMoves(Thread* thread, Move* moves, int move_length, int ply, Move tt_move);
 void OrderCaptures(Thread* thread, Move* moves, int move_length);
 
