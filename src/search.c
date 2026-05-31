@@ -234,6 +234,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
     int num_quiets = 0;
     int num_captures = 0;
+    int played = -1;
 
     int best_score = NEG_INF;
     Move best_move = MoveConstructor(0, 0, 0);
@@ -242,6 +243,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     init_picker(mp, thread, ply, tt_move);
     Move move;
     while ((move = next_move(mp, thread, ply)).value != 0) {
+        played++;
         const bool is_capture = board->squares[TargetSquare(move)] != None;
         thread->ss[ply].to_square = TargetSquare(move);
         thread->ss[ply].moved_piece = board->squares[StartSquare(move)];
@@ -252,7 +254,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
                 continue;
             }
 
-            if (ply > 0 && !in_check && !is_capture && num_legal_moves >= (6 + depth * depth) / (2 - improving))
+            if (ply > 0 && !in_check && !is_capture && played >= (6 + depth * depth) / (2 - improving))
             {
                 continue;
             }
@@ -291,11 +293,11 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         num_legal_moves++;
 
         int score;
-        if (num_legal_moves == 1)
+        if (played == 0)
         {
             score = -Negamax(thread, -beta, -alpha, depth - 1, ply + 1, &lpv);
         }
-        else if (depth >= 3 && num_legal_moves >= 3 + (ply == 0))
+        else if (depth >= 3 && played >= 2 + (ply == 0))
         {
             int r = lmr_reduction[depth][num_legal_moves];
             r -= is_pv;
