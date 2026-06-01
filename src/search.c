@@ -476,9 +476,9 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
     const bool is_capture = board->squares[TargetSquare(best_move)] != None;
     if (!in_check && (best_move.value == 0 || !is_capture) && (
-            (new_flag & EXACT) == EXACT ||
-            ((new_flag & LOWER) == LOWER && static_eval < best_score) ||
-            ((new_flag & UPPER) == UPPER && static_eval > best_score)))
+            new_flag == EXACT ||
+            (new_flag == LOWER && static_eval < best_score) ||
+            (new_flag == UPPER && static_eval > best_score)))
     {
         update_corrhist(thread, depth, best_score - static_eval);
     }
