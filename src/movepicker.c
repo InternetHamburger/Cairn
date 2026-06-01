@@ -1,4 +1,7 @@
 #include "movepicker.h"
+
+#include <stdio.h>
+
 #include "moveGeneration.h"
 #include "moveOrderer.h"
 
@@ -12,10 +15,15 @@ void init_picker(MovePicker* mp, Thread* thread, int ply, Move tt_move){
 
 int best_index(const int* scores, int start, int end){
     int best = start;
+    int best_score = scores[best];
 
     for (int i = start + 1; i < end; i++){
-        if (scores[i] > scores[best])
+        int s = scores[i];
+        if (s > best_score)
+        {
             best = i;
+            best_score = s;
+        }
     }
 
     return best;
@@ -23,8 +31,13 @@ int best_index(const int* scores, int start, int end){
 
 Move pop_move(int *len, Move* moves, int* scores, int idx){
     Move move = moves[idx];
-    moves[idx] = moves[--*len];
-    scores[idx] = scores[*len];
+
+    (*len)--;
+    for (int i = idx; i < *len; i++)
+    {
+        moves[i] = moves[i + 1];
+        scores[i] = scores[i + 1];
+    }
     return move;
 }
 
@@ -60,5 +73,4 @@ Move next_move(MovePicker* mp, Thread* thread, int ply){
         default:
             return MoveConstructor(0, 0, 0);
     }
-    return MoveConstructor(0, 0, 0);
 }
