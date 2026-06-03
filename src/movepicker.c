@@ -1,7 +1,4 @@
 #include "movepicker.h"
-
-#include <stdio.h>
-
 #include "moveGeneration.h"
 #include "moveOrderer.h"
 

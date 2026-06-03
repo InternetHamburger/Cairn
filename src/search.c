@@ -73,16 +73,20 @@ int correct_eval(Thread* thread, int eval){
 }
 
 
-int qSearch(Thread *thread, int alpha, int beta){
+int qSearch(Thread *thread, int alpha, int beta, int ply){
     Board* board = &thread->board;
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    int static_eval = correct_eval(thread, eval(board));
+    const int static_eval = correct_eval(thread, eval(board));
 
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
+
+    if (is_pv && ply > thread->seldepth){
+        thread->seldepth = ply;
+    }
 
     if (!is_pv && tt_hit) {
         int type = GetEntryType(entry);
@@ -125,7 +129,7 @@ int qSearch(Thread *thread, int alpha, int beta){
         }
         thread->nodes++;
 
-        const int score = -qSearch(thread, -beta, -alpha);
+        const int score = -qSearch(thread, -beta, -alpha, ply + 1);
 
         *board = copy;
 
@@ -175,7 +179,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
     if (in_check)
         depth++;
-    if (depth <= 0) return qSearch(thread, alpha, beta);
+    if (depth <= 0) return qSearch(thread, alpha, beta, ply);
     thread->hashes[board->game_ply] = board->zobrist_hash;
     if ((IsRepetition(thread->hashes, board->game_ply) || board->fifty_move_counter >= 100) && ply > 0){
         return 0;
@@ -184,6 +188,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     const Entry entry = thread->tt.entries[tt_index];
     const uint8_t tt_flag = GetEntryType(entry);
     const bool tt_hit = board->zobrist_hash == entry.hash;
+
+    if (is_pv && ply > thread->seldepth){
+        thread->seldepth = ply;
+    }
 
     if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
     {
@@ -412,7 +420,7 @@ int CountHashFull(Thread* thread)
 
 void UCIReport(Thread *thread, PVariation *lpv, int depth, int score, int time_elapsed)
 {
-    printf("info depth %d", depth);
+    printf("info depth %d seldepth %d", depth, thread->seldepth);
     if (abs(score) > -(CHECKMATE + 255))
     {
         printf(" score mate %d", (score < 0 ? -1 : 1) * (-CHECKMATE - abs(score) + 1) / 2);
