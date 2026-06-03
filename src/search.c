@@ -184,16 +184,19 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     if ((IsRepetition(thread->hashes, board->game_ply) || board->fifty_move_counter >= 100) && ply > 0){
         return 0;
     }
+    const bool is_singular = thread->ss[ply].excluded.value != 0;
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
     const uint8_t tt_flag = GetEntryType(entry);
-    const bool tt_hit = board->zobrist_hash == entry.hash;
+    const bool tt_hit = !is_singular && board->zobrist_hash == entry.hash;
+    const int tt_depth = GetDepth(entry);
+    const Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
     }
 
-    if (GetDepth(entry) >= depth && ply > 0 && tt_hit && !is_pv)
+    if (!is_singular && tt_depth >= depth && ply > 0 && tt_hit && !is_pv)
     {
         if (tt_flag == EXACT)
             return entry.score;
@@ -215,13 +218,13 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         improving = static_eval > thread->ss[ply - 4].static_eval;
     }
 
-    if (static_eval >= beta + 60 * depth && !in_check && !is_pv)
+    if (!is_singular && static_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
         return static_eval;
     }
 
     const Board copy = *board;
-    if (!is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
+    if (!is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
         int r = 3 + depth / 4 + improving;
         thread->ss[ply].to_square = 0;
         thread->ss[ply].moved_piece = None;
@@ -234,8 +237,23 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         }
     }
 
+    int extension = 0;
+    if (ply > 0 && depth >= 7 && !is_singular && tt_depth >= depth - 3 && tt_flag != UPPER)
+    {
+        const int singular_beta = __max(NEG_INF + 1, entry.score - depth);
+        const int singular_depth = depth / 2;
+
+        thread->ss[ply].excluded = tt_move;
+        int score = Negamax(thread, singular_beta - 1, singular_beta, singular_depth, ply, &lpv);
+        thread->ss[ply].excluded.value = 0;
+
+        if (score < singular_beta)
+        {
+            extension = 1;
+        }
+    }
+
     int num_legal_moves = 0;
-    Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
 
     Move quiet_moves[218];
     Move captures[218];
@@ -252,6 +270,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
     Move move;
     while ((move = next_move(mp, thread, ply)).value != 0) {
         played++;
+        if (thread->ss[ply].excluded.value == move.value) continue;
         const bool is_capture = board->squares[TargetSquare(move)] != None;
         thread->ss[ply].to_square = TargetSquare(move);
         thread->ss[ply].moved_piece = board->squares[StartSquare(move)];
@@ -301,9 +320,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         num_legal_moves++;
 
         int score;
+        int lmr_depth = depth - 1 + extension;
         if (played == 0)
         {
-            score = -Negamax(thread, -beta, -alpha, depth - 1, ply + 1, &lpv);
+            score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, &lpv);
         }
         else if (depth >= 3 && played >= 2 + (ply == 0))
         {
@@ -313,22 +333,22 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
             r -= thread->killer_moves[ply].value == move.value;
             r -= improving;
             r = __max(r, 0);
-            score = -Negamax(thread, -alpha - 1, -alpha, depth - 1 - r, ply + 1, &lpv);
+            score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth - r, ply + 1, &lpv);
             if (score > alpha && is_pv)
             {
-                score = -Negamax(thread, -alpha - 1, -alpha, depth - 1, ply + 1, &lpv);
+                score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth, ply + 1, &lpv);
             }
             if (score > alpha)
             {
-                score = -Negamax(thread, -beta, -alpha, depth - 1, ply + 1, &lpv);
+                score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, &lpv);
             }
         }
         else
         {
-            score = -Negamax(thread, -alpha - 1, -alpha, depth - 1, ply + 1, &lpv);
+            score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth, ply + 1, &lpv);
             if (score > alpha && is_pv)
             {
-                score = -Negamax(thread, -beta, -alpha, depth - 1, ply + 1, &lpv);
+                score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, &lpv);
             }
         }
         *board = copy;
@@ -386,22 +406,26 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         if (InCheck(board)) return CHECKMATE + ply;
         return 0; // Stalemate
     }
-    Entry new_entry = {
+
+    if (!is_singular)
+    {
+        Entry new_entry = {
             .hash = board->zobrist_hash,
             .best_move = best_move,
             .score = (int16_t)best_score,
             .depth_node_type = new_flag | depth
-    };
+        };
 
-    thread->tt.entries[tt_index] = new_entry;
+        thread->tt.entries[tt_index] = new_entry;
 
-    const bool is_capture = board->squares[TargetSquare(best_move)] != None;
-    if (!in_check && (best_move.value == 0 || !is_capture) && (
-            new_flag == EXACT ||
-            (new_flag == LOWER && static_eval < best_score) ||
-            (new_flag == UPPER && static_eval > best_score)))
-    {
-        update_corrhist(thread, depth, best_score - static_eval);
+        const bool is_capture = board->squares[TargetSquare(best_move)] != None;
+        if (!in_check && (best_move.value == 0 || !is_capture) && (
+                new_flag == EXACT ||
+                (new_flag == LOWER && static_eval < best_score) ||
+                (new_flag == UPPER && static_eval > best_score)))
+        {
+            update_corrhist(thread, depth, best_score - static_eval);
+        }
     }
 
 

@@ -19,6 +19,7 @@ typedef struct{
     int static_eval, to_square;
     Piece moved_piece;
     MovePicker mp;
+    Move excluded;
 } Stack;
 
 typedef struct {
