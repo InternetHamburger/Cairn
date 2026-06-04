@@ -28,13 +28,8 @@ int best_index(const int* scores, int start, int end){
 
 Move pop_move(int *len, Move* moves, int* scores, int idx){
     Move move = moves[idx];
-
-    (*len)--;
-    for (int i = idx; i < *len; i++)
-    {
-        moves[i] = moves[i + 1];
-        scores[i] = scores[i + 1];
-    }
+    moves[idx] = moves[--*len];
+    scores[idx] = scores[*len];
     return move;
 }
 
