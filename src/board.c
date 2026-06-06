@@ -662,6 +662,32 @@ bool IsRepetition(const uint64_t hashes[MAX_NUM_PLY], int idx){
     return false;
 }
 
+bool IsInsufficientMaterial(const Board* board)
+{
+    uint64_t enemy_pieces = board->color_bbs[board->white_to_move];
+    uint64_t friendly_pieces = board->color_bbs[!board->white_to_move];
+    uint64_t occupied = enemy_pieces | friendly_pieces;
+    int piece_count = __builtin_popcountll(occupied);
+    if (piece_count >= 4) return false;
+    if (piece_count == 2) return true;
+
+    return !(board->piece_bbs[Pawn] | board->piece_bbs[Rook] | board->piece_bbs[Queen]);
+}
+
+bool IsDraw(const uint64_t hashes[MAX_NUM_PLY], const Board* board)
+{
+    if (board->fifty_move_counter >= 100)
+    {
+        return true;
+    }
+    if (IsRepetition(hashes, board->game_ply))
+    {
+        return true;
+    }
+    return IsInsufficientMaterial(board);
+}
+
+
 PieceType PromotionType(const Move move){
     int flag = GetFlag(move);
     switch (flag) {

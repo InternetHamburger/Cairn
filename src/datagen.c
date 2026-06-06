@@ -225,7 +225,7 @@ double PlayGame(DatagenInfo *this, Thread* thread) {
             this->game.result = board->white_to_move ? 0 : 2;
             break;
         }
-        if (IsRepetition(thread->hashes, hash_idx) || board->fifty_move_counter >= 100 || board->game_ply > 512){ // Hard limit on length
+        if (IsDraw(thread->hashes, board) || board->game_ply > 512){ // Hard limit on length
             this->game.result = 1;
             break;
         }

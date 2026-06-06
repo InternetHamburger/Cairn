@@ -181,7 +181,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
         depth++;
     if (depth <= 0) return qSearch(thread, alpha, beta, ply);
     thread->hashes[board->game_ply] = board->zobrist_hash;
-    if ((IsRepetition(thread->hashes, board->game_ply) || board->fifty_move_counter >= 100) && ply > 0){
+    if (IsDraw(thread->hashes, board) && ply > 0){
         return 0;
     }
     const bool is_singular = thread->ss[ply].excluded.value != 0;

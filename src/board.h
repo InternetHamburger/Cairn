@@ -63,6 +63,7 @@ bool InCheck(const Board *board);
 bool IsAttackedBySideToMove(const Board *board, bool white_to_move, int square);
 Board BoardConstructor(const char* fen);
 bool IsRepetition(const uint64_t hashes[MAX_NUM_PLY], int idx);
+bool IsDraw(const uint64_t hashes[MAX_NUM_PLY], const Board* board);
 PieceType PromotionType(Move move);
 uint64_t GetOccupied(const Board *board);
 bool HasNonPawnKing(const Board *board);
