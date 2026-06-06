@@ -249,7 +249,11 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, PVariation 
 
         if (score < singular_beta)
         {
-            extension = 1;
+            extension++;
+            if (score < singular_beta - 40)
+            {
+                extension++;
+            }
         }
     }
 
