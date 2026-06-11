@@ -257,6 +257,11 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         }
     }
 
+    if (tt_move.value == 0 && depth > 4 && is_pv)
+    {
+        depth--;
+    }
+
     int num_legal_moves = 0;
 
     Move quiet_moves[218];
