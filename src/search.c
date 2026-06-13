@@ -255,6 +255,9 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
                 extension++;
             }
         }
+        else if (singular_beta >= beta){
+            return singular_beta;
+        }
         else if (cutnode){
             extension--;
         }
