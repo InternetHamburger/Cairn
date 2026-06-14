@@ -35,6 +35,10 @@ static void init_table(){
     }
 }
 
+bool is_mate_score(int score){
+    return abs(score) > -(CHECKMATE + 255);
+}
+
 void update_entry(int* entry, int bonus){
     *entry += bonus - abs(bonus) * *entry / 4096;
 }
@@ -72,6 +76,12 @@ int correct_eval(Thread* thread, int eval){
     return CLAMP(corrected, CHECKMATE + 256, -(CHECKMATE + 256));
 }
 
+int correct_score(int score, int ply){
+    if (is_mate_score(score)){
+        score = (abs(score) + ply) * (score < 0 ? -1 : 1);
+    }
+    return score;
+}
 
 int qSearch(Thread *thread, int alpha, int beta, int ply){
     Board* board = &thread->board;
@@ -83,6 +93,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
+    const int tt_score = correct_score(entry.score, -ply);
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
@@ -91,15 +102,15 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     if (!is_pv && tt_hit) {
         int type = GetEntryType(entry);
         if (type == EXACT)
-            return entry.score;
-        if (type == LOWER && entry.score >= beta)
-            return entry.score;
-        if (type == UPPER && entry.score <= alpha)
-            return entry.score;
+            return tt_score;
+        if (type == LOWER && tt_score >= beta)
+            return tt_score;
+        if (type == UPPER && tt_score <= alpha)
+            return tt_score;
     }
 
 
-    int best_score = tt_hit ? entry.score : static_eval;
+    int best_score = tt_hit ? tt_score : static_eval;
     if( best_score >= beta )
         return best_score;
     if( best_score > alpha )
@@ -159,7 +170,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     Entry new_entry = {
         .hash = board->zobrist_hash,
         .best_move = best_move,
-        .score = (int16_t)best_score,
+        .score = (int16_t)correct_score(best_score, ply),
         .depth_node_type = type | 0
     };
     thread->tt.entries[tt_index] = new_entry;
@@ -191,6 +202,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     const bool tt_hit = !is_singular && board->zobrist_hash == entry.hash;
     const int tt_depth = GetDepth(entry);
     const Move tt_move = tt_hit ? entry.best_move : MoveConstructor(0, 0, 0);
+    const int tt_score = correct_score(entry.score, -ply);
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
@@ -199,11 +211,11 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     if (!is_singular && tt_depth >= depth && ply > 0 && tt_hit && !is_pv)
     {
         if (tt_flag == EXACT)
-            return entry.score;
-        if (tt_flag == LOWER && entry.score >= beta)
-            return entry.score;
-        if (tt_flag == UPPER && entry.score <= alpha)
-            return entry.score;
+            return tt_score;
+        if (tt_flag == LOWER && tt_score >= beta)
+            return tt_score;
+        if (tt_flag == UPPER && tt_score <= alpha)
+            return tt_score;
     }
 
     int static_eval = in_check ? -NEG_INF : correct_eval(thread, eval(board));
@@ -218,13 +230,13 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         improving = static_eval > thread->ss[ply - 4].static_eval;
     }
 
-    if (!is_singular && static_eval >= beta + 60 * depth && !in_check && !is_pv)
+    if (!is_mate_score(beta) && !is_singular && static_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
         return static_eval;
     }
 
     const Board copy = *board;
-    if (!is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
+    if (!is_mate_score(beta) && !is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
         int r = 3 + depth / 4 + improving;
         thread->ss[ply].to_square = 0;
         thread->ss[ply].moved_piece = None;
@@ -240,7 +252,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     int extension = 0;
     if (ply > 0 && depth >= 7 && !is_singular && tt_depth >= depth - 3 && tt_flag != UPPER)
     {
-        const int singular_beta = __max(NEG_INF + 1, entry.score - depth);
+        const int singular_beta = __max(NEG_INF + 1, tt_score - depth);
         const int singular_depth = depth / 2;
 
         thread->ss[ply].excluded = tt_move;
@@ -428,7 +440,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         Entry new_entry = {
             .hash = board->zobrist_hash,
             .best_move = best_move,
-            .score = (int16_t)best_score,
+            .score = (int16_t)correct_score(best_score, ply),
             .depth_node_type = new_flag | depth
         };
 
