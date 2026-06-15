@@ -1,4 +1,5 @@
 #include "uci.h"
+#include "nnue.h"
 #include "board.h"
 #include "perft.h"
 #include "search.h"
@@ -343,6 +344,9 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
         int static_eval = eval(&thread->board);
         printf("Raw eval: %d\n", static_eval);
         printf("Corrected eval: %d\n", correct_eval(thread, static_eval));
+    }
+    else if (strncmp(token, "nnueval", 7) == 0){
+        printf("Eval: %d\n", nnueval(&thread->board));
     }
     else if (strncmp(token, "setoption", 9) == 0){
         line += 10;

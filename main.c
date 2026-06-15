@@ -3,11 +3,13 @@
 #include "src/datagen.h"
 #include "src/uci.h"
 #include "src/transposition.h"
+#include "src/nnue.h"
 #include <stdlib.h>
 #include <string.h>
 
 int main(int argc, char *args[]) {
 
+    load_incbin();
     Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     Thread thread = {
             .nodes = 0,
