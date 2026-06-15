@@ -27,4 +27,5 @@ add_executable(Cairn
         src/moveOrderer.c
         src/transposition.c
         src/movepicker.c
+        src/nnue.c
 )
