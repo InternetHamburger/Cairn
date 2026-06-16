@@ -5,9 +5,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-Parameters parameters;
+#define CLAMP(x, a, b) __min(__max(x, a), b)
 
 INCBIN(quant, "C:/c/beans.bin");
+
+Parameters parameters;
 
 void load_incbin(){
     uint64_t memory_index = 0;
@@ -65,36 +67,40 @@ int get_index(Piece piece, int square, bool inverse){
 }
 
 int nnueval(const Board* board){
-
-    for (int i = 0; i < 16; i++){
-        printf("%d ", parameters.feature_bias[i]);
-    }
-    printf("\n%d\n\n", parameters.out_bias);
-    int stm_acc[HL_SIZE] = {0};
-    int nstm_acc[HL_SIZE] = {0};
-
-    bool flip = !board->white_to_move;
+    int white_acc[HL_SIZE] = {0};
+    int black_acc[HL_SIZE] = {0};
 
     for (int square = 0; square < 64; square++){
         if (board->squares[square]){
-            printf("%d\n", get_index(board->squares[square], square, flip));
-            if (GetColor(board->squares[square]) == !board->white_to_move){
-                for (int neuron = 0; neuron < HL_SIZE; neuron++){
-                    stm_acc[neuron] += parameters.feature_weights[get_index(board->squares[square], square, flip) + INPUT_SIZE * neuron];
-                    nstm_acc[neuron] += parameters.feature_weights[get_index(board->squares[square], square, !flip) + INPUT_SIZE * neuron];
-                }
+            int index = get_index(board->squares[square], square, false);
+            int flipped_index = get_index(board->squares[square], square, true);
+            for (int neuron = 0; neuron < HL_SIZE; neuron++){
+                white_acc[neuron] += parameters.feature_weights[index * HL_SIZE + neuron];
+                black_acc[neuron] += parameters.feature_weights[flipped_index * HL_SIZE + neuron];
             }
-            else{
-                for (int neuron = 0; neuron < HL_SIZE; neuron++){
-                    stm_acc[neuron] += parameters.feature_weights[get_index(board->squares[square], square, !flip) + INPUT_SIZE * neuron];
-                    nstm_acc[neuron] += parameters.feature_weights[get_index(board->squares[square], square, flip) + INPUT_SIZE * neuron];
-                }
-            }
+
         }
     }
+
     for (int neuron = 0; neuron < HL_SIZE; neuron++){
-        stm_acc[neuron] += parameters.feature_bias[neuron];
-        nstm_acc[neuron] += parameters.feature_bias[neuron];
+        white_acc[neuron] += parameters.feature_bias[neuron];
+        black_acc[neuron] += parameters.feature_bias[neuron];
+        white_acc[neuron] = CLAMP(white_acc[neuron], 0, QA) * CLAMP(white_acc[neuron], 0, QA);
+        black_acc[neuron] = CLAMP(black_acc[neuron], 0, QA) * CLAMP(black_acc[neuron], 0, QA);
+    }
+
+    int* stm_acc;
+    int* nstm_acc;
+
+    if (board->white_to_move)
+    {
+        stm_acc = white_acc;
+        nstm_acc = black_acc;
+    }
+    else
+    {
+        nstm_acc = white_acc;
+        stm_acc = black_acc;
     }
 
     int output = 0;
@@ -103,6 +109,6 @@ int nnueval(const Board* board){
         output += nstm_acc[neuron] * parameters.out_weights[HL_SIZE + neuron];
     }
     output /= QA;
-    output = (output + parameters.out_bias) / (QA * QB);
+    output = (output + parameters.out_bias) * EVAL_SCALE / (QA * QB);
     return output;
 }

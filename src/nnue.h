@@ -10,6 +10,8 @@
 #define QA 255
 #define QB 64
 
+#define EVAL_SCALE 400
+
 typedef struct{
     int16_t feature_weights[INPUT_SIZE * HL_SIZE];
     int16_t feature_bias[HL_SIZE];
