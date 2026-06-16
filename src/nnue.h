@@ -5,7 +5,7 @@
 #include "board.h"
 
 #define INPUT_SIZE 768
-#define HL_SIZE 16
+#define HL_SIZE 32
 
 #define QA 255
 #define QB 64
