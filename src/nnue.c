@@ -7,7 +7,7 @@
 
 #define CLAMP(x, a, b) __min(__max(x, a), b)
 
-INCBIN(quant, "C:/c/beans.bin");
+INCBIN(quant, NETWORK);
 
 Parameters parameters;
 

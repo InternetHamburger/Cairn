@@ -15,6 +15,8 @@
 #include <math.h>
 #include <string.h>
 
+#include "nnue.h"
+
 #define CLAMP(x, a, b) __min(__max(x, a), b)
 
 constexpr int ASP_MIN_DEPTH = 5;
@@ -88,7 +90,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    const int static_eval = correct_eval(thread, eval(board));
+    const int static_eval = correct_eval(thread, nnueval(board));
 
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
@@ -218,7 +220,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
             return tt_score;
     }
 
-    int static_eval = in_check ? -NEG_INF : correct_eval(thread, eval(board));
+    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnueval(board));
     thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;

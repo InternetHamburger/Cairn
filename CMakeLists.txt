@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 4.0)
 project(Cairn C)
 
+set(NETWORK_NAME "net1")
+set(NETWORK "C:/c/${NETWORK_NAME}.bin")
 set(CMAKE_C_STANDARD 23)
 
 set(CMAKE_AR "gcc-ar")
@@ -29,3 +31,5 @@ add_executable(Cairn
         src/movepicker.c
         src/nnue.c
 )
+
+target_compile_definitions(Cairn PRIVATE NETWORK="${NETWORK}")
