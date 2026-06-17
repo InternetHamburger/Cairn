@@ -13,15 +13,15 @@
 #define EVAL_SCALE 400
 
 typedef struct{
-    int16_t feature_weights[INPUT_SIZE * HL_SIZE];
-    int16_t feature_bias[HL_SIZE];
-    int16_t out_weights[2 * HL_SIZE];
-    int16_t out_bias;
+    alignas(64) int16_t feature_weights[INPUT_SIZE * HL_SIZE];
+    alignas(64) int16_t feature_bias[HL_SIZE];
+    alignas(64) int16_t out_weights[2 * HL_SIZE];
+    alignas(64) int16_t out_bias;
 } Parameters;
 
 typedef struct{
-    int32_t white_accumulator[HL_SIZE];
-    int32_t black_accumulator[HL_SIZE];
+    alignas(64) int32_t white_accumulator[HL_SIZE];
+    alignas(64) int32_t black_accumulator[HL_SIZE];
 } nnue_t;
 
 void load_incbin();

@@ -1,9 +1,11 @@
 #include "nnue.h"
 #include "utility.h"
 #include "incbin/incbin.h"
+#include <immintrin.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <avxintrin.h>
 
 #define CLAMP(x, a, b) __min(__max(x, a), b)
 
@@ -160,18 +162,40 @@ void init_accumulators(const Board* board, nnue_t* nnue){
 void add_feature(nnue_t* nnue, Piece piece, int sq){
     int index = get_index(piece, sq, false);
     int flipped_index = get_index(piece, sq, true);
-    for (int neuron = 0; neuron < HL_SIZE; neuron++){
-        nnue->white_accumulator[neuron] += parameters.feature_weights[index * HL_SIZE + neuron];
-        nnue->black_accumulator[neuron] += parameters.feature_weights[flipped_index * HL_SIZE + neuron];
+    for (int neuron = 0; neuron < HL_SIZE; neuron += 8){
+        __m256i w_acc = _mm256_loadu_si256((const __m256i *)(nnue->white_accumulator + neuron));
+        __m256i b_acc = _mm256_loadu_si256((const __m256i *)(nnue->black_accumulator + neuron));
+
+        __m128i w_weights16 = _mm_loadu_si128((const __m128i *)(parameters.feature_weights + index * HL_SIZE + neuron));
+        __m128i b_weights16 = _mm_loadu_si128((const __m128i *)(parameters.feature_weights + flipped_index * HL_SIZE + neuron));
+        __m256i w_weights = _mm256_cvtepi16_epi32(w_weights16);
+        __m256i b_weights = _mm256_cvtepi16_epi32(b_weights16);
+
+        __m256i w_sum = _mm256_add_epi32(w_acc, w_weights);
+        __m256i b_sum = _mm256_add_epi32(b_acc, b_weights);
+
+        _mm256_storeu_si256((__m256i *)(nnue->white_accumulator + neuron), w_sum);
+        _mm256_storeu_si256((__m256i *)(nnue->black_accumulator + neuron), b_sum);
     }
 }
 
 void remove_feature(nnue_t* nnue, Piece piece, int sq){
     int index = get_index(piece, sq, false);
     int flipped_index = get_index(piece, sq, true);
-    for (int neuron = 0; neuron < HL_SIZE; neuron++){
-        nnue->white_accumulator[neuron] -= parameters.feature_weights[index * HL_SIZE + neuron];
-        nnue->black_accumulator[neuron] -= parameters.feature_weights[flipped_index * HL_SIZE + neuron];
+    for (int neuron = 0; neuron < HL_SIZE; neuron += 8){
+        __m256i w_acc = _mm256_loadu_si256((const __m256i *)(nnue->white_accumulator + neuron));
+        __m256i b_acc = _mm256_loadu_si256((const __m256i *)(nnue->black_accumulator + neuron));
+
+        __m128i w_weights16 = _mm_loadu_si128((const __m128i *)(parameters.feature_weights + index * HL_SIZE + neuron));
+        __m128i b_weights16 = _mm_loadu_si128((const __m128i *)(parameters.feature_weights + flipped_index * HL_SIZE + neuron));
+        __m256i w_weights = _mm256_cvtepi16_epi32(w_weights16);
+        __m256i b_weights = _mm256_cvtepi16_epi32(b_weights16);
+
+        __m256i w_sum = _mm256_sub_epi32(w_acc, w_weights);
+        __m256i b_sum = _mm256_sub_epi32(b_acc, b_weights);
+
+        _mm256_storeu_si256((__m256i *)(nnue->white_accumulator + neuron), w_sum);
+        _mm256_storeu_si256((__m256i *)(nnue->black_accumulator + neuron), b_sum);
     }
 }
 
