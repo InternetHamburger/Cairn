@@ -19,7 +19,18 @@ typedef struct{
     int16_t out_bias;
 } Parameters;
 
+typedef struct{
+    int32_t white_accumulator[HL_SIZE];
+    int32_t black_accumulator[HL_SIZE];
+} nnue_t;
+
 void load_incbin();
+int get_index(Piece piece, int square, bool inverse);
 int nnueval(const Board* board);
+int nnue_eval(const Board* board, nnue_t* nnue);
+void init_accumulators(const Board* board, nnue_t* nnue);
+void update_accumulators(const Board* board, Move move, nnue_t* nnue);
+
+extern Parameters parameters;
 
 #endif //CAIRN_NNUE_H

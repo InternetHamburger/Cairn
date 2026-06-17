@@ -112,3 +112,134 @@ int nnueval(const Board* board){
     output = (output + parameters.out_bias) * EVAL_SCALE / (QA * QB);
     return output;
 }
+
+int nnue_eval(const Board* board, nnue_t* nnue){
+    int* stm_acc;
+    int* nstm_acc;
+
+    if (board->white_to_move)
+    {
+        stm_acc = nnue->white_accumulator;
+        nstm_acc = nnue->black_accumulator;
+    }
+    else
+    {
+        nstm_acc = nnue->white_accumulator;
+        stm_acc = nnue->black_accumulator;
+    }
+
+    int output = 0;
+    for (int neuron = 0; neuron < HL_SIZE; neuron++){
+        output += CLAMP(stm_acc[neuron], 0, QA) * CLAMP(stm_acc[neuron], 0, QA) * parameters.out_weights[neuron];
+        output += CLAMP(nstm_acc[neuron], 0, QA) * CLAMP(nstm_acc[neuron], 0, QA) * parameters.out_weights[HL_SIZE + neuron];
+    }
+    output /= QA;
+    output = (output + parameters.out_bias) * EVAL_SCALE / (QA * QB);
+    return output;
+}
+
+void init_accumulators(const Board* board, nnue_t* nnue){
+    memset(nnue->white_accumulator, 0, sizeof(nnue->white_accumulator));
+    memset(nnue->black_accumulator, 0, sizeof(nnue->black_accumulator));
+    for (int neuron = 0; neuron < HL_SIZE; neuron++){
+        nnue->white_accumulator[neuron] = parameters.feature_bias[neuron];
+        nnue->black_accumulator[neuron] = parameters.feature_bias[neuron];
+    }
+    for (int sq = 0; sq < 64; sq++){
+        if (board->squares[sq]){
+            int index = get_index(board->squares[sq], sq, false);
+            int flipped_index = get_index(board->squares[sq], sq, true);
+            for (int neuron = 0; neuron < HL_SIZE; neuron++){
+                nnue->white_accumulator[neuron] += parameters.feature_weights[index * HL_SIZE + neuron];
+                nnue->black_accumulator[neuron] += parameters.feature_weights[flipped_index * HL_SIZE + neuron];
+            }
+        }
+    }
+}
+
+void add_feature(nnue_t* nnue, Piece piece, int sq){
+    int index = get_index(piece, sq, false);
+    int flipped_index = get_index(piece, sq, true);
+    for (int neuron = 0; neuron < HL_SIZE; neuron++){
+        nnue->white_accumulator[neuron] += parameters.feature_weights[index * HL_SIZE + neuron];
+        nnue->black_accumulator[neuron] += parameters.feature_weights[flipped_index * HL_SIZE + neuron];
+    }
+}
+
+void remove_feature(nnue_t* nnue, Piece piece, int sq){
+    int index = get_index(piece, sq, false);
+    int flipped_index = get_index(piece, sq, true);
+    for (int neuron = 0; neuron < HL_SIZE; neuron++){
+        nnue->white_accumulator[neuron] -= parameters.feature_weights[index * HL_SIZE + neuron];
+        nnue->black_accumulator[neuron] -= parameters.feature_weights[flipped_index * HL_SIZE + neuron];
+    }
+}
+
+void update_accumulators(const Board* board, const Move move, nnue_t* nnue){
+    const int start_square = StartSquare(move);
+    const int target_square = TargetSquare(move);
+
+    const int moved_piece = board->squares[start_square];
+    const int captured_piece = board->squares[target_square];
+
+    add_feature(nnue, moved_piece, target_square);
+    remove_feature(nnue, moved_piece, start_square);
+
+    if (captured_piece){
+        remove_feature(nnue, captured_piece, target_square);
+    }
+
+    const int flag = GetFlag(move);
+
+    if (IsPromotion(move)) {
+        remove_feature(nnue, moved_piece, target_square);
+        switch (flag) {
+            case PromoteQueen:
+                add_feature(nnue, board->white_to_move ? WhiteQueen : BlackQueen, target_square);
+                break;
+            case PromoteKnight:
+                add_feature(nnue, board->white_to_move ? WhiteKnight : BlackKnight, target_square);
+                break;
+            case PromoteBishop:
+                add_feature(nnue, board->white_to_move ? WhiteBishop : BlackBishop, target_square);
+                break;
+            case PromoteRook:
+                add_feature(nnue, board->white_to_move ? WhiteRook : BlackRook, target_square);
+                break;
+            default:
+                exit(-1);
+        }
+    }
+
+    if (flag == EnPassant) {
+        const bool captures_left = (target_square % 8) < (start_square % 8);
+        const Piece captured_pawn = board->white_to_move ? BlackPawn : WhitePawn;
+        if (captures_left) {
+            const int new_square = start_square - 1;
+            remove_feature(nnue, captured_pawn, new_square);
+        }
+        else {
+            const int new_square = start_square + 1;
+            remove_feature(nnue, captured_pawn, new_square);
+        }
+    }
+
+    if (flag == Castle) {
+        if (target_square == 62) {
+            add_feature(nnue, WhiteRook, 61);
+            remove_feature(nnue, WhiteRook, 63);
+        }
+        if (target_square == 58) {
+            add_feature(nnue, WhiteRook, 59);
+            remove_feature(nnue, WhiteRook, 56);
+        }
+        if (target_square == 6) {
+            add_feature(nnue, BlackRook, 5);
+            remove_feature(nnue, BlackRook, 7);
+        }
+        if (target_square == 2) {
+            add_feature(nnue, BlackRook, 3);
+            remove_feature(nnue, BlackRook, 0);
+        }
+    }
+}

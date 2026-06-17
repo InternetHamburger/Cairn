@@ -1,6 +1,7 @@
 #ifndef CAIRN_SEARCH_H
 #define CAIRN_SEARCH_H
 
+#include "nnue.h"
 #include "board.h"
 #include "transposition.h"
 
@@ -33,6 +34,7 @@ typedef struct {
     bool print_info;
     uint64_t hashes[MAX_NUM_PLY]; // For threefold repetition
     int seldepth;
+    nnue_t nnue;
 
     Board board;
     Stack ss[512];

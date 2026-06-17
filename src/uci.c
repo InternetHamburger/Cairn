@@ -123,6 +123,7 @@ void SetPosition(char* line, Thread *thread) {
         line += 6;
         ParseMoves(line, thread);
     }
+    init_accumulators(&thread->board, &thread->nnue);
 }
 
 void GoCommand(char* line, Thread *thread) {
@@ -296,8 +297,11 @@ void Bench(Thread* thread){
 void PerftSuite(){
     uint64_t total_nodes = 0;
     uint64_t start = clock();
+    nnue_t nnue;
+
     for (int i = 0; i < 50; i++){
         Board board = BoardConstructor(bench_positions[i]);
+        init_accumulators(&board, &nnue);
         total_nodes += perft(&board, 4);
     }
     printf("nodes %llu nps %llu\n", total_nodes, total_nodes * 1000 / (clock() - start));
@@ -346,7 +350,7 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
         printf("Corrected eval: %d\n", correct_eval(thread, static_eval));
     }
     else if (strncmp(token, "nnueval", 7) == 0){
-        printf("Eval: %d\n", nnueval(&thread->board));
+        printf("Eval: %d\n", nnue_eval(&thread->board, &thread->nnue));
     }
     else if (strncmp(token, "setoption", 9) == 0){
         line += 10;

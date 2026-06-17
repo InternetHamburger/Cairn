@@ -155,6 +155,7 @@ Board PrepareGame(DatagenInfo *this, Thread* thread) {
     uint64_t* seed = &this->thread_id;
     PseudorandomNumber(seed);
     Board rand_pos = GenerateRandomPosition(seed);
+    init_accumulators(&rand_pos, &thread->nnue);
     // Try at most 100 different positions
     for (int i = 0; i < 100; i++){
         thread->board = rand_pos;
@@ -240,6 +241,7 @@ double PlayGame(DatagenInfo *this, Thread* thread) {
         this->game.moves[hash_idx] |= converted_move.value;
         this->game.moves[hash_idx] |= ((board->white_to_move ? 1 : -1) * result.score) << 16;
 
+        update_accumulators(board, result.best_move, &thread->nnue);
         MakeMove(board, result.best_move);
         hash_idx++;
     }
