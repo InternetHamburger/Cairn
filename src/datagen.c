@@ -218,9 +218,9 @@ double PlayGame(DatagenInfo *this, Thread* thread) {
     thread->board = PrepareGame(this, thread);
 
     Board* board = &thread->board;
-    int hash_idx = 0;
+    board->game_ply = 0;
     while (1){
-        thread->hashes[hash_idx] = board->zobrist_hash;
+        thread->hashes[board->game_ply] = board->zobrist_hash;
 
         if (IsCheckmate(board)){
             this->game.result = board->white_to_move ? 0 : 2;
@@ -237,16 +237,16 @@ double PlayGame(DatagenInfo *this, Thread* thread) {
         thread->nodes = 0;
         const Move converted_move = ConvertMove(result.best_move);
 
-        this->game.moves[hash_idx] = 0;
-        this->game.moves[hash_idx] |= converted_move.value;
-        this->game.moves[hash_idx] |= ((board->white_to_move ? 1 : -1) * result.score) << 16;
+        this->game.moves[board->game_ply] = 0;
+        this->game.moves[board->game_ply] |= converted_move.value;
+        this->game.moves[board->game_ply] |= ((board->white_to_move ? 1 : -1) * result.score) << 16;
 
         update_accumulators(board, result.best_move, &thread->nnue);
         MakeMove(board, result.best_move);
-        hash_idx++;
+        board->game_ply++;
     }
 
-    this->game.ply = hash_idx;
+    this->game.ply = board->game_ply;
     this->thread_id = PseudorandomNumber(&this->thread_id);
 
     return 0;
