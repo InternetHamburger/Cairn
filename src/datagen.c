@@ -243,7 +243,6 @@ double PlayGame(DatagenInfo *this, Thread* thread) {
 
         update_accumulators(board, result.best_move, &thread->nnue);
         MakeMove(board, result.best_move);
-        board->game_ply++;
     }
 
     this->game.ply = board->game_ply;
