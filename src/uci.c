@@ -350,7 +350,10 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
         printf("Corrected eval: %d\n", correct_eval(thread, static_eval));
     }
     else if (strncmp(token, "nnueval", 7) == 0){
-        printf("Eval: %d\n", nnue_eval(&thread->board, &thread->nnue));
+        init_accumulators(&thread->board, &thread->nnue);
+        int static_eval = nnue_eval(&thread->board, &thread->nnue);
+        printf("Raw eval: %d\n", static_eval);
+        printf("Corrected eval: %d\n", correct_eval(thread, static_eval));
     }
     else if (strncmp(token, "setoption", 9) == 0){
         line += 10;
