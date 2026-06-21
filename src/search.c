@@ -254,7 +254,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     }
 
     int extension = 0;
-    if (ply > 0 && depth >= 7 && !is_singular && tt_depth >= depth - 3 && tt_flag != UPPER)
+    if (ply > 0 && depth >= 7 && !is_singular && tt_depth >= depth - 3 && tt_flag != UPPER && tt_hit)
     {
         const int singular_beta = __max(NEG_INF + 1, tt_score - depth);
         const int singular_depth = depth / 2;
