@@ -198,7 +198,7 @@ Board PrepareGame(DatagenInfo *this, Thread* thread) {
     }
 
     this->game.stm_enPassant = 0;
-    this->game.stm_enPassant |= rand_pos.en_passant_square == -1 ? 64 : rand_pos.en_passant_square;
+    this->game.stm_enPassant |= rand_pos.en_passant_square == -1 ? 64 : FlipSquare(rand_pos.en_passant_square);
     this->game.stm_enPassant |= !rand_pos.white_to_move << 7;
 
     this->game.half_move = 0;
