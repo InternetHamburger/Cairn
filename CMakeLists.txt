@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.0)
 project(Cairn C)
 
-set(NETWORK_NAME "net8")
+set(NETWORK_NAME "net9")
 set(NETWORK "C:/c/${NETWORK_NAME}.bin")
 set(CMAKE_C_STANDARD 23)
 
