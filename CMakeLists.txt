@@ -3,44 +3,23 @@ set(CMAKE_C_STANDARD 23)
 project(Cairn C)
 
 include(CheckCCompilerFlag)
-include(CheckCSourceCompiles)
+include(CheckCSourceRuns)
 
-# --- Detect AVX2 ---
-check_c_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
-
-if(COMPILER_SUPPORTS_AVX2)
-    set(CMAKE_REQUIRED_FLAGS "-mavx2")
-    check_c_source_compiles("
-        #include <immintrin.h>
-        int main() {
-            __m256i a = _mm256_setzero_si256();
-            (void)a;
-            return 0;
-        }
-    " HAS_AVX2)
-    unset(CMAKE_REQUIRED_FLAGS)
-endif()
-
-# --- Detect AVX-512 (F + common subsets) ---
 check_c_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512)
 
 if(COMPILER_SUPPORTS_AVX512)
-    set(CMAKE_REQUIRED_FLAGS "-mavx512f -mavx512bw -mavx512vl -mavx512dq")
-    check_c_source_compiles("
-        #include <immintrin.h>
+    check_c_source_runs("
         int main() {
-            __m512i a = _mm512_setzero_si512();
-            (void)a;
-            return 0;
+            __builtin_cpu_init();
+            return !(__builtin_cpu_supports(\"avx512f\")  &&
+                     __builtin_cpu_supports(\"avx512bw\") &&
+                     __builtin_cpu_supports(\"avx512vl\") &&
+                     __builtin_cpu_supports(\"avx512dq\"));
         }
     " HAS_AVX512)
-    unset(CMAKE_REQUIRED_FLAGS)
 endif()
 
-if (HAS_AVX2)
-    add_compile_options(-mavx2)
-    message("avx2 whoooooooooo")
-endif()
+add_compile_options(-mavx2)
 if(HAS_AVX512)
     add_compile_options(-mavx512f)
     message("avx512 yeaaaaaah")
