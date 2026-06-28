@@ -12,6 +12,18 @@
 
 #define EVAL_SCALE 400
 
+#if (__AVX512F__)
+    #define FULL_VECTOR_SIZE 64
+    #define HALF_VECTOR_SIZE 32
+#elif (__AVX2__)
+    #define FULL_VECTOR_SIZE 32
+    #define HALF_VECTOR_SIZE 16
+#endif
+
+typedef int16_t vfsi16 __attribute__ ((vector_size (FULL_VECTOR_SIZE)));
+typedef int16_t vhsi16 __attribute__ ((vector_size (HALF_VECTOR_SIZE)));
+typedef int32_t vfsi32 __attribute__ ((vector_size (FULL_VECTOR_SIZE)));
+
 typedef struct{
     alignas(64) int16_t feature_weights[INPUT_SIZE * HL_SIZE];
     alignas(64) int16_t feature_bias[HL_SIZE];
