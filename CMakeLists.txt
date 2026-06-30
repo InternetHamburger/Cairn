@@ -25,7 +25,7 @@ if(HAS_AVX512)
     message("avx512 yeaaaaaah")
 endif()
 
-set(NETWORK_NAME "net12")
+set(NETWORK_NAME "net13")
 set(NETWORK "C:/c/${NETWORK_NAME}.bin")
 
 set(CMAKE_AR "gcc-ar")
