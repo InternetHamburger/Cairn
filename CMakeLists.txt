@@ -56,3 +56,7 @@ add_executable(Cairn
 )
 
 target_compile_definitions(Cairn PRIVATE NETWORK="${NETWORK}")
+
+set(EXE_NAME "Cairn" CACHE STRING "Output executable name")
+set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_SOURCE_DIR})
+set_target_properties(Cairn PROPERTIES OUTPUT_NAME "${EXE_NAME}")
