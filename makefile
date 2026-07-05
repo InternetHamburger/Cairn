@@ -19,6 +19,6 @@ configure:
 		-B "$(BUILD_DIR)"
 
 build: configure
-	cmake --build $(BUILD_DIR) --config $(BUILD_TYPE)
+	cmake --build "$(BUILD_DIR)" --config $(BUILD_TYPE)
 
 .DEFAULT_GOAL := build
