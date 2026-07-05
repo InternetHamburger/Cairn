@@ -290,7 +290,7 @@ void Bench(Thread* thread){
         GoCommand(go, thread);
         total_nodes += thread->nodes;
     }
-    printf("nodes %llu nps %llu\n", total_nodes, total_nodes * 1000 / (clock() - start));
+    printf("%llu nodes %llu nps\n", total_nodes, total_nodes * 1000 / (clock() - start));
     thread->print_info = true;
 }
 
