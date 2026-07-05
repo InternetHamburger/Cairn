@@ -39,6 +39,10 @@ bool is_mate_score(int score){
     return abs(score) > -(CHECKMATE + 255);
 }
 
+bool is_mated_score(int score){
+    return score <= CHECKMATE + 255;
+}
+
 void update_entry(int* entry, int bonus){
     *entry += bonus - abs(bonus) * *entry / 4096;
 }
@@ -233,14 +237,14 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         improving = static_eval > thread->ss[ply - 4].static_eval;
     }
 
-    if (!is_mate_score(beta) && !is_singular && static_eval >= beta + 60 * depth && !in_check && !is_pv)
+    if (!is_mated_score(beta) && !is_singular && static_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
         return static_eval;
     }
 
     const Board copy = *board;
     const nnue_t nnue_copy = thread->nnue;
-    if (!is_mate_score(beta) && !is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
+    if (!is_mated_score(beta) && !is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
         int r = 3 + depth / 4 + improving;
         thread->ss[ply].to_square = 0;
         thread->ss[ply].moved_piece = None;
