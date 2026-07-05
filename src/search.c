@@ -423,15 +423,13 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
             }
             else
             {
-                for (int j = 0; j < num_captures; j++)
+                update_caphist(thread, move, 300 * depth - 250);
+            }
+            for (int j = 0; j < num_captures; j++)
+            {
+                if (captures[j].value != move.value)
                 {
-                    if (captures[j].value == move.value)
-                    {
-                        update_caphist(thread, move, 300 * depth - 250);
-                    }else
-                    {
-                        update_caphist(thread, captures[j], -(300 * depth - 250));
-                    }
+                    update_caphist(thread, captures[j], -(300 * depth - 250));
                 }
             }
             break;
