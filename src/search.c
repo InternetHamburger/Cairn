@@ -191,6 +191,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     PVariation lpv;
 
     pv->length = 0;
+    thread->killer_moves[ply + 1].value = 0;
 
     if (in_check)
         depth++;
