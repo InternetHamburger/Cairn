@@ -362,10 +362,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         else if (depth >= 3 && played >= 2 + (ply == 0))
         {
             int r = lmr_reduction[depth][num_legal_moves];
-            r -= is_pv;
             r -= is_capture * 2;
             r -= thread->killer_moves[ply].value == move.value;
             r -= improving;
+            r += !is_pv;
             r += 2 * cutnode;
             r = __max(r, 0);
             score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth - r, ply + 1, true, &lpv);
