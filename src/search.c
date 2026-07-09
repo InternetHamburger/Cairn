@@ -318,7 +318,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
                 continue;
             }
 
-            if (num_legal_moves > 0 && !in_check && !is_capture && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
+            if (num_legal_moves > 0 && !in_check && (!is_capture | improving) && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
             {
                 continue;
             }
