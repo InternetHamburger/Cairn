@@ -39,16 +39,16 @@ bool is_mate_score(int score){
     return abs(score) > -(CHECKMATE + 255);
 }
 
-void update_entry(int* entry, int bonus){
+void update_entry(int16_t* entry, int bonus){
     *entry += bonus - abs(bonus) * *entry / 4096;
 }
 
-void update_corrhist(Thread* thread, int depth, int bonus){
+void update_corrhist(Thread* thread, int ply, int depth, int bonus){
     bonus *= 256 * depth / 8;
     bonus = CLAMP(bonus, -1024, 1024);
     int color = thread->board.white_to_move;
 
-    int* entry = &thread->pawn_corr_hist[color][thread->board.pawn_key % 16384];
+    int16_t* entry = &thread->pawn_corr_hist[color][thread->board.pawn_key % 16384];
     update_entry(entry, bonus);
     entry = &thread->non_pawn_corr_hist[0][color][thread->board.non_pawn_key[0] % 16384];
     update_entry(entry, bonus);
@@ -56,21 +56,28 @@ void update_corrhist(Thread* thread, int depth, int bonus){
     update_entry(entry, bonus);
     entry = &thread->minor_corr_hist[color][thread->board.minor_key % 16384];
     update_entry(entry, bonus);
+    if (ply >= 2)
+    {
+        entry = &thread->cont_corr_hist[thread->ss[ply - 2].moved_piece][thread->ss[ply - 2].to_square][thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square];
+        update_entry(entry, bonus);
+    }
 }
 
-int correct_eval(Thread* thread, int eval){
+int correct_eval(Thread* thread, int ply, int eval){
     int color = thread->board.white_to_move;
 
     int pawn_entry = thread->pawn_corr_hist[color][thread->board.pawn_key % 16384];
     int s_non_pawn_entry = thread->non_pawn_corr_hist[0][color][thread->board.non_pawn_key[0] % 16384];
     int n_non_pawn_entry = thread->non_pawn_corr_hist[1][color][thread->board.non_pawn_key[1] % 16384];
     int minor_entry = thread->minor_corr_hist[color][thread->board.minor_key % 16384];
+    int cont_entry = ply < 2 ? 0 : thread->cont_corr_hist[thread->ss[ply - 2].moved_piece][thread->ss[ply - 2].to_square][thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square];
 
     int correction = 0;
     correction += 256 * pawn_entry;
     correction += 256 * s_non_pawn_entry;
     correction += 256 * n_non_pawn_entry;
     correction += 256 * minor_entry;
+    correction += 256 * cont_entry;
 
     int corrected = eval + correction / (256 * 128);
     return CLAMP(corrected, CHECKMATE + 256, -(CHECKMATE + 256));
@@ -88,7 +95,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    const int static_eval = correct_eval(thread, nnue_eval(board, &thread->nnue));
+    const int static_eval = correct_eval(thread, ply, nnue_eval(board, &thread->nnue));
 
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
@@ -222,7 +229,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         if (tt_flag == UPPER && tt_score <= alpha)
             return tt_score;
     }
-    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnue_eval(board, &thread->nnue));
+    int static_eval = in_check ? -NEG_INF : correct_eval(thread, ply, nnue_eval(board, &thread->nnue));
     thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;
@@ -460,7 +467,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
                 (new_flag == LOWER && static_eval < best_score) ||
                 (new_flag == UPPER && static_eval > best_score)))
         {
-            update_corrhist(thread, depth, best_score - static_eval);
+            update_corrhist(thread, ply, depth, best_score - static_eval);
         }
     }
 
