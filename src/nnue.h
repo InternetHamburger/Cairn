@@ -32,8 +32,8 @@ typedef struct{
 } Parameters;
 
 typedef struct{
-    alignas(64) int32_t white_accumulator[HL_SIZE];
-    alignas(64) int32_t black_accumulator[HL_SIZE];
+    alignas(64) int16_t white_accumulator[HL_SIZE];
+    alignas(64) int16_t black_accumulator[HL_SIZE];
 } nnue_t;
 
 void load_incbin();
