@@ -25,7 +25,7 @@ if(HAS_AVX512)
     message("avx512 yeaaaaaah")
 endif()
 
-set(NETWORK_NAME "net15")
+set(NETWORK_NAME "net16")
 set(NETWORK "C:/c/${NETWORK_NAME}.bin")
 
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -flto -Wall -Wextra -Wl,--stack,16777216")
