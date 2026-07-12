@@ -32,7 +32,7 @@ static inline vfsi16 mullo_epi16(vfsi16 a, vfsi16 b) {
 }
 #elif (__AVX2__)
 static inline vfsi32 madd_epi16(vfsi16 a, vfsi16 b) {
-    return (vfsi32)_mm256_madd_epi16((__m256)a, (__m256i)b);
+    return (vfsi32)_mm256_madd_epi16((__m256i)a, (__m256i)b);
 }
 static inline vfsi16 mullo_epi16(vfsi16 a, vfsi16 b) {
     return (vfsi16)_mm256_mullo_epi16((__m256i)a, (__m256i)b);
