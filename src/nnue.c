@@ -13,6 +13,32 @@ INCBIN(quant, NETWORK);
 
 Parameters parameters;
 
+vfsi16 vmin(vfsi16 a, vfsi16 b) {
+    vfsi16 mask = a < b;          // mask: -1 (all bits set) where a < b, else 0
+    return (mask & a) | (~mask & b);
+}
+
+vfsi16 vmax(vfsi16 a, vfsi16 b) {
+    vfsi16 mask = a > b;
+    return (mask & a) | (~mask & b);
+}
+
+#if (__AVX512F__)
+static inline vfsi32 madd_epi16(vfsi16 a, vfsi16 b) {
+    return (vfsi32)_mm512_madd_epi16((__m512i)a, (__m512i)b);
+}
+static inline vfsi16 mullo_epi16(vfsi16 a, vfsi16 b) {
+    return (vfsi16)_mm512_mullo_epi16((__m512i)a, (__m512i)b);
+}
+#elif (__AVX2__)
+static inline vfsi32 madd_epi16(vfsi16 a, vfsi16 b) {
+    return (vfsi32)_mm256_madd_epi16((__m256)a, (__m256i)b);
+}
+static inline vfsi16 mullo_epi16(vfsi16 a, vfsi16 b) {
+    return (vfsi16)_mm256_mullo_epi16((__m256i)a, (__m256i)b);
+}
+#endif
+
 void load_incbin(){
     uint64_t memory_index = 0;
     memcpy(parameters.feature_weights, &gquantData[memory_index], sizeof(parameters.feature_weights));
@@ -131,13 +157,34 @@ int nnue_eval(const Board* board, nnue_t* nnue){
     }
 
     vfsi16 v_zero = {0};
-    vfsi16 v_qa = {QA};
+    vfsi16 v_qa = {0};
+    v_qa = v_qa + QA;
 
-    int output = 0;
-    for (int neuron = 0; neuron < HL_SIZE; neuron++){
-        output += CLAMP(stm_acc[neuron], 0, QA) * CLAMP(stm_acc[neuron], 0, QA) * parameters.out_weights[neuron];
-        output += CLAMP(nstm_acc[neuron], 0, QA) * CLAMP(nstm_acc[neuron], 0, QA) * parameters.out_weights[HL_SIZE + neuron];
+    vfsi32 sum = {0};
+
+    for (int neuron = 0; neuron < HL_SIZE; neuron += FULL_VECTOR_SIZE / sizeof(int16_t)){
+        vfsi16 stm = *(vfsi16*)(stm_acc + neuron);
+        vfsi16 nstm = *(vfsi16*)(nstm_acc + neuron);
+
+        vfsi16 stm_weights = *(vfsi16*)(parameters.out_weights + neuron);
+        vfsi16 nstm_weights = *(vfsi16*)(parameters.out_weights + HL_SIZE + neuron);
+
+        vfsi16 stm_clamped = vmin(vmax(stm, v_zero), v_qa);
+        vfsi16 nstm_clamped = vmin(vmax(nstm, v_zero), v_qa);
+
+        vfsi32 stm_results = madd_epi16(mullo_epi16(stm_weights, stm_clamped), stm_clamped);
+        vfsi32 nstm_results = madd_epi16(mullo_epi16(nstm_weights, nstm_clamped), nstm_clamped);
+
+        sum = sum + stm_results;
+        sum = sum + nstm_results;
     }
+    int output = 0;
+    int* arr = (int32_t*)&sum;
+    for (int i = 0; i < FULL_VECTOR_SIZE / sizeof(int32_t); i++)
+    {
+        output += arr[i];
+    }
+
     output /= QA;
     output = (output + parameters.out_bias) * EVAL_SCALE / (QA * QB);
     return output;

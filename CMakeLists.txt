@@ -21,7 +21,7 @@ endif()
 
 add_compile_options(-mavx2)
 if(HAS_AVX512)
-    add_compile_options(-mavx512f)
+    add_compile_options(-mavx512f -mavx512bw -mavx512vl -mavx512dq)
     message("avx512 yeaaaaaah")
 endif()
 
