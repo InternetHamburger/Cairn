@@ -330,7 +330,7 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
         Ucinewgame(thread);
     }
     else if (strncmp(token, "uci", 3) == 0){
-        printf("id name Cairn\nid author InternetHamburger\n\n"
+        printf("id name Cairn 0.0\nid author InternetHamburger\n\n"
                "option name Hash type spin default 16 min 1 max 33554432\n"
                "option name Threads type spin default 1 min 1 max 1\n"
                "uciok\n");
