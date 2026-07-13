@@ -278,6 +278,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         else if (cutnode){
             extension--;
         }
+        else if (tt_score >= beta)
+        {
+            extension--;
+        }
     }
 
     if (tt_move.value == 0 && depth > 4 && is_pv)
