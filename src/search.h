@@ -47,6 +47,7 @@ typedef struct {
     int16_t pawn_corr_hist[2][16384];
     int16_t minor_corr_hist[2][16384];
     int16_t non_pawn_corr_hist[2][2][16384];
+    int16_t prev_move_corr_hist[BlackKing + 1][64];
     int16_t cont_corr_hist[BlackKing + 1][64][BlackKing + 1][64];
 
     TT tt;
