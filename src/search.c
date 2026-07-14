@@ -234,7 +234,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         improving = static_eval > thread->ss[ply - 4].static_eval;
     }
 
-    if (!is_mate_score(beta) && !is_singular && static_eval >= beta + 60 * depth && !in_check && !is_pv)
+    if (!is_mate_score(beta) && !is_singular && depth <= 7 && static_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
         return static_eval;
     }
