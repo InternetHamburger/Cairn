@@ -44,9 +44,10 @@ typedef struct {
     int cont_hist[BlackKing + 1][64][BlackKing + 1][64];
     Move killer_moves[256];
 
-    int pawn_corr_hist[2][16384];
-    int minor_corr_hist[2][16384];
-    int non_pawn_corr_hist[2][2][16384];
+    int16_t pawn_corr_hist[2][16384];
+    int16_t minor_corr_hist[2][16384];
+    int16_t non_pawn_corr_hist[2][2][16384];
+    int16_t cont_corr_hist[BlackKing + 1][64][BlackKing + 1][64];
 
     TT tt;
 } Thread;
@@ -65,7 +66,7 @@ typedef struct{
     int depth;
 } SearchResult;
 
-int correct_eval(Thread* thread, int eval);
+int correct_eval(Thread* thread, int eval, int ply);
 SearchResult search(Thread *thread);
 
 #endif //CAIRN_SEARCH_H
