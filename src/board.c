@@ -687,7 +687,6 @@ bool IsDraw(const uint64_t hashes[MAX_NUM_PLY], const Board* board)
     return IsInsufficientMaterial(board);
 }
 
-
 PieceType PromotionType(const Move move){
     int flag = GetFlag(move);
     switch (flag) {
