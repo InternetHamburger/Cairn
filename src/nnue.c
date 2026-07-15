@@ -106,7 +106,6 @@ int nnueval(const Board* board){
                 white_acc[neuron] += parameters.feature_weights[index][neuron];
                 black_acc[neuron] += parameters.feature_weights[flipped_index][neuron];
             }
-
         }
     }
 
