@@ -67,6 +67,8 @@ bool IsDraw(const uint64_t hashes[MAX_NUM_PLY], const Board* board);
 PieceType PromotionType(Move move);
 uint64_t GetOccupied(const Board *board);
 bool HasNonPawnKing(const Board *board);
+bool IsCapture(const Board *board, Move move);
+bool IsNoisy(const Board *board, Move move);
 int staticExchangeEvaluation(Board *board, Move move, int threshold);
 
 

@@ -722,6 +722,16 @@ bool HasNonPawnKing(const Board *board){
     return bitboard != 0;
 }
 
+bool IsCapture(const Board *board, const Move move)
+{
+    return GetFlag(move) == EnPassant || board->squares[TargetSquare(move)] != None;
+}
+
+bool IsNoisy(const Board *board, const Move move)
+{
+    return IsCapture(board, move) || GetFlag(move) == PromoteQueen;
+}
+
 uint64_t AttackersToSquare(const Board *board, int square, uint64_t occupied)
 {
     uint64_t attackers = 0ULL;

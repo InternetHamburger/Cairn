@@ -75,7 +75,11 @@ void UpdateKillers(Thread* thread, const Move move, const int ply)
 int get_capture_score(Move move, Thread* thread)
 {
     const Piece piece = thread->board.squares[StartSquare(move)];
-    const Piece captured = thread->board.squares[TargetSquare(move)];
+    Piece captured = GetFlag(move) == thread->board.squares[TargetSquare(move)];
+    if (GetFlag(move) == EnPassant)
+    {
+        captured = thread->board.white_to_move ? BlackPawn : WhitePawn;
+    }
     const int to_square = TargetSquare(move);
 
     int base_score = 40000 * piece_scores[GetType(captured)];
@@ -87,7 +91,7 @@ int move_score(Thread* thread, Move move, Move tt_move, int ply)
     if (move.value == tt_move.value){
         return 100000000;
     }
-    if (thread->board.squares[TargetSquare(move)] != None){
+    if (IsCapture(&thread->board, move)){
         return get_capture_score(move, thread) - !staticExchangeEvaluation(&thread->board, move, 0) * 1000000000;
     }
     if (move.value == thread->killer_moves[ply].value){

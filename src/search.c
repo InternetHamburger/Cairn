@@ -131,7 +131,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const nnue_t nnue_copy = thread->nnue;
     Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
-        if (board->squares[TargetSquare(moves[i])] == 0) continue;
+        if (!IsCapture(board, moves[i])) continue;
         if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
             continue;
         }
@@ -310,7 +310,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     while ((move = next_move(mp, thread, ply)).value != 0) {
         played++;
         if (thread->ss[ply].excluded.value == move.value) continue;
-        const bool is_capture = board->squares[TargetSquare(move)] != None;
+        const bool is_capture = IsCapture(board, move);
         thread->ss[ply].to_square = TargetSquare(move);
         thread->ss[ply].moved_piece = board->squares[StartSquare(move)];
         // Move loop pruning
@@ -461,7 +461,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
 
         thread->tt.entries[tt_index] = new_entry;
 
-        const bool is_capture = board->squares[TargetSquare(best_move)] != None;
+        const bool is_capture = IsCapture(board, best_move);
         if (!in_check && (best_move.value == 0 || !is_capture) && (
                 new_flag == EXACT ||
                 (new_flag == LOWER && static_eval < best_score) ||
