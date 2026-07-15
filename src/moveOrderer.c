@@ -45,7 +45,11 @@ void UpdateHistTable(Thread* thread, const int ply, const Move move, const int b
 void update_caphist(Thread* thread, const Move move, const int bonus)
 {
     const Piece piece = thread->board.squares[StartSquare(move)];
-    const Piece captured = thread->board.squares[TargetSquare(move)];
+    Piece captured = thread->board.squares[TargetSquare(move)];
+    if (GetFlag(move) == EnPassant)
+    {
+        captured = thread->board.white_to_move ? BlackPawn : WhitePawn;
+    }
     const int to_square = TargetSquare(move);
 
     int* entry = &thread->capture_history[piece][to_square][captured];
@@ -75,7 +79,7 @@ void UpdateKillers(Thread* thread, const Move move, const int ply)
 int get_capture_score(Move move, Thread* thread)
 {
     const Piece piece = thread->board.squares[StartSquare(move)];
-    Piece captured = GetFlag(move) == thread->board.squares[TargetSquare(move)];
+    Piece captured = thread->board.squares[TargetSquare(move)];
     if (GetFlag(move) == EnPassant)
     {
         captured = thread->board.white_to_move ? BlackPawn : WhitePawn;
