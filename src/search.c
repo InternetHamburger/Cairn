@@ -454,7 +454,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     {
         Entry new_entry = {
             .hash = board->zobrist_hash,
-            .best_move = best_move,
+            .best_move = tt_hit && new_flag == UPPER ? tt_move : best_move,
             .score = (int16_t)correct_score(best_score, ply),
             .depth_node_type = new_flag | depth
         };
