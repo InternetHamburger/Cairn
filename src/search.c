@@ -278,7 +278,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
             {
                 extension++;
             }
-            if (score < singular_beta - 90)
+            if (score < singular_beta - 90 && !is_pv)
             {
                 extension++;
             }
