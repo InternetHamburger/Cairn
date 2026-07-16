@@ -6,6 +6,9 @@
 
 #define INPUT_SIZE 768
 #define HL_SIZE 1024
+#define NUM_OUTPUT_BUCKETS 8
+
+#define BUCKET_DIVISOR (32 / NUM_OUTPUT_BUCKETS)
 
 #define QA 255
 #define QB 64
@@ -25,10 +28,10 @@ typedef int16_t vhsi16 __attribute__ ((vector_size (HALF_VECTOR_SIZE)));
 typedef int32_t vfsi32 __attribute__ ((vector_size (FULL_VECTOR_SIZE)));
 
 typedef struct{
-    alignas(64) int16_t feature_weights[INPUT_SIZE * HL_SIZE];
+    alignas(64) int16_t feature_weights[INPUT_SIZE][HL_SIZE];
     alignas(64) int16_t feature_bias[HL_SIZE];
-    alignas(64) int16_t out_weights[2 * HL_SIZE];
-    alignas(64) int16_t out_bias;
+    alignas(64) int16_t out_weights[NUM_OUTPUT_BUCKETS][2 * HL_SIZE];
+    alignas(64) int16_t out_bias[NUM_OUTPUT_BUCKETS];
 } Parameters;
 
 typedef struct{

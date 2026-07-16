@@ -103,10 +103,9 @@ int nnueval(const Board* board){
             int index = get_index(board->squares[square], square, false);
             int flipped_index = get_index(board->squares[square], square, true);
             for (int neuron = 0; neuron < HL_SIZE; neuron++){
-                white_acc[neuron] += parameters.feature_weights[index * HL_SIZE + neuron];
-                black_acc[neuron] += parameters.feature_weights[flipped_index * HL_SIZE + neuron];
+                white_acc[neuron] += parameters.feature_weights[index][neuron];
+                black_acc[neuron] += parameters.feature_weights[flipped_index][neuron];
             }
-
         }
     }
 
@@ -131,13 +130,16 @@ int nnueval(const Board* board){
         stm_acc = black_acc;
     }
 
+    int bucket_index = (__builtin_popcountll(GetOccupied(board)) - 2) / BUCKET_DIVISOR;
+    int16_t* output_bucket = parameters.out_weights[bucket_index];
+
     int output = 0;
     for (int neuron = 0; neuron < HL_SIZE; neuron++){
-        output += stm_acc[neuron] * parameters.out_weights[neuron];
-        output += nstm_acc[neuron] * parameters.out_weights[HL_SIZE + neuron];
+        output += stm_acc[neuron] * output_bucket[neuron];
+        output += nstm_acc[neuron] * output_bucket[HL_SIZE + neuron];
     }
     output /= QA;
-    output = (output + parameters.out_bias) * EVAL_SCALE / (QA * QB);
+    output = (output + parameters.out_bias[bucket_index]) * EVAL_SCALE / (QA * QB);
     return output;
 }
 
@@ -156,6 +158,9 @@ int nnue_eval(const Board* board, nnue_t* nnue){
         stm_acc = nnue->black_accumulator;
     }
 
+    int bucket_index = (__builtin_popcountll(GetOccupied(board)) - 2) / BUCKET_DIVISOR;
+    int16_t* output_bucket = parameters.out_weights[bucket_index];
+
     vfsi16 v_zero = {0};
     vfsi16 v_qa = {0};
     v_qa = v_qa + QA;
@@ -166,8 +171,8 @@ int nnue_eval(const Board* board, nnue_t* nnue){
         vfsi16 stm = *(vfsi16*)(stm_acc + neuron);
         vfsi16 nstm = *(vfsi16*)(nstm_acc + neuron);
 
-        vfsi16 stm_weights = *(vfsi16*)(parameters.out_weights + neuron);
-        vfsi16 nstm_weights = *(vfsi16*)(parameters.out_weights + HL_SIZE + neuron);
+        vfsi16 stm_weights = *(vfsi16*)&output_bucket[neuron];
+        vfsi16 nstm_weights = *(vfsi16*)&output_bucket[HL_SIZE + neuron];
 
         vfsi16 stm_clamped = vmin(vmax(stm, v_zero), v_qa);
         vfsi16 nstm_clamped = vmin(vmax(nstm, v_zero), v_qa);
@@ -186,7 +191,7 @@ int nnue_eval(const Board* board, nnue_t* nnue){
     }
 
     output /= QA;
-    output = (output + parameters.out_bias) * EVAL_SCALE / (QA * QB);
+    output = (output + parameters.out_bias[bucket_index]) * EVAL_SCALE / (QA * QB);
     return output;
 }
 
@@ -202,8 +207,8 @@ void init_accumulators(const Board* board, nnue_t* nnue){
             int index = get_index(board->squares[sq], sq, false);
             int flipped_index = get_index(board->squares[sq], sq, true);
             for (int neuron = 0; neuron < HL_SIZE; neuron++){
-                nnue->white_accumulator[neuron] += parameters.feature_weights[index * HL_SIZE + neuron];
-                nnue->black_accumulator[neuron] += parameters.feature_weights[flipped_index * HL_SIZE + neuron];
+                nnue->white_accumulator[neuron] += parameters.feature_weights[index][neuron];
+                nnue->black_accumulator[neuron] += parameters.feature_weights[flipped_index][neuron];
             }
         }
     }
@@ -216,8 +221,8 @@ void add_feature(nnue_t* nnue, Piece piece, int sq){
         vfsi16 w_acc = *(vfsi16*)(nnue->white_accumulator + neuron);
         vfsi16 b_acc = *(vfsi16*)(nnue->black_accumulator + neuron);
 
-        vfsi16 w_weights = *(vfsi16*)(parameters.feature_weights + index * HL_SIZE + neuron);
-        vfsi16 b_weights = *(vfsi16*)(parameters.feature_weights + flipped_index * HL_SIZE + neuron);
+        vfsi16 w_weights = *(vfsi16*)&parameters.feature_weights[index][neuron];
+        vfsi16 b_weights = *(vfsi16*)&parameters.feature_weights[flipped_index][neuron];
 
         *(vfsi16*)(nnue->white_accumulator + neuron) = w_acc + w_weights;
         *(vfsi16*)(nnue->black_accumulator + neuron) = b_acc + b_weights;
@@ -231,8 +236,8 @@ void remove_feature(nnue_t* nnue, Piece piece, int sq){
         vfsi16 w_acc = *(vfsi16*)(nnue->white_accumulator + neuron);
         vfsi16 b_acc = *(vfsi16*)(nnue->black_accumulator + neuron);
 
-        vfsi16 w_weights = *(vfsi16*)(parameters.feature_weights + index * HL_SIZE + neuron);
-        vfsi16 b_weights = *(vfsi16*)(parameters.feature_weights + flipped_index * HL_SIZE + neuron);
+        vfsi16 w_weights = *(vfsi16*)&parameters.feature_weights[index][neuron];
+        vfsi16 b_weights = *(vfsi16*)&parameters.feature_weights[flipped_index][neuron];
 
         *(vfsi16*)(nnue->white_accumulator + neuron) = w_acc - w_weights;
         *(vfsi16*)(nnue->black_accumulator + neuron) = b_acc - b_weights;

@@ -352,6 +352,11 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
     else if (strncmp(token, "nnueval", 7) == 0){
         init_accumulators(&thread->board, &thread->nnue);
         int static_eval = nnue_eval(&thread->board, &thread->nnue);
+        int full_inference_eval = nnueval(&thread->board);
+        if (full_inference_eval != static_eval)
+        {
+            printf("Error in inferece: differing static evals %d != %d", full_inference_eval, static_eval);
+        }
         printf("Raw eval: %d\n", static_eval);
         printf("Corrected eval: %d\n", correct_eval(thread, static_eval, 0));
     }
