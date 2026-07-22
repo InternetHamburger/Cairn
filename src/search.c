@@ -229,26 +229,41 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         if (tt_flag == UPPER && tt_score <= alpha)
             return tt_score;
     }
-    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnue_eval(board, &thread->nnue), ply);
-    thread->ss[ply].static_eval = static_eval;
+    int static_eval;
+    int corrected_eval;
+    if (in_check)
+    {
+        static_eval = -NEG_INF;
+        corrected_eval = -NEG_INF;
+    }
+    else if (is_singular)
+    {
+        corrected_eval = thread->ss[ply].eval;
+    }
+    else
+    {
+        static_eval = nnue_eval(board, &thread->nnue);
+        corrected_eval = correct_eval(thread, static_eval, ply);
+    }
+    thread->ss[ply].eval = corrected_eval;
 
     bool improving = false;
     if (in_check) {
         improving = false;
-    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != -NEG_INF) {
-        improving = static_eval > thread->ss[ply - 2].static_eval;
-    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != -NEG_INF) {
-        improving = static_eval > thread->ss[ply - 4].static_eval;
+    } else if (ply >= 2 && thread->ss[ply - 2].eval != -NEG_INF) {
+        improving = corrected_eval > thread->ss[ply - 2].eval;
+    } else if (ply >= 4 && thread->ss[ply - 4].eval != -NEG_INF) {
+        improving = corrected_eval > thread->ss[ply - 4].eval;
     }
 
-    if (!is_mate_score(beta) && !is_singular && depth <= 7 && static_eval >= beta + 60 * depth && !in_check && !is_pv)
+    if (!is_mate_score(beta) && !is_singular && depth <= 7 && corrected_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
-        return static_eval;
+        return corrected_eval;
     }
 
     const Board copy = *board;
     const nnue_t nnue_copy = thread->nnue;
-    if (!is_mate_score(beta) && !is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
+    if (!is_mate_score(beta) && !is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && corrected_eval >= beta){
         int r = 3 + depth / 4 + improving;
         thread->ss[ply].to_square = 0;
         thread->ss[ply].moved_piece = None;
@@ -329,7 +344,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
                 continue;
             }
 
-            if (num_legal_moves > 0 && !in_check && !is_capture && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
+            if (num_legal_moves > 0 && !in_check && !is_capture && depth <= 5 && corrected_eval + 125 + 200 * depth < alpha)
             {
                 continue;
             }
@@ -468,10 +483,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         const bool is_capture = board->squares[TargetSquare(best_move)] != None;
         if (!in_check && (best_move.value == 0 || !is_capture) && (
                 new_flag == EXACT ||
-                (new_flag == LOWER && static_eval < best_score) ||
-                (new_flag == UPPER && static_eval > best_score)))
+                (new_flag == LOWER && corrected_eval < best_score) ||
+                (new_flag == UPPER && corrected_eval > best_score)))
         {
-            update_corrhist(thread, ply, depth, best_score - static_eval);
+            update_corrhist(thread, ply, depth, best_score - corrected_eval);
         }
     }
 
