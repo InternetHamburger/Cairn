@@ -229,7 +229,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         if (tt_flag == UPPER && tt_score <= alpha)
             return tt_score;
     }
-    int static_eval;
+    int static_eval = -NEG_INF;
     int corrected_eval;
     if (in_check)
     {
@@ -238,7 +238,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     }
     else if (is_singular)
     {
-        corrected_eval = thread->ss[ply].eval;
+        corrected_eval = correct_eval(thread, thread->ss[ply].static_eval, ply);
     }
     else
     {
@@ -246,6 +246,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         corrected_eval = correct_eval(thread, static_eval, ply);
     }
     thread->ss[ply].eval = corrected_eval;
+    thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;
     if (in_check) {
