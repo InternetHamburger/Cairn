@@ -95,7 +95,6 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    const int static_eval = correct_eval(thread, nnue_eval(board, &thread->nnue), ply);
 
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
@@ -117,7 +116,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     }
 
 
-    int best_score = tt_hit ? tt_score : static_eval;
+    int best_score = tt_hit ? tt_score : correct_eval(thread, nnue_eval(board, &thread->nnue), ply);
     if( best_score >= beta )
         return best_score;
     if( best_score > alpha )
