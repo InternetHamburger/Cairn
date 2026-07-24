@@ -1,12 +1,9 @@
-#include "perft.h"
-#include "utility.h"
-
-#include <stdio.h>
 #include <time.h>
 #include <math.h>
+#include <stdio.h>
 
-#include "board.h"
-#include "move.h"
+#include "perft.h"
+#include "utility.h"
 #include "moveGeneration.h"
 
 uint64_t perft(Board *board, const int depth) {

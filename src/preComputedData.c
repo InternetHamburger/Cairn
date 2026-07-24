@@ -307,8 +307,8 @@ static void init_table(void) {
         const int file = i % 8;
         const int rank = i / 8;
 
-        unsigned long long knight_bitboard = 0;
-        unsigned long long king_bitboard = 0;
+        uint64_t knight_bitboard = 0;
+        uint64_t king_bitboard = 0;
         for (int direction = 0; direction < 8; direction++){
             int new_file = file + knight_file_changes[direction];
             int new_rank = rank + knight_rank_changes[direction];

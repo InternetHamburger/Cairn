@@ -2,7 +2,7 @@
 #define CAIRN_PERFT_H
 #include "board.h"
 
-unsigned long long perft(Board *board, int depth);
-unsigned long long splitPerft(Board *board, int depth);
+uint64_t perft(Board *board, int depth);
+uint64_t splitPerft(Board *board, int depth);
 
 #endif //CAIRN_PERFT_H

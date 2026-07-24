@@ -1,9 +1,7 @@
 #ifndef CAIRN_MOVEORDERER_H
 #define CAIRN_MOVEORDERER_H
 
-#include "board.h"
 #include "search.h"
-#include "utility.h"
 
 #define MAX_HISTORY 16384
 

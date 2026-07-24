@@ -1,10 +1,7 @@
 #include <stdlib.h>
-#include <stdio.h>
-#include "preComputedData.h"
-#include "moveGeneration.h"
+
 #include "utility.h"
-#include "board.h"
-#include "move.h"
+#include "preComputedData.h"
 
 void GetRookMoves(Move *moves, int *num_moves, int square, uint64_t friendly_pieces, uint64_t occupied){
     uint64_t move_bb = rook_attack(occupied, square) & ~friendly_pieces;
@@ -35,7 +32,7 @@ void GetKnightMoves(Move *moves, int *num_moves, uint64_t knights, uint64_t frie
 }
 
 void GetKingMoves(Board *board, Move *moves, int *num_moves, int square, uint64_t friendly_pieces){
-    unsigned long long bitboard = king_moves[square] & ~friendly_pieces;
+    uint64_t bitboard = king_moves[square] & ~friendly_pieces;
     uint64_t occupied = GetOccupied(board);
 
     while(bitboard){

@@ -1,7 +1,6 @@
 #ifndef CAIRN_MOVEPICKER_H
 #define CAIRN_MOVEPICKER_H
 
-#include "board.h"
 #include "search.h"
 
 enum {

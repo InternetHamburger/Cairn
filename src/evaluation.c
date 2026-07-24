@@ -1,9 +1,7 @@
-#include "evaluation.h"
-
 #include <stdlib.h>
 
 #include "utility.h"
-#include "board.h"
+#include "evaluation.h"
 
 int mg_pawn_table[64] = {
         0, 0, 0, 0, 0, 0, 0, 0,

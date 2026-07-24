@@ -1,22 +1,7 @@
 #ifndef CAIRN_MOVE_H
 #define CAIRN_MOVE_H
 
-#include <stdint.h>
-
-typedef enum{
-    none = 0b0000,
-    Castle = 0b0001,
-    EnPassant = 0b0010,
-    DoublePush = 0b0011,
-    PromoteQueen = 0b0100,
-    PromoteKnight = 0b0101,
-    PromoteRook = 0b0110,
-    PromoteBishop = 0b0111,
-} MoveFlag;
-
-typedef struct{
-    uint16_t value; // Format ffffsssssstttttt, f - flag, s - start square, t - target square
-} Move;
+#include "structs.h"
 
 int StartSquare(Move move);
 int TargetSquare(Move move);

@@ -1,7 +1,4 @@
 #include "move.h"
-#include "board.h"
-#include <stdlib.h>
-#include <stdio.h>
 
 int StartSquare(const Move move){
     return (move.value >> 6) & 0b111111;

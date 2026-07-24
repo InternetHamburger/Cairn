@@ -1,11 +1,8 @@
-#include "moveOrderer.h"
-
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
-#include "board.h"
 #include "utility.h"
+#include "moveOrderer.h"
 
 const int piece_scores[] = {0, 1, 2, 2, 3, 4, 0};
 

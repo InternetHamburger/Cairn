@@ -1,15 +1,15 @@
-#include "datagen.h"
+#include <stdlib.h>
+#include <assert.h>
+#include <pthread.h>
+#include <windows.h>
+
+#include "nnue.h"
 #include "board.h"
-#include "utility.h"
 #include "search.h"
+#include "datagen.h"
+#include "utility.h"
 #include "zobrist.h"
 #include "moveGeneration.h"
-#include "transposition.h"
-#include <pthread.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <windows.h>
-#include <assert.h>
 
 Piece ConvertPiece(Piece piece) {
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
@@ -123,7 +123,7 @@ Board GenerateRandomPosition(uint64_t *seed) {
             PseudorandomNumber(seed);
         }
         else {
-            unsigned long long rand_index = *seed % num_legal_moves;
+            uint64_t rand_index = *seed % num_legal_moves;
             PseudorandomNumber(seed);
             assert(legal_moves[rand_index].value != 0);
             MakeMove(&board, legal_moves[rand_index]);
@@ -252,7 +252,7 @@ double PlayGame(DatagenInfo *this, Thread* thread) {
 }
 
 void WriteGame(Game *game, FILE *file) {
-    fwrite(&game->occupied, sizeof(unsigned long long), 1, file);
+    fwrite(&game->occupied, sizeof(uint64_t), 1, file);
     fwrite(&game->pieces, sizeof(uint8_t), 16, file);
     fwrite(&game->stm_enPassant, sizeof(uint8_t), 1, file);
 
@@ -264,7 +264,7 @@ void WriteGame(Game *game, FILE *file) {
     constexpr uint8_t padding = 0;
     fwrite(&padding, sizeof(uint8_t), 1, file); // Padding
 
-    fwrite(&game->moves, sizeof(unsigned long), game->ply, file);
+    fwrite(&game->moves, sizeof(uint32_t), game->ply, file);
 
     constexpr unsigned int num = 0;
     fwrite(&num, sizeof(unsigned int), 1, file); // End of game

@@ -1,15 +1,13 @@
 #ifndef CAIRN_DATAGEN_H
 #define CAIRN_DATAGEN_H
 
-#include "board.h"
-#include "search.h"
 #include "transposition.h"
 #include <stdio.h>
 #include <stdint.h>
 
 typedef struct { // In viriformat: https://github.com/cosmobobak/viriformat
     // Packed board
-    unsigned long long occupied;
+    uint64_t occupied;
     uint8_t pieces[16];
     uint8_t stm_enPassant;
     uint8_t half_move;
@@ -21,7 +19,7 @@ typedef struct { // In viriformat: https://github.com/cosmobobak/viriformat
     int ply;
 
     // Combined moves and scores
-    unsigned long moves[MAX_NUM_PLY]; // Longest possible game;
+    uint32_t moves[MAX_NUM_PLY]; // Longest possible game;
 } Game;
 
 typedef struct {

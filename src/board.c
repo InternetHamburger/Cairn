@@ -1,10 +1,10 @@
-#include "board.h"
 #include <ctype.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "move.h"
+
+#include "board.h"
 #include "zobrist.h"
 #include "utility.h"
 #include "preComputedData.h"

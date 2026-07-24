@@ -1,6 +1,7 @@
+#include "board.h"
 #include "movepicker.h"
-#include "moveGeneration.h"
 #include "moveOrderer.h"
+#include "moveGeneration.h"
 
 void init_picker(MovePicker* mp, Thread* thread, int ply, Move tt_move){
 

@@ -261,7 +261,7 @@ PieceType GetType(Piece piece) {
     return piece & 0b0111;
 }
 
-int getlsb(unsigned long long bb) {
+int getlsb(uint64_t bb) {
     assert(bb);  // lsb(0) is undefined
     return __builtin_ctzll(bb);
 }

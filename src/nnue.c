@@ -1,11 +1,11 @@
-#include "nnue.h"
-#include "utility.h"
-#include "incbin/incbin.h"
-#include <immintrin.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <avxintrin.h>
+#include <immintrin.h>
+
+#include "nnue.h"
+#include "utility.h"
+#include "incbin/incbin.h"
 
 #define CLAMP(x, a, b) __min(__max(x, a), b)
 
