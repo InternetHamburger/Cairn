@@ -143,10 +143,10 @@ int nnueval(const Board* board){
     return output;
 }
 
-int nnue_eval(const Board* board, nnue_t* nnue){
-    int16_t* stm_acc;
-    int16_t* nstm_acc;
-
+int inference(const nnue_t* nnue, const Board* board)
+{
+    const int16_t* stm_acc;
+    const int16_t* nstm_acc;
     if (board->white_to_move)
     {
         stm_acc = nnue->white_accumulator;
@@ -158,8 +158,8 @@ int nnue_eval(const Board* board, nnue_t* nnue){
         stm_acc = nnue->black_accumulator;
     }
 
-    int bucket_index = (__builtin_popcountll(GetOccupied(board)) - 2) / BUCKET_DIVISOR;
-    int16_t* output_bucket = parameters.out_weights[bucket_index];
+    int bucket_idx = (__builtin_popcountll(GetOccupied(board)) - 2) / BUCKET_DIVISOR;
+    int16_t* output_bucket = parameters.out_weights[bucket_idx];
 
     vfsi16 v_zero = {0};
     vfsi16 v_qa = {0};
@@ -191,11 +191,41 @@ int nnue_eval(const Board* board, nnue_t* nnue){
     }
 
     output /= QA;
-    output = (output + parameters.out_bias[bucket_index]) * EVAL_SCALE / (QA * QB);
+    output = (output + parameters.out_bias[bucket_idx]) * EVAL_SCALE / (QA * QB);
     return output;
 }
 
-void init_accumulators(const Board* board, nnue_t* nnue){
+void update_accumulator_stack(Thread* thread, int ply)
+{
+    int start_idx = 0;
+    for (int i = ply; i >= 0; i--)
+    {
+        if (!thread->nnue_stack.dirty[i])
+        {
+            start_idx = i;
+            break;
+        }
+    }
+
+    for (int i = start_idx; i < ply; i++)
+    {
+        thread->nnue_stack.dirty[i + 1] = false;
+        thread->nnue_stack.nnue_stack[i + 1] = thread->nnue_stack.nnue_stack[i];
+
+        // No updates are needed after a null move
+        if (!thread->nnue_stack.move_stack[i].value)
+            continue;
+        update_accumulators(&thread->ss[i].board, thread->nnue_stack.move_stack[i], &thread->nnue_stack.nnue_stack[i + 1]);
+    }
+}
+
+int nnue_eval(Thread* thread, const Board* board, int ply){
+    update_accumulator_stack(thread, ply);
+    int output = inference(&thread->nnue_stack.nnue_stack[ply], board);
+    return output;
+}
+
+void init_accumulators(Thread* thread, const Board* board, nnue_t* nnue){
     memset(nnue->white_accumulator, 0, sizeof(nnue->white_accumulator));
     memset(nnue->black_accumulator, 0, sizeof(nnue->black_accumulator));
     for (int neuron = 0; neuron < HL_SIZE; neuron++){
@@ -212,6 +242,8 @@ void init_accumulators(const Board* board, nnue_t* nnue){
             }
         }
     }
+    thread->nnue_stack.nnue_stack[0] = *nnue;
+    thread->nnue_stack.dirty[0] = false;
 }
 
 void add_feature(nnue_t* nnue, Piece piece, int sq){
@@ -311,4 +343,10 @@ void update_accumulators(const Board* board, const Move move, nnue_t* nnue){
             remove_feature(nnue, BlackRook, 0);
         }
     }
+}
+
+void update_nnue_stack(Thread* thread, const Move move, int ply)
+{
+    thread->nnue_stack.dirty[ply + 1] = true;
+    thread->nnue_stack.move_stack[ply] = move;
 }

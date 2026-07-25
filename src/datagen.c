@@ -155,7 +155,7 @@ Board PrepareGame(DatagenInfo *this, Thread* thread) {
     uint64_t* seed = &this->thread_id;
     PseudorandomNumber(seed);
     Board rand_pos = GenerateRandomPosition(seed);
-    init_accumulators(&rand_pos, &thread->nnue);
+    init_accumulators(thread, &rand_pos, &thread->nnue);
     // Try at most 100 different positions
     for (int i = 0; i < 100; i++){
         thread->board = rand_pos;

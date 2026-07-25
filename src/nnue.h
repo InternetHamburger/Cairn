@@ -6,9 +6,10 @@
 void load_incbin();
 int get_index(Piece piece, int square, bool inverse);
 int nnueval(const Board* board);
-int nnue_eval(const Board* board, nnue_t* nnue);
-void init_accumulators(const Board* board, nnue_t* nnue);
+int nnue_eval(Thread* thread, const Board* board, int ply);
+void init_accumulators(Thread* thread, const Board* board, nnue_t* nnue);
 void update_accumulators(const Board* board, Move move, nnue_t* nnue);
+void update_nnue_stack(Thread* thread, Move move, int ply);
 
 extern Parameters parameters;
 
