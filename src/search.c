@@ -20,7 +20,7 @@ constexpr int ASP_MIN_DEPTH = 5;
 
 void Init(Thread* thread)
 {
-    init_accumulators(&thread->board, &thread->nnue);
+    init_accumulators(thread, &thread->board, &thread->nnue);
     ZeroKillers(thread);
 }
 
@@ -95,7 +95,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    const int static_eval = correct_eval(thread, nnue_eval(board, &thread->nnue), ply);
+    const int static_eval = correct_eval(thread, nnue_eval(thread, board, ply), ply);
 
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
@@ -128,7 +128,6 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     OrderCaptures(thread, moves, num_moves);
 
     thread->ss[ply].board = *board;
-    thread->nnue_stack.nnue_stack[ply] = thread->nnue;
     Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
@@ -141,7 +140,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         {
             continue;
         }
-        update_accumulators(board, moves[i], &thread->nnue);
+        update_nnue_stack(thread, moves[i], ply);
         MakeMove(board, moves[i]);
         if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
             *board = thread->ss[ply].board;
@@ -229,7 +228,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         if (tt_flag == UPPER && tt_score <= alpha)
             return tt_score;
     }
-    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnue_eval(board, &thread->nnue), ply);
+    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnue_eval(thread, board, ply), ply);
     thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;
@@ -247,11 +246,11 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     }
 
     thread->ss[ply].board = *board;
-    thread->nnue_stack.nnue_stack[ply] = thread->nnue;
     if (!is_mate_score(beta) && !is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
         int r = 3 + depth / 4 + improving;
         thread->ss[ply].to_square = 0;
         thread->ss[ply].moved_piece = None;
+        update_nnue_stack(thread, MoveConstructor(0, 0, 0), ply);
         MakeNullMove(board);
         PVariation null_pv;
         int score = -Negamax(thread, -beta, -beta + 1, depth - r, ply + 1, !cutnode, &null_pv);
@@ -344,7 +343,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
             continue;
         }
         assert(move.value != 0);
-        update_accumulators(board, move, &thread->nnue);
+        update_nnue_stack(thread, move, ply);
         MakeMove(board, move);
         if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
             *board = thread->ss[ply].board;
