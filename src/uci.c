@@ -224,7 +224,6 @@ void RunDatagen(char* line, char* this_path){
     line += strlen("output ");
     line[strlen(line) - 1] = '\0';
 
-
     Datagen(line, this_path, num_threads, seed);
 }
 
