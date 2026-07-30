@@ -106,6 +106,11 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         thread->seldepth = ply;
     }
 
+    if (ply >= 255)
+    {
+        return static_eval;
+    }
+
     if (!is_pv && tt_hit) {
         int type = GetEntryType(entry);
         if (type == EXACT)
@@ -238,6 +243,11 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         improving = static_eval > thread->ss[ply - 2].static_eval;
     } else if (ply >= 4 && thread->ss[ply - 4].static_eval != -NEG_INF) {
         improving = static_eval > thread->ss[ply - 4].static_eval;
+    }
+
+    if (ply >= 255)
+    {
+        return static_eval;
     }
 
     if (!is_mate_score(beta) && !is_singular && depth <= 7 && static_eval >= beta + 60 * depth && !in_check && !is_pv)

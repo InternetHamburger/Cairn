@@ -277,7 +277,6 @@ void* GameLoop(DatagenInfo *this, Thread* thread) {
 
     while (1) {
         PlayGame(this, thread);
-
         WaitForSingleObject(hMutex, INFINITE);
         WriteGame(&this->game, this->file);
         ReleaseMutex(hMutex);
