@@ -123,7 +123,7 @@ void SetPosition(char* line, Thread *thread) {
         line += 6;
         ParseMoves(line, thread);
     }
-    init_accumulators(thread, &thread->board, &thread->nnue);
+    init_accumulator_stack(thread, &thread->board, &thread->nnue);
 }
 
 void GoCommand(char* line, Thread *thread) {
@@ -347,12 +347,12 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
         printf("Corrected eval: %d\n", correct_eval(thread, static_eval, 0));
     }
     else if (strncmp(token, "nnueval", 7) == 0){
-        init_accumulators(thread, &thread->board, &thread->nnue);
+        init_accumulator_stack(thread, &thread->board, &thread->nnue);
         int static_eval = nnue_eval(thread, &thread->board, 0);
         int full_inference_eval = nnueval(&thread->board);
         if (full_inference_eval != static_eval)
         {
-            printf("Error in inferece: differing static evals %d != %d", full_inference_eval, static_eval);
+            printf("Error in inferece: differing static evals %d != %d\n", full_inference_eval, static_eval);
         }
         printf("Raw eval: %d\n", static_eval);
         printf("Corrected eval: %d\n", correct_eval(thread, static_eval, 0));

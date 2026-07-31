@@ -40,7 +40,7 @@ Move ConvertMove(Move move) {
         new_flag = 0b1000;
     }
     else {
-        new_target_square = FlipSquare(TargetSquare(move));
+        new_target_square = FlipRank(TargetSquare(move));
         if (flag == EnPassant) {
             new_flag = 0b0100;
         }
@@ -62,7 +62,7 @@ Move ConvertMove(Move move) {
             }
         }
     }
-    new_start_square = FlipSquare(StartSquare(move));
+    new_start_square = FlipRank(StartSquare(move));
 
     return MoveConstructor(new_target_square, new_start_square, new_flag);
 
@@ -143,7 +143,7 @@ uint64_t GetViriOccupied(Board *board) {
     uint64_t occupied = 0;
 
     for (int i = 0; i < 64; i++) {
-        if (board->squares[FlipSquare(i)]) {
+        if (board->squares[FlipRank(i)]) {
             occupied |= 1ULL << i;
         }
     }
@@ -155,7 +155,7 @@ Board PrepareGame(DatagenInfo *this, Thread* thread) {
     uint64_t* seed = &this->thread_id;
     PseudorandomNumber(seed);
     Board rand_pos = GenerateRandomPosition(seed);
-    init_accumulators(thread, &rand_pos, &thread->nnue);
+    init_accumulator_stack(thread, &rand_pos, &thread->nnue);
     // Try at most 100 different positions
     for (int i = 0; i < 100; i++){
         thread->board = rand_pos;
@@ -169,7 +169,7 @@ Board PrepareGame(DatagenInfo *this, Thread* thread) {
 
     int index = 0;
     for (int i = 0; i < 64; i++) {
-        const int square = FlipSquare(i);
+        const int square = FlipRank(i);
         if (this->game.occupied & (1ULL << i)) {
             uint8_t piece = ConvertPiece(rand_pos.squares[square]);
 
@@ -198,7 +198,7 @@ Board PrepareGame(DatagenInfo *this, Thread* thread) {
     }
 
     this->game.stm_enPassant = 0;
-    this->game.stm_enPassant |= rand_pos.en_passant_square == -1 ? 64 : FlipSquare(rand_pos.en_passant_square);
+    this->game.stm_enPassant |= rand_pos.en_passant_square == -1 ? 64 : FlipRank(rand_pos.en_passant_square);
     this->game.stm_enPassant |= !rand_pos.white_to_move << 7;
 
     this->game.half_move = 0;

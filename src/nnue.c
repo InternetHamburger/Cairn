@@ -83,25 +83,55 @@ int piece_index(Piece piece){
     }
 }
 
-int get_index(Piece piece, int square, bool inverse){
+int get_index(Piece piece, int square, bool flip, bool inverse){
     // As the weights are stored with a1=0 h8=63 and
     // my board is using a8=0 h1=63 we need to flip first
-    square = FlipSquare(square);
+    if (flip)
+        square = FlipFile(square);
+    square = FlipRank(square);
     if (inverse){
         piece ^= 0b1000;
-        square = FlipSquare(square);
+        square = FlipRank(square);
     }
     return piece_index(piece) * 64 + square;
+}
+
+void init_accumulator(const Board* board, nnue_t* nnue){
+    memset(nnue->white_accumulator, 0, sizeof(nnue->white_accumulator));
+    memset(nnue->black_accumulator, 0, sizeof(nnue->black_accumulator));
+    for (int neuron = 0; neuron < HL_SIZE; neuron++){
+        nnue->white_accumulator[neuron] = parameters.feature_bias[neuron];
+        nnue->black_accumulator[neuron] = parameters.feature_bias[neuron];
+    }
+    const int w_king_sq = board->white_king_square;
+    const int b_king_sq = board->black_king_square;
+    const bool w_flip = GetFile(w_king_sq) > 3;
+    const bool b_flip = GetFile(b_king_sq) > 3;
+    for (int sq = 0; sq < 64; sq++){
+        if (board->squares[sq]){
+            int index = get_index(board->squares[sq], sq, w_flip, false);
+            int flipped_index = get_index(board->squares[sq], sq, b_flip, true);
+            for (int neuron = 0; neuron < HL_SIZE; neuron++){
+                nnue->white_accumulator[neuron] += parameters.feature_weights[index][neuron];
+                nnue->black_accumulator[neuron] += parameters.feature_weights[flipped_index][neuron];
+            }
+        }
+    }
 }
 
 int nnueval(const Board* board){
     int white_acc[HL_SIZE] = {0};
     int black_acc[HL_SIZE] = {0};
 
+    const int w_king_sq = board->white_king_square;
+    const int b_king_sq = board->black_king_square;
+    const bool w_flip = GetFile(w_king_sq) > 3;
+    const bool b_flip = GetFile(b_king_sq) > 3;
+
     for (int square = 0; square < 64; square++){
         if (board->squares[square]){
-            int index = get_index(board->squares[square], square, false);
-            int flipped_index = get_index(board->squares[square], square, true);
+            int index = get_index(board->squares[square], square, w_flip, false);
+            int flipped_index = get_index(board->squares[square], square, b_flip, true);
             for (int neuron = 0; neuron < HL_SIZE; neuron++){
                 white_acc[neuron] += parameters.feature_weights[index][neuron];
                 black_acc[neuron] += parameters.feature_weights[flipped_index][neuron];
@@ -210,6 +240,19 @@ void update_accumulator_stack(Thread* thread, int ply)
     for (int i = start_idx; i < ply; i++)
     {
         thread->nnue_stack.dirty[i + 1] = false;
+        const Board* prev_board = &thread->ss[i].board;
+        const Board* now_board = &thread->ss[i + 1].board;
+
+        const int new_file = GetFile(now_board->white_to_move ? now_board->black_king_square : now_board->white_king_square);
+        const int old_file = GetFile(now_board->white_to_move ? prev_board->black_king_square : prev_board->white_king_square);
+
+        // King has flipped ranks
+        if ((old_file > 3) != (new_file > 3))
+        {
+            init_accumulator(now_board, &thread->nnue_stack.nnue_stack[i + 1]);
+            continue;
+        }
+
         thread->nnue_stack.nnue_stack[i + 1] = thread->nnue_stack.nnue_stack[i];
 
         // No updates are needed after a null move
@@ -220,35 +263,22 @@ void update_accumulator_stack(Thread* thread, int ply)
 }
 
 int nnue_eval(Thread* thread, const Board* board, int ply){
+    thread->ss[ply].board = *board;
     update_accumulator_stack(thread, ply);
     int output = inference(&thread->nnue_stack.nnue_stack[ply], board);
     return output;
 }
 
-void init_accumulators(Thread* thread, const Board* board, nnue_t* nnue){
-    memset(nnue->white_accumulator, 0, sizeof(nnue->white_accumulator));
-    memset(nnue->black_accumulator, 0, sizeof(nnue->black_accumulator));
-    for (int neuron = 0; neuron < HL_SIZE; neuron++){
-        nnue->white_accumulator[neuron] = parameters.feature_bias[neuron];
-        nnue->black_accumulator[neuron] = parameters.feature_bias[neuron];
-    }
-    for (int sq = 0; sq < 64; sq++){
-        if (board->squares[sq]){
-            int index = get_index(board->squares[sq], sq, false);
-            int flipped_index = get_index(board->squares[sq], sq, true);
-            for (int neuron = 0; neuron < HL_SIZE; neuron++){
-                nnue->white_accumulator[neuron] += parameters.feature_weights[index][neuron];
-                nnue->black_accumulator[neuron] += parameters.feature_weights[flipped_index][neuron];
-            }
-        }
-    }
+void init_accumulator_stack(Thread* thread, const Board* board, nnue_t* nnue){
+    init_accumulator(board, nnue);
+
     thread->nnue_stack.nnue_stack[0] = *nnue;
     thread->nnue_stack.dirty[0] = false;
 }
 
-void add_feature(nnue_t* nnue, Piece piece, int sq){
-    int index = get_index(piece, sq, false);
-    int flipped_index = get_index(piece, sq, true);
+void add_feature(nnue_t* nnue, Piece piece, int sq, bool w_flip, bool b_flip){
+    int index = get_index(piece, sq, w_flip, false);
+    int flipped_index = get_index(piece, sq, b_flip, true);
     for (int neuron = 0; neuron < HL_SIZE; neuron += FULL_VECTOR_SIZE / sizeof(int16_t)){
         vfsi16 w_acc = *(vfsi16*)(nnue->white_accumulator + neuron);
         vfsi16 b_acc = *(vfsi16*)(nnue->black_accumulator + neuron);
@@ -261,9 +291,9 @@ void add_feature(nnue_t* nnue, Piece piece, int sq){
     }
 }
 
-void remove_feature(nnue_t* nnue, Piece piece, int sq){
-    int index = get_index(piece, sq, false);
-    int flipped_index = get_index(piece, sq, true);
+void remove_feature(nnue_t* nnue, Piece piece, int sq, bool w_flip, bool b_flip){
+    int index = get_index(piece, sq, w_flip, false);
+    int flipped_index = get_index(piece, sq, b_flip, true);
     for (int neuron = 0; neuron < HL_SIZE; neuron += FULL_VECTOR_SIZE / sizeof(int16_t)){
         vfsi16 w_acc = *(vfsi16*)(nnue->white_accumulator + neuron);
         vfsi16 b_acc = *(vfsi16*)(nnue->black_accumulator + neuron);
@@ -283,29 +313,34 @@ void update_accumulators(const Board* board, const Move move, nnue_t* nnue){
     const int moved_piece = board->squares[start_square];
     const int captured_piece = board->squares[target_square];
 
-    add_feature(nnue, moved_piece, target_square);
-    remove_feature(nnue, moved_piece, start_square);
+    const int w_king_sq = board->white_king_square;
+    const int b_king_sq = board->black_king_square;
+    const bool w_flip = GetFile(w_king_sq) > 3;
+    const bool b_flip = GetFile(b_king_sq) > 3;
+
+    add_feature(nnue, moved_piece, target_square, w_flip, b_flip);
+    remove_feature(nnue, moved_piece, start_square, w_flip, b_flip);
 
     if (captured_piece){
-        remove_feature(nnue, captured_piece, target_square);
+        remove_feature(nnue, captured_piece, target_square, w_flip, b_flip);
     }
 
     const int flag = GetFlag(move);
 
     if (IsPromotion(move)) {
-        remove_feature(nnue, moved_piece, target_square);
+        remove_feature(nnue, moved_piece, target_square, w_flip, b_flip);
         switch (flag) {
             case PromoteQueen:
-                add_feature(nnue, board->white_to_move ? WhiteQueen : BlackQueen, target_square);
+                add_feature(nnue, board->white_to_move ? WhiteQueen : BlackQueen, target_square, w_flip, b_flip);
                 break;
             case PromoteKnight:
-                add_feature(nnue, board->white_to_move ? WhiteKnight : BlackKnight, target_square);
+                add_feature(nnue, board->white_to_move ? WhiteKnight : BlackKnight, target_square, w_flip, b_flip);
                 break;
             case PromoteBishop:
-                add_feature(nnue, board->white_to_move ? WhiteBishop : BlackBishop, target_square);
+                add_feature(nnue, board->white_to_move ? WhiteBishop : BlackBishop, target_square, w_flip, b_flip);
                 break;
             case PromoteRook:
-                add_feature(nnue, board->white_to_move ? WhiteRook : BlackRook, target_square);
+                add_feature(nnue, board->white_to_move ? WhiteRook : BlackRook, target_square, w_flip, b_flip);
                 break;
             default:
                 exit(-1);
@@ -317,30 +352,30 @@ void update_accumulators(const Board* board, const Move move, nnue_t* nnue){
         const Piece captured_pawn = board->white_to_move ? BlackPawn : WhitePawn;
         if (captures_left) {
             const int new_square = start_square - 1;
-            remove_feature(nnue, captured_pawn, new_square);
+            remove_feature(nnue, captured_pawn, new_square, w_flip, b_flip);
         }
         else {
             const int new_square = start_square + 1;
-            remove_feature(nnue, captured_pawn, new_square);
+            remove_feature(nnue, captured_pawn, new_square, w_flip, b_flip);
         }
     }
 
     if (flag == Castle) {
         if (target_square == 62) {
-            add_feature(nnue, WhiteRook, 61);
-            remove_feature(nnue, WhiteRook, 63);
+            add_feature(nnue, WhiteRook, 61, w_flip, b_flip);
+            remove_feature(nnue, WhiteRook, 63, w_flip, b_flip);
         }
         if (target_square == 58) {
-            add_feature(nnue, WhiteRook, 59);
-            remove_feature(nnue, WhiteRook, 56);
+            add_feature(nnue, WhiteRook, 59, w_flip, b_flip);
+            remove_feature(nnue, WhiteRook, 56, w_flip, b_flip);
         }
         if (target_square == 6) {
-            add_feature(nnue, BlackRook, 5);
-            remove_feature(nnue, BlackRook, 7);
+            add_feature(nnue, BlackRook, 5, w_flip, b_flip);
+            remove_feature(nnue, BlackRook, 7, w_flip, b_flip);
         }
         if (target_square == 2) {
-            add_feature(nnue, BlackRook, 3);
-            remove_feature(nnue, BlackRook, 0);
+            add_feature(nnue, BlackRook, 3, w_flip, b_flip);
+            remove_feature(nnue, BlackRook, 0, w_flip, b_flip);
         }
     }
 }

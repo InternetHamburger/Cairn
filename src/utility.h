@@ -6,8 +6,11 @@
 bool IsOppositeColor(bool white_to_move, int piece);
 bool IsMinor(Piece piece);
 bool GetColor(Piece piece);
+int GetFile(int sq);
+int GetRank(int sq);
+int FlipFile(int sq);
 bool IsColor(bool white_to_move, int piece);
-int FlipSquare(int square);
+int FlipRank(int square);
 char PieceToChar(Piece piece);
 Piece CharToPiece(char piece);
 char* SquareToString(int square);

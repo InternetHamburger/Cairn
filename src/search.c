@@ -20,7 +20,7 @@ constexpr int ASP_MIN_DEPTH = 5;
 
 void Init(Thread* thread)
 {
-    init_accumulators(thread, &thread->board, &thread->nnue);
+    init_accumulator_stack(thread, &thread->board, &thread->nnue);
     ZeroKillers(thread);
 }
 
