@@ -152,12 +152,12 @@ static void init_table(void) {
         mg_piece_square_values[WhiteQueen][i] = mg_queen_table[i] + mg_piece_values[Queen];
         mg_piece_square_values[WhiteKing][i] = mg_king_table[i] + mg_piece_values[King];
 
-        mg_piece_square_values[BlackPawn][i] = -mg_pawn_table[FlipSquare(i)] - mg_piece_values[Pawn];
-        mg_piece_square_values[BlackKnight][i] = -mg_knight_table[FlipSquare(i)] - mg_piece_values[Knight];
-        mg_piece_square_values[BlackBishop][i] = -mg_bishop_table[FlipSquare(i)] - mg_piece_values[Bishop];
-        mg_piece_square_values[BlackRook][i] = -mg_rook_table[FlipSquare(i)] - mg_piece_values[Rook];
-        mg_piece_square_values[BlackQueen][i] = -mg_queen_table[FlipSquare(i)] - mg_piece_values[Queen];
-        mg_piece_square_values[BlackKing][i] = -mg_king_table[FlipSquare(i)] - mg_piece_values[King];
+        mg_piece_square_values[BlackPawn][i] = -mg_pawn_table[FlipRank(i)] - mg_piece_values[Pawn];
+        mg_piece_square_values[BlackKnight][i] = -mg_knight_table[FlipRank(i)] - mg_piece_values[Knight];
+        mg_piece_square_values[BlackBishop][i] = -mg_bishop_table[FlipRank(i)] - mg_piece_values[Bishop];
+        mg_piece_square_values[BlackRook][i] = -mg_rook_table[FlipRank(i)] - mg_piece_values[Rook];
+        mg_piece_square_values[BlackQueen][i] = -mg_queen_table[FlipRank(i)] - mg_piece_values[Queen];
+        mg_piece_square_values[BlackKing][i] = -mg_king_table[FlipRank(i)] - mg_piece_values[King];
 
         eg_piece_square_values[WhitePawn][i] = eg_pawn_table[i] + eg_piece_values[Pawn];
         eg_piece_square_values[WhiteKnight][i] = eg_knight_table[i] + eg_piece_values[Knight];
@@ -166,12 +166,12 @@ static void init_table(void) {
         eg_piece_square_values[WhiteQueen][i] = eg_queen_table[i] + eg_piece_values[Queen];
         eg_piece_square_values[WhiteKing][i] = eg_king_table[i] + eg_piece_values[King];
 
-        eg_piece_square_values[BlackPawn][i] = -eg_pawn_table[FlipSquare(i)] - eg_piece_values[Pawn];
-        eg_piece_square_values[BlackKnight][i] = -eg_knight_table[FlipSquare(i)] - eg_piece_values[Knight];
-        eg_piece_square_values[BlackBishop][i] = -eg_bishop_table[FlipSquare(i)] - eg_piece_values[Bishop];
-        eg_piece_square_values[BlackRook][i] = -eg_rook_table[FlipSquare(i)] - eg_piece_values[Rook];
-        eg_piece_square_values[BlackQueen][i] = -eg_queen_table[FlipSquare(i)] - eg_piece_values[Queen];
-        eg_piece_square_values[BlackKing][i] = -eg_king_table[FlipSquare(i)] - eg_piece_values[King];
+        eg_piece_square_values[BlackPawn][i] = -eg_pawn_table[FlipRank(i)] - eg_piece_values[Pawn];
+        eg_piece_square_values[BlackKnight][i] = -eg_knight_table[FlipRank(i)] - eg_piece_values[Knight];
+        eg_piece_square_values[BlackBishop][i] = -eg_bishop_table[FlipRank(i)] - eg_piece_values[Bishop];
+        eg_piece_square_values[BlackRook][i] = -eg_rook_table[FlipRank(i)] - eg_piece_values[Rook];
+        eg_piece_square_values[BlackQueen][i] = -eg_queen_table[FlipRank(i)] - eg_piece_values[Queen];
+        eg_piece_square_values[BlackKing][i] = -eg_king_table[FlipRank(i)] - eg_piece_values[King];
     }
 }
 

@@ -13,6 +13,18 @@ bool GetColor(Piece piece){
     return (piece >> 3);
 }
 
+int GetFile(int sq){
+    return sq % 8;
+}
+
+int GetRank(int sq){
+    return sq / 8;
+}
+
+int FlipFile(int sq){
+    return sq ^ 0b000111;
+}
+
 bool IsMinor(Piece piece){
     PieceType type = GetType(piece);
     return type == Knight || type == Bishop || type == King;
@@ -22,7 +34,7 @@ bool IsColor(bool white_to_move, int piece){
     return (white_to_move != (piece >> 3)) && piece;
 }
 
-int FlipSquare(int square) {
+int FlipRank(int square) {
     return square ^ 0b111000;
 }
 
