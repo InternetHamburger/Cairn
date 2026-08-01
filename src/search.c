@@ -145,6 +145,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         {
             continue;
         }
+
         update_nnue_stack(thread, moves[i], ply);
         MakeMove(board, moves[i]);
         if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
