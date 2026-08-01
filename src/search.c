@@ -111,6 +111,11 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         return static_eval;
     }
 
+    if (thread->nodes >= thread->node_limit)
+    {
+        return NEG_INF;
+    }
+
     if (!is_pv && tt_hit) {
         int type = GetEntryType(entry);
         if (type == EXACT)
@@ -223,6 +228,11 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
+    }
+
+    if (thread->nodes >= thread->node_limit)
+    {
+        return NEG_INF;
     }
 
     if (!is_singular && tt_depth >= depth && ply > 0 && tt_hit && !is_pv)
@@ -410,9 +420,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         *board = thread->ss[ply].board;
         thread->nnue = thread->nnue_stack.nnue_stack[ply];
 
-        if (thread->nodes > thread->node_limit || clock() - thread->start_time > thread->time_limit) {
-            if (ply == 0)
-                return best_score;
+        if (thread->nodes >= thread->node_limit || clock() - thread->start_time > thread->time_limit) {
             return NEG_INF;
         }
 
@@ -520,6 +528,7 @@ void UCIReport(Thread *thread, PVariation *lpv, int depth, int score, int time_e
         printf("%s ", moveStr);
     }
     printf("\n");
+    fflush(stdout);
 }
 
 SearchResult search(Thread *thread) {
@@ -547,7 +556,7 @@ SearchResult search(Thread *thread) {
             beta = __min(best_score + delta, -NEG_INF);
             while (1)
             {
-                if (thread->nodes > thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes > thread->node_limit) {
+                if (thread->nodes >= thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes >= thread->node_limit) {
                     break;
                 }
                 score = Negamax(thread, alpha, beta, depth, 0, false, &pv);
@@ -588,7 +597,7 @@ SearchResult search(Thread *thread) {
             UCIReport(thread, &lpv, depth, best_score, time_elapsed);
         }
         assert(lpv.line[0].value != 0);
-        if (thread->nodes > thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes > thread->node_limit) {
+        if (thread->nodes >= thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes >= thread->node_limit) {
             break;
         }
     }
