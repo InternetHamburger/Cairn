@@ -51,11 +51,6 @@ void load_incbin(){
     memcpy(&parameters.out_bias, &gquantData[memory_index], sizeof(parameters.out_bias));
 }
 
-int get_input_bucket(int sq)
-{
-    return BUCKET_LAYOUT[sq];
-}
-
 int piece_index(Piece piece){
     switch (piece) {
         case WhitePawn:
@@ -110,8 +105,6 @@ void init_accumulator(const Board* board, nnue_t* nnue){
     }
     const int w_king_sq = board->white_king_square;
     const int b_king_sq = board->black_king_square;
-    const int w_king_bucket = BUCKET_LAYOUT[w_king_sq];
-    const int b_king_bucket = BUCKET_LAYOUT[FlipRank(b_king_sq)];
     const bool w_flip = GetFile(w_king_sq) > 3;
     const bool b_flip = GetFile(b_king_sq) > 3;
     for (int sq = 0; sq < 64; sq++){
@@ -119,8 +112,8 @@ void init_accumulator(const Board* board, nnue_t* nnue){
             int index = get_index(board->squares[sq], sq, w_flip, false);
             int flipped_index = get_index(board->squares[sq], sq, b_flip, true);
             for (int neuron = 0; neuron < HL_SIZE; neuron++){
-                nnue->white_accumulator[neuron] += parameters.feature_weights[w_king_bucket][index][neuron];
-                nnue->black_accumulator[neuron] += parameters.feature_weights[b_king_bucket][flipped_index][neuron];
+                nnue->white_accumulator[neuron] += parameters.feature_weights[index][neuron];
+                nnue->black_accumulator[neuron] += parameters.feature_weights[flipped_index][neuron];
             }
         }
     }
@@ -132,8 +125,6 @@ int nnueval(const Board* board){
 
     const int w_king_sq = board->white_king_square;
     const int b_king_sq = board->black_king_square;
-    const int w_king_bucket = BUCKET_LAYOUT[w_king_sq];
-    const int b_king_bucket = BUCKET_LAYOUT[FlipRank(b_king_sq)];
     const bool w_flip = GetFile(w_king_sq) > 3;
     const bool b_flip = GetFile(b_king_sq) > 3;
 
@@ -142,8 +133,8 @@ int nnueval(const Board* board){
             int index = get_index(board->squares[square], square, w_flip, false);
             int flipped_index = get_index(board->squares[square], square, b_flip, true);
             for (int neuron = 0; neuron < HL_SIZE; neuron++){
-                white_acc[neuron] += parameters.feature_weights[w_king_bucket][index][neuron];
-                black_acc[neuron] += parameters.feature_weights[b_king_bucket][flipped_index][neuron];
+                white_acc[neuron] += parameters.feature_weights[index][neuron];
+                black_acc[neuron] += parameters.feature_weights[flipped_index][neuron];
             }
         }
     }
@@ -252,17 +243,11 @@ void update_accumulator_stack(Thread* thread, int ply)
         const Board* prev_board = &thread->ss[i].board;
         const Board* now_board = &thread->ss[i + 1].board;
 
-        const int new_king_sq = now_board->white_to_move ? now_board->black_king_square : now_board->white_king_square;
-        const int old_king_sq = now_board->white_to_move ? prev_board->black_king_square : prev_board->white_king_square;
+        const int new_file = GetFile(now_board->white_to_move ? now_board->black_king_square : now_board->white_king_square);
+        const int old_file = GetFile(now_board->white_to_move ? prev_board->black_king_square : prev_board->white_king_square);
 
-        const int new_file = GetFile(new_king_sq);
-        const int old_file = GetFile(old_king_sq);
-
-        const int new_bucket = BUCKET_LAYOUT[now_board->white_to_move ? FlipRank(new_king_sq) : new_king_sq];
-        const int old_bucket = BUCKET_LAYOUT[now_board->white_to_move ? FlipRank(old_king_sq) : old_king_sq];
-
-        // King has flipped ranks or switched buckets
-        if ((old_file > 3) != (new_file > 3) || new_bucket != old_bucket)
+        // King has flipped ranks
+        if ((old_file > 3) != (new_file > 3))
         {
             init_accumulator(now_board, &thread->nnue_stack.nnue_stack[i + 1]);
             continue;
@@ -291,30 +276,30 @@ void init_accumulator_stack(Thread* thread, const Board* board, nnue_t* nnue){
     thread->nnue_stack.dirty[0] = false;
 }
 
-void add_feature(nnue_t* nnue, Piece piece, int sq, bool w_flip, bool b_flip, int w_bucket, int b_bucket){
+void add_feature(nnue_t* nnue, Piece piece, int sq, bool w_flip, bool b_flip){
     int index = get_index(piece, sq, w_flip, false);
     int flipped_index = get_index(piece, sq, b_flip, true);
     for (int neuron = 0; neuron < HL_SIZE; neuron += FULL_VECTOR_SIZE / sizeof(int16_t)){
         vfsi16 w_acc = *(vfsi16*)(nnue->white_accumulator + neuron);
         vfsi16 b_acc = *(vfsi16*)(nnue->black_accumulator + neuron);
 
-        vfsi16 w_weights = *(vfsi16*)&parameters.feature_weights[w_bucket][index][neuron];
-        vfsi16 b_weights = *(vfsi16*)&parameters.feature_weights[b_bucket][flipped_index][neuron];
+        vfsi16 w_weights = *(vfsi16*)&parameters.feature_weights[index][neuron];
+        vfsi16 b_weights = *(vfsi16*)&parameters.feature_weights[flipped_index][neuron];
 
         *(vfsi16*)(nnue->white_accumulator + neuron) = w_acc + w_weights;
         *(vfsi16*)(nnue->black_accumulator + neuron) = b_acc + b_weights;
     }
 }
 
-void remove_feature(nnue_t* nnue, Piece piece, int sq, bool w_flip, bool b_flip, int w_bucket, int b_bucket){
+void remove_feature(nnue_t* nnue, Piece piece, int sq, bool w_flip, bool b_flip){
     int index = get_index(piece, sq, w_flip, false);
     int flipped_index = get_index(piece, sq, b_flip, true);
     for (int neuron = 0; neuron < HL_SIZE; neuron += FULL_VECTOR_SIZE / sizeof(int16_t)){
         vfsi16 w_acc = *(vfsi16*)(nnue->white_accumulator + neuron);
         vfsi16 b_acc = *(vfsi16*)(nnue->black_accumulator + neuron);
 
-        vfsi16 w_weights = *(vfsi16*)&parameters.feature_weights[w_bucket][index][neuron];
-        vfsi16 b_weights = *(vfsi16*)&parameters.feature_weights[b_bucket][flipped_index][neuron];
+        vfsi16 w_weights = *(vfsi16*)&parameters.feature_weights[index][neuron];
+        vfsi16 b_weights = *(vfsi16*)&parameters.feature_weights[flipped_index][neuron];
 
         *(vfsi16*)(nnue->white_accumulator + neuron) = w_acc - w_weights;
         *(vfsi16*)(nnue->black_accumulator + neuron) = b_acc - b_weights;
@@ -330,34 +315,32 @@ void update_accumulators(const Board* board, const Move move, nnue_t* nnue){
 
     const int w_king_sq = board->white_king_square;
     const int b_king_sq = board->black_king_square;
-    const int w_king_bucket = BUCKET_LAYOUT[w_king_sq];
-    const int b_king_bucket = BUCKET_LAYOUT[FlipRank(b_king_sq)];
     const bool w_flip = GetFile(w_king_sq) > 3;
     const bool b_flip = GetFile(b_king_sq) > 3;
 
-    add_feature(nnue, moved_piece, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
-    remove_feature(nnue, moved_piece, start_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+    add_feature(nnue, moved_piece, target_square, w_flip, b_flip);
+    remove_feature(nnue, moved_piece, start_square, w_flip, b_flip);
 
     if (captured_piece){
-        remove_feature(nnue, captured_piece, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+        remove_feature(nnue, captured_piece, target_square, w_flip, b_flip);
     }
 
     const int flag = GetFlag(move);
 
     if (IsPromotion(move)) {
-        remove_feature(nnue, moved_piece, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+        remove_feature(nnue, moved_piece, target_square, w_flip, b_flip);
         switch (flag) {
             case PromoteQueen:
-                add_feature(nnue, board->white_to_move ? WhiteQueen : BlackQueen, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+                add_feature(nnue, board->white_to_move ? WhiteQueen : BlackQueen, target_square, w_flip, b_flip);
                 break;
             case PromoteKnight:
-                add_feature(nnue, board->white_to_move ? WhiteKnight : BlackKnight, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+                add_feature(nnue, board->white_to_move ? WhiteKnight : BlackKnight, target_square, w_flip, b_flip);
                 break;
             case PromoteBishop:
-                add_feature(nnue, board->white_to_move ? WhiteBishop : BlackBishop, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+                add_feature(nnue, board->white_to_move ? WhiteBishop : BlackBishop, target_square, w_flip, b_flip);
                 break;
             case PromoteRook:
-                add_feature(nnue, board->white_to_move ? WhiteRook : BlackRook, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+                add_feature(nnue, board->white_to_move ? WhiteRook : BlackRook, target_square, w_flip, b_flip);
                 break;
             default:
                 exit(-1);
@@ -369,30 +352,30 @@ void update_accumulators(const Board* board, const Move move, nnue_t* nnue){
         const Piece captured_pawn = board->white_to_move ? BlackPawn : WhitePawn;
         if (captures_left) {
             const int new_square = start_square - 1;
-            remove_feature(nnue, captured_pawn, new_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+            remove_feature(nnue, captured_pawn, new_square, w_flip, b_flip);
         }
         else {
             const int new_square = start_square + 1;
-            remove_feature(nnue, captured_pawn, new_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+            remove_feature(nnue, captured_pawn, new_square, w_flip, b_flip);
         }
     }
 
     if (flag == Castle) {
         if (target_square == 62) {
-            add_feature(nnue, WhiteRook, 61, w_flip, b_flip, w_king_bucket, b_king_bucket);
-            remove_feature(nnue, WhiteRook, 63, w_flip, b_flip, w_king_bucket, b_king_bucket);
+            add_feature(nnue, WhiteRook, 61, w_flip, b_flip);
+            remove_feature(nnue, WhiteRook, 63, w_flip, b_flip);
         }
         if (target_square == 58) {
-            add_feature(nnue, WhiteRook, 59, w_flip, b_flip, w_king_bucket, b_king_bucket);
-            remove_feature(nnue, WhiteRook, 56, w_flip, b_flip, w_king_bucket, b_king_bucket);
+            add_feature(nnue, WhiteRook, 59, w_flip, b_flip);
+            remove_feature(nnue, WhiteRook, 56, w_flip, b_flip);
         }
         if (target_square == 6) {
-            add_feature(nnue, BlackRook, 5, w_flip, b_flip, w_king_bucket, b_king_bucket);
-            remove_feature(nnue, BlackRook, 7, w_flip, b_flip, w_king_bucket, b_king_bucket);
+            add_feature(nnue, BlackRook, 5, w_flip, b_flip);
+            remove_feature(nnue, BlackRook, 7, w_flip, b_flip);
         }
         if (target_square == 2) {
-            add_feature(nnue, BlackRook, 3, w_flip, b_flip, w_king_bucket, b_king_bucket);
-            remove_feature(nnue, BlackRook, 0, w_flip, b_flip, w_king_bucket, b_king_bucket);
+            add_feature(nnue, BlackRook, 3, w_flip, b_flip);
+            remove_feature(nnue, BlackRook, 0, w_flip, b_flip);
         }
     }
 }
