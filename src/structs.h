@@ -172,7 +172,7 @@ typedef struct {
     nnue_stack_t nnue_stack;
 
     int quiet_history[BlackKing + 1][64][2][2];
-    int capture_history[BlackKing + 1][64][BlackKing + 1];
+    int capture_history[BlackKing + 1][64][BlackKing + 1][2][2];
     int cont_hist[BlackKing + 1][64][BlackKing + 1][64];
     Move killer_moves[256];
 

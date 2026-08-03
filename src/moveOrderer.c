@@ -44,9 +44,10 @@ void update_caphist(Thread* thread, const Move move, const int bonus)
 {
     const Piece piece = thread->board.squares[StartSquare(move)];
     const Piece captured = thread->board.squares[TargetSquare(move)];
+    const int from_square = StartSquare(move);
     const int to_square = TargetSquare(move);
 
-    int* entry = &thread->capture_history[piece][to_square][captured];
+    int* entry = &thread->capture_history[piece][to_square][captured][is_square_attacked(&thread->board, from_square)][is_square_attacked(&thread->board, to_square)];
 
     *entry += bonus - *entry * abs(bonus) / MAX_HISTORY;
 }
@@ -75,10 +76,11 @@ int get_capture_score(Move move, Thread* thread)
 {
     const Piece piece = thread->board.squares[StartSquare(move)];
     const Piece captured = thread->board.squares[TargetSquare(move)];
+    const int from_square = StartSquare(move);
     const int to_square = TargetSquare(move);
 
     int base_score = 40000 * piece_scores[GetType(captured)];
-    return base_score + thread->capture_history[piece][to_square][captured];
+    return base_score + thread->capture_history[piece][to_square][captured][is_square_attacked(&thread->board, from_square)][is_square_attacked(&thread->board, to_square)];
 }
 
 int move_score(Thread* thread, Move move, Move tt_move, int ply)
