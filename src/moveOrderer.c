@@ -24,6 +24,7 @@ void ZeroKillers(Thread* thread)
 void UpdateHistTable(Thread* thread, const int ply, const Move move, const int bonus)
 {
     const Piece piece = thread->board.squares[StartSquare(move)];
+    const int from_square = StartSquare(move);
     const int to_square = TargetSquare(move);
 
     if (ply > 0){
@@ -35,7 +36,7 @@ void UpdateHistTable(Thread* thread, const int ply, const Move move, const int b
         *cont_value += bonus - *cont_value * abs(bonus) / MAX_HISTORY;
     }
 
-    int* quiet_value = &thread->quiet_history[piece][to_square];
+    int* quiet_value = &thread->quiet_history[piece][to_square][is_square_attacked(&thread->board, from_square)][is_square_attacked(&thread->board, to_square)];
     *quiet_value += bonus - *quiet_value * abs(bonus) / MAX_HISTORY;
 }
 
@@ -53,13 +54,14 @@ void update_caphist(Thread* thread, const Move move, const int bonus)
 int get_history(Thread* thread, const Move move, const int ply){
 
     const Piece piece = thread->board.squares[StartSquare(move)];
+    const int from_square = StartSquare(move);
     const int to_square = TargetSquare(move);
 
     int cont_value = 0;
     cont_value = ply < 1 ? 0 : thread->cont_hist[thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square][piece][to_square];
     cont_value += ply < 2 ? 0 : thread->cont_hist[thread->ss[ply - 2].moved_piece][thread->ss[ply - 2].to_square][piece][to_square];
 
-    int quiet_value = thread->quiet_history[piece][to_square];
+    int quiet_value = thread->quiet_history[piece][to_square][is_square_attacked(&thread->board, from_square)][is_square_attacked(&thread->board, to_square)];
 
     return cont_value + quiet_value;
 }

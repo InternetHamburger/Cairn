@@ -20,6 +20,7 @@ char* MoveToString(Move move);
 PieceType GetType(Piece piece);
 int getlsb(uint64_t bb);
 int poplsb(uint64_t *bb);
+bool is_square_attacked(const Board* board, int sq);
 Move StringToMove(char* move, Board *board);
 char* BoardToFen(const Board *board);
 void PrintBitBoard(uint64_t bitboard);
