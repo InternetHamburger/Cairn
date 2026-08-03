@@ -14,15 +14,7 @@ uint64_t perft(Board *board, const int depth) {
     int num_moves = GetMoves(board, moves);
     const Board copy = *board;
     for (int i = 0; i < num_moves; i++) {
-
-        if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
-            continue;
-        }
         MakeMove(board, moves[i]);
-        if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
-            *board = copy;
-            continue;
-        }
         const uint64_t u = perft(board, depth - 1);
         nodes += u;
         *board = copy;
@@ -39,15 +31,7 @@ uint64_t splitPerft(Board *board, const int depth) {
     const Board copy = *board;
     double start = clock();
     for (int i = 0; i < num_moves; i++) {
-
-        if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
-            continue;
-        }
         MakeMove(board, moves[i]);
-        if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
-            *board = copy;
-            continue;
-        }
         const uint64_t u = perft(board, depth - 1);
         printf("%s: %llu\n", MoveToString(moves[i]), u);
         nodes += u;

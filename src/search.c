@@ -141,9 +141,6 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
-        if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
-            continue;
-        }
 
         // Skip bad captures
         if (!staticExchangeEvaluation(board, moves[i], 0))
@@ -153,11 +150,6 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
 
         update_nnue_stack(thread, moves[i], ply);
         MakeMove(board, moves[i]);
-        if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
-            *board = thread->ss[ply].board;
-            thread->nnue = thread->nnue_stack.nnue_stack[ply];
-            continue;
-        }
         thread->nodes++;
 
         const int score = -qSearch(thread, -beta, -alpha, ply + 1);
@@ -359,18 +351,9 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
             }
         }
 
-
-        if (GetFlag(move) == Castle && !IsLegalCastle(board, move)){
-            continue;
-        }
         assert(move.value != 0);
         update_nnue_stack(thread, move, ply);
         MakeMove(board, move);
-        if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
-            *board = thread->ss[ply].board;
-            thread->nnue = thread->nnue_stack.nnue_stack[ply];
-            continue;
-        }
 
         if (!is_capture)
         {
@@ -609,32 +592,13 @@ SearchResult search(Thread *thread) {
         Move moves[256];
         int num_moves = GetMoves(board, moves);
 
-
-        int num_legal_moves = 0;
-        Move* legal_moves = malloc(sizeof(Move) * num_moves);
-        const Board copy = *board;
-        for (int i = 0; i < num_moves; i++) {
-            if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
-                continue;
-            }
-            assert(moves[i].value != 0);
-            MakeMove(board, moves[i]);
-            if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
-                *board = copy;
-                continue;
-            }
-            legal_moves[num_legal_moves++] = moves[i];
-
-            *board = copy;
+        if (num_moves == 0) {
+            printf("Can't search terminal position\n");
         }
-        if (num_legal_moves == 0) {
-            exit(-2);
-        }
-        uint64_t seed = num_legal_moves;
-        uint64_t rand_index = PseudorandomNumber(&seed) % num_legal_moves;
-        assert(legal_moves[rand_index].value != 0);
-        best_move = legal_moves[rand_index];
-        free(legal_moves);
+        uint64_t seed = num_moves;
+        uint64_t rand_index = PseudorandomNumber(&seed) % num_moves;
+        assert(moves[rand_index].value != 0);
+        best_move = moves[rand_index];
     }
 
     if (thread->print_info)

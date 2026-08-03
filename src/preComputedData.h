@@ -23,6 +23,9 @@ typedef struct{
 uint64_t rook_attack(uint64_t occ, int sq);
 uint64_t bishop_attack(uint64_t occ, int sq);
 
+extern uint64_t rays[64][64];
+extern uint64_t lines[64][64];
+
 extern uint64_t knight_moves[TABLE_SIZE];
 extern uint64_t king_moves[TABLE_SIZE];
 extern const uint64_t a_file;
