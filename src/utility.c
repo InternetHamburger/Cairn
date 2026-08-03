@@ -246,29 +246,6 @@ Piece CharToPiece(const char piece) {
     }
 }
 
-bool IsLegalCastle(const Board *board, Move move){
-    if (InCheck(board))
-    {
-        return false;
-    }
-    switch (TargetSquare(move))
-    {
-        case 62: // white short castle (g1)
-            if (IsAttackedBySideToMove(board, 0, 61) || IsAttackedBySideToMove(board, 0, 62)) { return false; }
-            break;
-        case 58: // white loing castle (c1)
-            if (IsAttackedBySideToMove(board, 0, 58) || IsAttackedBySideToMove(board, 0, 59)) { return false; }
-            break;
-        case 6: // black short castle (g8)
-            if (IsAttackedBySideToMove(board, 1, 5) || IsAttackedBySideToMove(board, 1, 6)) { return false; }
-            break;
-        case 2: // black long castle (c8)
-            if (IsAttackedBySideToMove(board, 1, 2) || IsAttackedBySideToMove(board, 1, 3)) { return false; }
-            break;
-    }
-    return true;
-}
-
 PieceType GetType(Piece piece) {
     return piece & 0b0111;
 }
@@ -282,6 +259,11 @@ inline int poplsb(uint64_t *bb) {
     int lsb = getlsb(*bb);
     *bb &= *bb - 1;
     return lsb;
+}
+
+bool one_bit_set(uint64_t num)
+{
+    return num != 0 && (num & (num - 1)) == 0;
 }
 
 char* BoardToFen(const Board *board){

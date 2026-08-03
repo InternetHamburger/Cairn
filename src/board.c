@@ -9,6 +9,129 @@
 #include "utility.h"
 #include "preComputedData.h"
 
+void CalculatePins(Board* board)
+{
+    board->pins = 0;
+    const uint64_t enemy_bb = board->color_bbs[board->white_to_move];
+    const uint64_t friendly_bb = board->color_bbs[!board->white_to_move];
+    const uint64_t enemy_diagonal_sliders = enemy_bb & (board->piece_bbs[Bishop] | board->piece_bbs[Queen]);
+    const uint64_t enemy_orthogonal_sliders = enemy_bb & (board->piece_bbs[Rook] | board->piece_bbs[Queen]);
+
+    const int king_sq = board->white_to_move ? board->white_king_square : board->black_king_square;
+    uint64_t diag_attacks = bishop_attack(enemy_bb, king_sq) & enemy_diagonal_sliders;
+    uint64_t orth_attacks = rook_attack(enemy_bb, king_sq) & enemy_orthogonal_sliders;
+
+    while (diag_attacks)
+    {
+        const int sq = poplsb(&diag_attacks);
+        if (one_bit_set(rays[king_sq][sq] & friendly_bb))
+        {
+            board->pins |= rays[king_sq][sq];
+        }
+    }
+    while (orth_attacks)
+    {
+        const int sq = poplsb(&orth_attacks);
+        if (one_bit_set(rays[king_sq][sq] & friendly_bb))
+        {
+            board->pins |= rays[king_sq][sq];
+        }
+    }
+}
+
+uint64_t get_pawn_threats(const Board *board)
+{
+    uint64_t threat_bb = 0;
+
+    const uint64_t capture_right_mask = ~(a_file << 7);
+    const uint64_t capture_left_mask = ~a_file;
+
+    uint64_t enemy_pawns = board->piece_bbs[Pawn] & board->color_bbs[board->white_to_move];
+    if (board->white_to_move)
+    {
+        threat_bb |= (capture_left_mask & enemy_pawns) << 7;
+        threat_bb |= (capture_right_mask & enemy_pawns) << 9;
+    }
+    else
+    {
+        threat_bb |= (capture_left_mask & enemy_pawns) >> 9;
+        threat_bb |= (capture_right_mask & enemy_pawns) >> 7;
+    }
+    return threat_bb;
+}
+
+uint64_t get_threat_bitboard(const Board *board)
+{
+    uint64_t enemy_bb = board->color_bbs[board->white_to_move];
+    uint64_t friendly_bb = board->color_bbs[!board->white_to_move];
+
+    uint64_t occ = enemy_bb | (friendly_bb & ~board->piece_bbs[King]);
+    int enemy_king_sq = board->white_to_move ? board->black_king_square : board->white_king_square;
+
+    uint64_t threat_bb = get_pawn_threats(board) | king_moves[enemy_king_sq];
+    enemy_bb &= ~(board->piece_bbs[King] | board->piece_bbs[Pawn]);
+
+    uint64_t knights_bb = enemy_bb & board->piece_bbs[Knight];
+    while (knights_bb) {
+        threat_bb |= knight_moves[poplsb(&knights_bb)];
+    }
+    uint64_t bishops_bb = enemy_bb & (board->piece_bbs[Bishop] | board->piece_bbs[Queen]);
+    while (bishops_bb) {
+        threat_bb |= bishop_attack(occ, poplsb(&bishops_bb));
+    }
+    uint64_t rooks_bb = enemy_bb & (board->piece_bbs[Rook] | board->piece_bbs[Queen]);
+    while (rooks_bb) {
+        threat_bb |= rook_attack(occ, poplsb(&rooks_bb));
+    }
+
+    return threat_bb;
+}
+
+uint64_t GetCheckers(const Board* board, int sq)
+{
+    const uint64_t enemy_bb = board->color_bbs[board->white_to_move];
+    const uint64_t enemy_diagonal_sliders = enemy_bb & (board->piece_bbs[Bishop] | board->piece_bbs[Queen]);
+    const uint64_t enemy_orthogonal_sliders = enemy_bb & (board->piece_bbs[Rook] | board->piece_bbs[Queen]);
+    const uint64_t friendly_bb = board->color_bbs[!board->white_to_move];
+    const uint64_t occupied = enemy_bb | friendly_bb;
+    const uint64_t sq_bb = 1ULL << sq;
+
+    uint64_t checks = 0;
+    uint64_t diagonal_attacks = bishop_attack(occupied, sq) & enemy_diagonal_sliders;
+    uint64_t orthogonal_attacks = rook_attack(occupied, sq) & enemy_orthogonal_sliders;
+    while (diagonal_attacks)
+    {
+        const int enemy_sq = poplsb(&diagonal_attacks);
+        checks |= rays[sq][enemy_sq];
+    }
+    while (orthogonal_attacks)
+    {
+        const int enemy_sq = poplsb(&orthogonal_attacks);
+        checks |= rays[sq][enemy_sq];
+    }
+    const uint64_t capture_right_mask = ~(a_file << 7);
+    const uint64_t capture_left_mask = ~a_file;
+
+    const uint64_t white_pawns = board->piece_bbs[Pawn] & board->color_bbs[0];
+    const uint64_t black_pawns = board->piece_bbs[Pawn] & board->color_bbs[1];
+
+    if (board->white_to_move)
+    {
+        checks |= sq_bb >> 9 & (black_pawns & capture_right_mask);
+        checks |= sq_bb >> 7 & (black_pawns & capture_left_mask);
+    }
+    else
+    {
+        checks |= sq_bb << 7 & (white_pawns & capture_right_mask);
+        checks |= sq_bb << 9 & (white_pawns & capture_left_mask);
+    }
+
+    checks |= knight_moves[sq] & board->piece_bbs[Knight] & enemy_bb;
+    checks |= king_moves[sq] & board->piece_bbs[King] & enemy_bb;
+
+    return checks;
+}
+
 void MakeMove(Board *board, const Move move) {
     assert(move.value != 0);
     const int start_square = StartSquare(move);
@@ -213,6 +336,9 @@ void MakeMove(Board *board, const Move move) {
     board->white_to_move = !board->white_to_move;
     board->zobrist_hash ^= zobrist_stm;
     board->game_ply++;
+    
+    CalculatePins(board);
+    board->threat_bb = get_threat_bitboard(board);
 }
 
 void MakeNullMove(Board *board){
@@ -226,6 +352,9 @@ void MakeNullMove(Board *board){
     board->white_to_move = !board->white_to_move;
     board->zobrist_hash ^= zobrist_stm;
     board->game_ply++;
+
+    CalculatePins(board);
+    board->threat_bb = get_threat_bitboard(board);
 }
 
 void PrintBoard(const Board* board) {
@@ -435,65 +564,8 @@ bool IsPseudoLegal(const Board* board, const Move move){
 }
 
 bool InCheck(const Board *board){
-    return IsAttackedBySideToMove(board, !board->white_to_move, board->white_to_move ? board->white_king_square : board->black_king_square);
-}
-
-bool IsAttackedBySideToMove(const Board *board, bool white_to_move, const int square) {
-    const int rank = square / 8;
-    const int file = square % 8;
-
-    const int left_file = file - 1;
-    const int right_file = file + 1;
-
-    if (right_file < 8){
-        if (white_to_move) {
-            const int new_rank = rank + 1;
-
-            if (new_rank < 8 && board->squares[new_rank * 8 + right_file] == WhitePawn)
-                return true;
-
-        }else {
-            const int new_rank = rank - 1;
-            if (new_rank >= 0 && board->squares[new_rank * 8 + right_file] == BlackPawn)
-                return true;
-        }
-    }
-    if (left_file >= 0){
-        if (white_to_move) {
-            const int new_rank = rank + 1;
-
-            if (new_rank < 8 && board->squares[new_rank * 8 + left_file] == WhitePawn)
-                return true;
-
-        }else {
-            const int new_rank = rank - 1;
-            if (new_rank >= 0 && board->squares[new_rank * 8 + left_file] == BlackPawn)
-                return true;
-        }
-    }
-
-    uint64_t knights = board->piece_bbs[Knight] & board->color_bbs[!white_to_move];
-    uint64_t kings = board->piece_bbs[King] & board->color_bbs[!white_to_move];
-
-    uint64_t knight_attacks = knight_moves[square];
-    uint64_t king_attacks = king_moves[square];
-
-    if (knight_attacks & knights) return true;
-    if (king_attacks & kings) return true;
-
-    uint64_t friendly_pieces = board->color_bbs[white_to_move];
-    uint64_t enemy_pieces = board->color_bbs[!white_to_move];
-    uint64_t occupied = friendly_pieces | enemy_pieces;
-
-    uint64_t diagonal_sliders = enemy_pieces & (board->piece_bbs[Bishop] | board->piece_bbs[Queen]);
-    uint64_t orthogonal_sliders = enemy_pieces & (board->piece_bbs[Rook] | board->piece_bbs[Queen]);
-
-    if (rook_attack(occupied, square) & orthogonal_sliders)
-        return true;
-    if (bishop_attack(occupied, square) & diagonal_sliders)
-        return true;
-
-    return false;
+    int king_sq = board->white_to_move ? board->white_king_square : board->black_king_square;
+    return 1ULL << king_sq & board->threat_bb;
 }
 
 // Start fen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
@@ -648,6 +720,9 @@ Board BoardConstructor(const char* fen){
     if (white_queenside) board.zobrist_hash ^= zobrist_white_queenside;
     if (black_kingside) board.zobrist_hash ^= zobrist_black_kingside;
     if (black_queenside) board.zobrist_hash ^= zobrist_black_queenside;
+
+    CalculatePins(&board);
+    board.threat_bb = get_threat_bitboard(&board);
 
     return board;
 }

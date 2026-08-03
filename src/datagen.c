@@ -72,23 +72,8 @@ Move ConvertMove(Move move) {
 bool IsCheckmate(Board* board){
     Move moves[256];
     int num_moves = GetMoves(board, moves);
-    const Board copy = *board;
-    for (int i = 0; i < num_moves; i++) {
 
-        if (GetFlag(moves[i]) == Castle && !IsLegalCastle(board, moves[i])){
-            continue;
-        }
-        assert(moves[i].value != 0);
-        MakeMove(board, moves[i]);
-        if (IsAttackedBySideToMove(board, board->white_to_move, board->white_to_move ? board->black_king_square : board->white_king_square)) {
-            *board = copy;
-            continue;
-        }
-        *board = copy;
-
-        return false;
-    }
-    return true;
+    return num_moves == 0;
 }
 
 Board GenerateRandomPosition(uint64_t *seed) {
@@ -99,37 +84,18 @@ Board GenerateRandomPosition(uint64_t *seed) {
         Move moves[256];
         int num_moves = GetMoves(&board, moves);
 
-
-        int num_legal_moves = 0;
-        Move* legal_moves = malloc(sizeof(Move) * num_moves);
-        const Board copy = board;
-        for (int i = 0; i < num_moves; i++) {
-            if (GetFlag(moves[i]) == Castle && !IsLegalCastle(&board, moves[i])){
-                continue;
-            }
-            assert(moves[i].value != 0);
-            MakeMove(&board, moves[i]);
-            if (IsAttackedBySideToMove(&board, board.white_to_move, board.white_to_move ? board.black_king_square : board.white_king_square)) {
-                board = copy;
-                continue;
-            }
-            legal_moves[num_legal_moves++] = moves[i];
-
-            board = copy;
-        }
-        if (num_legal_moves == 0) {
+        if (num_moves == 0) {
             board = prev_copy;
             num_deep--;
             PseudorandomNumber(seed);
         }
         else {
-            uint64_t rand_index = *seed % num_legal_moves;
+            uint64_t rand_index = *seed % num_moves;
             PseudorandomNumber(seed);
-            assert(legal_moves[rand_index].value != 0);
-            MakeMove(&board, legal_moves[rand_index]);
+            assert(moves[rand_index].value != 0);
+            MakeMove(&board, moves[rand_index]);
         }
-        prev_copy = copy;
-        free(legal_moves);
+        prev_copy = board;
         if (IsCheckmate(&board)){
             board = prev_copy;
             num_deep--;

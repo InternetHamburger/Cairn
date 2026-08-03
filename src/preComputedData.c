@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define sign(x) ((x > 0) - (x < 0))
+
 uint64_t knight_moves[64];
 uint64_t king_moves[64];
 
@@ -14,6 +16,8 @@ const uint64_t a_file = 0x0101010101010101;
 const uint64_t first_rank = 0xff00000000000000;
 
 uint64_t rank_attacks[256][8];
+uint64_t rays[64][64];
+uint64_t lines[64][64];
 smsk masks;
 
 uint64_t rook_magic_numbers[64] = {
@@ -243,6 +247,68 @@ void verify_magics()
     }
 }
 
+uint64_t generate_ray(int from, int to)
+{
+    int rank_change = sign(to / 8 - from / 8);
+    int file_change = sign(to % 8 - from % 8);
+
+    if (rank_change == 0 && file_change == 0)
+    {
+        return 0;
+    }
+
+    int rank = from / 8 + rank_change;
+    int file = from % 8 + file_change;
+
+    uint64_t ray = 0;
+    while (rank <= 7 && rank >= 0 && file <= 7 && file >= 0)
+    {
+        int sq = rank * 8 + file;
+        ray |= 1ULL << sq;
+        if (sq == to)
+        {
+            return ray;
+        }
+        rank += rank_change;
+        file += file_change;
+    }
+    return 0;
+}
+
+uint64_t generate_line(int from, int to)
+{
+    int rank_change = sign(to / 8 - from / 8);
+    int file_change = sign(to % 8 - from % 8);
+
+    if (rank_change == 0 && file_change == 0)
+    {
+        return 0;
+    }
+
+    int rank = from / 8 + rank_change;
+    int file = from % 8 + file_change;
+
+    uint64_t line = 0;
+    bool good_line = false;
+    while (rank <= 7 && rank >= 0 && file <= 7 && file >= 0)
+    {
+        int sq = rank * 8 + file;
+        line |= 1ULL << sq;
+        if (sq == to)
+        {
+            good_line = true;
+        }
+        rank += rank_change;
+        file += file_change;
+    }
+    if (good_line)
+    {
+        return line;
+    }
+    return 0;
+}
+
+
 __attribute__((constructor))  // runs before main()
 static void init_table(void) {
     // right-down, right-up, up-right, up-left, left-up, left-down, down-left, down-right
@@ -329,6 +395,12 @@ static void init_table(void) {
         }
         knight_moves[i] = knight_bitboard;
         king_moves[i] = king_bitboard;
+
+        for (int sq = 0; sq < 64; sq++)
+        {
+            rays[i][sq] = generate_ray(i, sq);
+            lines[i][sq] = generate_line(i, sq) | generate_line(sq, i);
+        }
     }
 
     const uint64_t h_file = a_file << 7;

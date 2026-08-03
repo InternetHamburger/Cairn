@@ -3,36 +3,74 @@
 #include "utility.h"
 #include "preComputedData.h"
 
-void GetRookMoves(Move *moves, int *num_moves, int square, uint64_t friendly_pieces, uint64_t occupied){
+void SplatPawnMoves(Move* moves, int* num_moves, int offset, int flag, uint64_t bb)
+{
+    while(bb){
+        const int target_square = poplsb(&bb);
+        moves[(*num_moves)++] = MoveConstructor(target_square + offset, target_square, flag);
+    }
+}
+
+void SplatPinnedPawnMoves(Move* moves, int* num_moves, int offset, int flag, int king_sq, uint64_t bb)
+{
+    while(bb){
+        const int target_square = poplsb(&bb);
+        if (1ULL << target_square & lines[king_sq][target_square + offset])
+            moves[(*num_moves)++] = MoveConstructor(target_square + offset, target_square, flag);
+    }
+}
+
+void GetRookMoves(const Board* board, const uint64_t check_lines, int king_sq, Move *moves, int *num_moves, int square, uint64_t friendly_pieces, uint64_t occupied){
     uint64_t move_bb = rook_attack(occupied, square) & ~friendly_pieces;
+    if (check_lines)
+    {
+        move_bb &= check_lines;
+    }
+    if (1ULL << square & board->pins)
+    {
+        move_bb &= lines[square][king_sq];
+    }
     while(move_bb){
         const int target_square = poplsb(&move_bb);
         moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
     }
 }
 
-void GetBishopMoves(Move *moves, int *num_moves, int square, uint64_t friendly_pieces, uint64_t occupied){
+void GetBishopMoves(const Board* board, const uint64_t check_lines, int king_sq, Move *moves, int *num_moves, int square, uint64_t friendly_pieces, uint64_t occupied){
     uint64_t move_bb = bishop_attack(occupied, square) & ~friendly_pieces;
+    if (check_lines)
+    {
+        move_bb &= check_lines;
+    }
+    if (1ULL << square & board->pins)
+    {
+        move_bb &= lines[square][king_sq];
+    }
     while(move_bb){
         const int target_square = poplsb(&move_bb);
         moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
     }
 }
 
-void GetKnightMoves(Move *moves, int *num_moves, uint64_t knights, uint64_t friendly_pieces){
+void GetKnightMoves(const Board* board, const uint64_t check_lines, Move *moves, int *num_moves, uint64_t knights, uint64_t friendly_pieces){
+    knights &= ~board->pins;
     while (knights){
-        const int square = poplsb(&knights);
-        uint64_t bitboard = knight_moves[square] & ~friendly_pieces;
+        const int sq = poplsb(&knights);
+        uint64_t bitboard = knight_moves[sq] & ~friendly_pieces;
+        if (check_lines)
+        {
+            bitboard &= check_lines;
+        }
 
         while(bitboard){
             const int target_square = poplsb(&bitboard);
-            moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
+            moves[(*num_moves)++] = MoveConstructor(sq, target_square, 0);
         }
     }
 }
 
-void GetKingMoves(Board *board, Move *moves, int *num_moves, int square, uint64_t friendly_pieces){
-    uint64_t bitboard = king_moves[square] & ~friendly_pieces;
+void GetKingMoves(const Board *board, const uint64_t check_lines, Move *moves, int *num_moves, int square, uint64_t friendly_pieces){
+    uint64_t bitboard = king_moves[square] & ~friendly_pieces & ~board->threat_bb;
     uint64_t occupied = GetOccupied(board);
 
     while(bitboard){
@@ -40,31 +78,41 @@ void GetKingMoves(Board *board, Move *moves, int *num_moves, int square, uint64_
         moves[(*num_moves)++] = MoveConstructor(square, target_square, 0);
     }
 
+    uint64_t castle_bb;
+    if (check_lines)
+    {
+        return;
+    }
     if (board->white_to_move){
-        if (board->white_kingside && !(occupied & ((1Ull << 61) | (1ULL << 62)))){
+        castle_bb = 1Ull << 61 | 1ULL << 62;
+        if (board->white_kingside && !((occupied | board->threat_bb) & castle_bb)){
             moves[(*num_moves)++] = MoveConstructor(square, 62, Castle);
         }
-        if (board->white_queenside && !(occupied & ((1Ull << 57) | (1ULL << 58) | (1ULL << 59)))){
+        castle_bb = 1Ull << 57 | 1ULL << 58 | 1ULL << 59;
+        if (board->white_queenside && !(occupied & castle_bb) && !(board->threat_bb & (1ULL << 58 | 1ULL << 59))){
             moves[(*num_moves)++] = MoveConstructor(square, 58, Castle);
         }
     }else{
-        if (board->black_kingside && !(occupied & ((1Ull << 5) | (1ULL << 6)))){
+        castle_bb = 1Ull << 5 | 1ULL << 6;
+        if (board->black_kingside && !((occupied | board->threat_bb) & castle_bb)){
             moves[(*num_moves)++] = MoveConstructor(square, 6, Castle);
         }
-
-        if (board->black_queenside && !(occupied & ((1Ull << 1) | (1ULL << 2) | (1ULL << 3)))){
+        castle_bb = 1Ull << 1 | 1ULL << 2 | 1ULL << 3;
+        if (board->black_queenside && !(occupied & castle_bb) && !(board->threat_bb & (1ULL << 2 | 1ULL << 3))){
             moves[(*num_moves)++] = MoveConstructor(square, 2, Castle);
         }
     }
 }
 
-void GetPawnMoves(Board *board, Move *moves, int *num_moves) {
+void GetPawnMoves(const Board *board, const uint64_t check_lines, Move *moves, int *num_moves) {
     const bool can_en_passant = board->en_passant_square != -1;
+    const int king_sq = getlsb(board->color_bbs[!board->white_to_move] & board->piece_bbs[King]);
+    const uint64_t king_rank = first_rank >> (8 * GetRank(FlipRank(king_sq)));
 
-    const uint64_t pawns = board->color_bbs[!board->white_to_move] & board->piece_bbs[Pawn];
     const uint64_t occupied = GetOccupied(board);
     const uint64_t empty = ~occupied;
     const uint64_t enemy_pieces = board->color_bbs[board->white_to_move];
+    const uint64_t check_mask = check_lines ? check_lines : ~0ULL;
 
     const uint64_t capture_right_mask = ~(a_file << 7);
     const uint64_t capture_left_mask = ~a_file;
@@ -73,151 +121,193 @@ void GetPawnMoves(Board *board, Move *moves, int *num_moves) {
     const uint64_t double_push_rank = board->white_to_move ? first_rank >> 8 : first_rank >> 48;
 
     uint64_t moved_pawns;
-    if (board->white_to_move){
-        moved_pawns = ((pawns & ~promotion_rank) >> 8) & empty;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 8, target_square, 0);
-        }
-        moved_pawns = ((pawns & double_push_rank) >> 16) & (empty >> 8) & empty;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 16, target_square, DoublePush);
-        }
-        moved_pawns = (((pawns & ~promotion_rank) & capture_left_mask) >> 9) & enemy_pieces;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 9, target_square, 0);
-        }
-        moved_pawns = (((pawns & ~promotion_rank) & capture_right_mask) >> 7) & enemy_pieces;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 7, target_square, 0);
-        }
+    // Non pinned pawns
+    uint64_t pawns = board->color_bbs[!board->white_to_move] & board->piece_bbs[Pawn] & ~board->pins;
+    if (board->white_to_move)
+    {
+        moved_pawns = (pawns & ~promotion_rank) >> 8 & empty & check_mask;
+        SplatPawnMoves(moves, num_moves, 8, 0, moved_pawns);
+
+        moved_pawns = (pawns & double_push_rank) >> 16 & empty >> 8 & empty & check_mask;
+        SplatPawnMoves(moves, num_moves, 16, DoublePush, moved_pawns);
+
+        moved_pawns = (pawns & ~promotion_rank & capture_left_mask) >> 9 & enemy_pieces & check_mask;
+        SplatPawnMoves(moves, num_moves, 9, 0, moved_pawns);
+
+        moved_pawns = (pawns & ~promotion_rank & capture_right_mask) >> 7 & enemy_pieces & check_mask;
+        SplatPawnMoves(moves, num_moves, 7, 0, moved_pawns);
 
         const uint64_t promotion_pawns = pawns & promotion_rank;
-        moved_pawns = (promotion_pawns >> 8) & empty;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 8, target_square, PromoteQueen);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 8, target_square, PromoteKnight);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 8, target_square, PromoteRook);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 8, target_square, PromoteBishop);
-        }
-        moved_pawns = ((promotion_pawns & capture_left_mask) >> 9) & enemy_pieces;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 9, target_square, PromoteQueen);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 9, target_square, PromoteKnight);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 9, target_square, PromoteRook);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 9, target_square, PromoteBishop);
-        }
-        moved_pawns = ((promotion_pawns & capture_right_mask) >> 7) & enemy_pieces;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 7, target_square, PromoteQueen);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 7, target_square, PromoteKnight);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 7, target_square, PromoteRook);
-            moves[(*num_moves)++] = MoveConstructor(target_square + 7, target_square, PromoteBishop);
-        }
-    }else{
-        moved_pawns = ((pawns & ~promotion_rank) << 8) & empty;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 8, target_square, 0);
-        }
-        moved_pawns = ((pawns & double_push_rank) << 16) & (empty << 8) & empty;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 16, target_square, DoublePush);
-        }
-        moved_pawns = (((pawns & ~promotion_rank) & capture_left_mask) << 7) & enemy_pieces;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 7, target_square, 0);
-        }
-        moved_pawns = (((pawns & ~promotion_rank) & capture_right_mask) << 9) & enemy_pieces;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 9, target_square, 0);
-        }
+        moved_pawns = promotion_pawns >> 8 & empty & check_mask;
+        SplatPawnMoves(moves, num_moves, 8, PromoteQueen, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 8, PromoteKnight, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 8, PromoteRook, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 8, PromoteBishop, moved_pawns);
+
+        moved_pawns = (promotion_pawns & capture_left_mask) >> 9 & enemy_pieces & check_mask;
+        SplatPawnMoves(moves, num_moves, 9, PromoteQueen, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 9, PromoteKnight, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 9, PromoteRook, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 9, PromoteBishop, moved_pawns);
+
+        moved_pawns = (promotion_pawns & capture_right_mask) >> 7 & enemy_pieces & check_mask;
+        SplatPawnMoves(moves, num_moves, 7, PromoteQueen, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 7, PromoteKnight, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 7, PromoteRook, moved_pawns);
+        SplatPawnMoves(moves, num_moves, 7, PromoteBishop, moved_pawns);
+    }
+    else
+    {
+        moved_pawns = (pawns & ~promotion_rank) << 8 & empty & check_mask;
+        SplatPawnMoves(moves, num_moves, -8, 0, moved_pawns);
+
+        moved_pawns = (pawns & double_push_rank) << 16 & empty << 8 & empty & check_mask;
+        SplatPawnMoves(moves, num_moves, -16, DoublePush, moved_pawns);
+
+        moved_pawns = (pawns & ~promotion_rank & capture_left_mask) << 7 & enemy_pieces & check_mask;
+        SplatPawnMoves(moves, num_moves, -7, 0, moved_pawns);
+
+        moved_pawns = (pawns & ~promotion_rank & capture_right_mask) << 9 & enemy_pieces & check_mask;
+        SplatPawnMoves(moves, num_moves, -9, 0, moved_pawns);
 
         const uint64_t promotion_pawns = pawns & promotion_rank;
-        moved_pawns = (promotion_pawns << 8) & empty;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 8, target_square, PromoteQueen);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 8, target_square, PromoteKnight);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 8, target_square, PromoteRook);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 8, target_square, PromoteBishop);
-        }
-        moved_pawns = ((promotion_pawns & capture_left_mask) << 7) & enemy_pieces;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 7, target_square, PromoteQueen);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 7, target_square, PromoteKnight);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 7, target_square, PromoteRook);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 7, target_square, PromoteBishop);
-        }
-        moved_pawns = ((promotion_pawns & capture_right_mask) << 9) & enemy_pieces;
-        while(moved_pawns){
-            const int target_square = poplsb(&moved_pawns);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 9, target_square, PromoteQueen);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 9, target_square, PromoteKnight);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 9, target_square, PromoteRook);
-            moves[(*num_moves)++] = MoveConstructor(target_square - 9, target_square, PromoteBishop);
-        }
+        moved_pawns = promotion_pawns << 8 & empty & check_mask;
+        SplatPawnMoves(moves, num_moves, -8, PromoteQueen, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -8, PromoteKnight, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -8, PromoteRook, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -8, PromoteBishop, moved_pawns);
+
+        moved_pawns = (promotion_pawns & capture_left_mask) << 7 & enemy_pieces & check_mask;
+        SplatPawnMoves(moves, num_moves, -7, PromoteQueen, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -7, PromoteKnight, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -7, PromoteRook, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -7, PromoteBishop, moved_pawns);
+
+        moved_pawns = (promotion_pawns & capture_right_mask) << 9 & enemy_pieces & check_mask;
+        SplatPawnMoves(moves, num_moves, -9, PromoteQueen, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -9, PromoteKnight, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -9, PromoteRook, moved_pawns);
+        SplatPawnMoves(moves, num_moves, -9, PromoteBishop, moved_pawns);
     }
 
+    // Pinned pawns
+    pawns = board->color_bbs[!board->white_to_move] & board->piece_bbs[Pawn] & board->pins & ~king_rank;
+    if (board->white_to_move)
+    {
+        moved_pawns = (pawns & ~promotion_rank) >> 8 & empty & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, 8, 0, king_sq, moved_pawns);
+
+        moved_pawns = (pawns & double_push_rank) >> 16 & empty >> 8 & empty & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, 16, DoublePush, king_sq, moved_pawns);
+
+        moved_pawns = (pawns & ~promotion_rank & capture_left_mask) >> 9 & enemy_pieces & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, 9, 0, king_sq, moved_pawns);
+
+        moved_pawns = (pawns & ~promotion_rank & capture_right_mask) >> 7 & enemy_pieces & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, 7, 0, king_sq, moved_pawns);
+
+        const uint64_t promotion_pawns = pawns & promotion_rank;
+        moved_pawns = (promotion_pawns & capture_left_mask) >> 9 & enemy_pieces & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, 9, PromoteQueen, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, 9, PromoteKnight, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, 9, PromoteRook, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, 9, PromoteBishop, king_sq, moved_pawns);
+
+        moved_pawns = (promotion_pawns & capture_right_mask) >> 7 & enemy_pieces & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, 7, PromoteQueen, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, 7, PromoteKnight, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, 7, PromoteRook, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, 7, PromoteBishop, king_sq, moved_pawns);
+    }
+    else
+    {
+        moved_pawns = (pawns & ~promotion_rank) << 8 & empty & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, -8, 0, king_sq, moved_pawns);
+
+        moved_pawns = (pawns & double_push_rank) << 16 & empty << 8 & empty & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, -16, DoublePush, king_sq, moved_pawns);
+
+        moved_pawns = (pawns & ~promotion_rank & capture_left_mask) << 7 & enemy_pieces & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, -7, 0, king_sq, moved_pawns);
+
+        moved_pawns = (pawns & ~promotion_rank & capture_right_mask) << 9 & enemy_pieces & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, -9, 0, king_sq, moved_pawns);
+
+        const uint64_t promotion_pawns = pawns & promotion_rank;
+        moved_pawns = (promotion_pawns & capture_left_mask) << 7 & enemy_pieces & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, -7, PromoteQueen, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, -7, PromoteKnight, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, -7, PromoteRook, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, -7, PromoteBishop, king_sq, moved_pawns);
+
+        moved_pawns = (promotion_pawns & capture_right_mask) << 9 & enemy_pieces & check_mask & board->pins;
+        SplatPinnedPawnMoves(moves, num_moves, -9, PromoteQueen, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, -9, PromoteKnight, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, -9, PromoteRook, king_sq, moved_pawns);
+        SplatPinnedPawnMoves(moves, num_moves, -9, PromoteBishop, king_sq, moved_pawns);
+    }
     const int en_passant_file = board->en_passant_square % 8;
     const int en_passant_rank = board->en_passant_square / 8;
     if (can_en_passant){
+        uint64_t pseudo_occupied;
         const int square = en_passant_rank * 8 + en_passant_file;
+        const int captured_sq = square + (board->white_to_move ? 8 : -8);
         if (board->white_to_move) {
-            if (en_passant_file + 1 < 8 && board->squares[square + 9] == WhitePawn) {
+            pseudo_occupied = (occupied | 1ULL << square) & ~(1ULL << captured_sq | 1ULL << (square + 9));
+            if (en_passant_file + 1 < 8 && board->squares[square + 9] == WhitePawn && !(AttackersToSquare(board, king_sq, pseudo_occupied) & pseudo_occupied & enemy_pieces)) {
                 moves[(*num_moves)++] = MoveConstructor(square + 9, square, EnPassant);
             }
-            if (en_passant_file - 1 >= 0 && board->squares[square + 7] == WhitePawn) {
+            pseudo_occupied = (occupied | 1ULL << square) & ~(1ULL << captured_sq | 1ULL << (square + 7));
+            if (en_passant_file - 1 >= 0 && board->squares[square + 7] == WhitePawn && !(AttackersToSquare(board, king_sq, pseudo_occupied) & pseudo_occupied & enemy_pieces)) {
                 moves[(*num_moves)++] = MoveConstructor(square + 7, square, EnPassant);
             }
         }else {
-
-            if (en_passant_file + 1 < 8 && board->squares[square - 7] == BlackPawn) {
+            pseudo_occupied = (occupied | 1ULL << square) & ~(1ULL << captured_sq | 1ULL << (square - 7));
+            if (en_passant_file + 1 < 8 && board->squares[square - 7] == BlackPawn && !(AttackersToSquare(board, king_sq, pseudo_occupied) & pseudo_occupied & enemy_pieces)) {
                 moves[(*num_moves)++] = MoveConstructor(square - 7, square, EnPassant);
             }
-
-            if (en_passant_file - 1 >= 0 && board->squares[square - 9] == BlackPawn) {
+            pseudo_occupied = (occupied | 1ULL << square) & ~(1ULL << captured_sq | 1ULL << (square - 9));
+            if (en_passant_file - 1 >= 0 && board->squares[square - 9] == BlackPawn && !(AttackersToSquare(board, king_sq, pseudo_occupied) & pseudo_occupied & enemy_pieces)) {
                 moves[(*num_moves)++] = MoveConstructor(square - 9, square, EnPassant);
             }
         }
     }
 }
 
-/// Pseudolegal moves
-int GetMoves(Board *board, Move* moves){
+/// Legal moves
+int GetMoves(const Board *board, Move* moves){
     int num_moves = 0;
     uint64_t enemy_pieces = board->color_bbs[board->white_to_move];
     uint64_t friendly_pieces = board->color_bbs[!board->white_to_move];
     uint64_t occupied = enemy_pieces | friendly_pieces;
     uint64_t king = friendly_pieces & board->piece_bbs[King];
     uint64_t pieces = friendly_pieces & ~(board->piece_bbs[Knight] | board->piece_bbs[Pawn] | king);
+    const int king_sq = getlsb(king);
+    const uint64_t check_lines = GetCheckers(board, king_sq);
 
-    GetPawnMoves(board, moves, &num_moves);
-    GetKnightMoves(moves, &num_moves, friendly_pieces & board->piece_bbs[Knight], friendly_pieces);
-    GetKingMoves(board, moves, &num_moves, poplsb(&king), friendly_pieces);
+    // When in double check only the king can move
+    if (__builtin_popcountll(check_lines & enemy_pieces) >= 2)
+    {
+        GetKingMoves(board, check_lines, moves, &num_moves, poplsb(&king), friendly_pieces);
+        return num_moves;
+    }
+
+    GetPawnMoves(board, check_lines, moves, &num_moves);
+    GetKnightMoves(board, check_lines, moves, &num_moves, friendly_pieces & board->piece_bbs[Knight], friendly_pieces);
+    GetKingMoves(board, check_lines, moves, &num_moves, poplsb(&king), friendly_pieces);
 
     while(pieces){
         const int square = poplsb(&pieces);
         switch (GetType(board->squares[square])) {
             case Bishop:
-                GetBishopMoves(moves, &num_moves, square, friendly_pieces, occupied);
+                GetBishopMoves(board, check_lines, king_sq, moves, &num_moves, square, friendly_pieces, occupied);
                 break;
             case Rook:
-                GetRookMoves(moves, &num_moves, square, friendly_pieces, occupied);
+                GetRookMoves(board, check_lines, king_sq, moves, &num_moves, square, friendly_pieces, occupied);
                 break;
             case Queen:
-                GetRookMoves(moves, &num_moves, square, friendly_pieces, occupied);
-                GetBishopMoves(moves, &num_moves, square, friendly_pieces, occupied);
+                GetRookMoves(board, check_lines, king_sq, moves, &num_moves, square, friendly_pieces, occupied);
+                GetBishopMoves(board, check_lines, king_sq, moves, &num_moves, square, friendly_pieces, occupied);
                 break;
             default:
                 exit(-1);
