@@ -332,10 +332,6 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         // Move loop pruning
         if (best_score > CHECKMATE + 255)
         {
-            if (depth <= 4 && !in_check && !is_capture && get_history(thread, move, ply) < depth * -2048) {
-                continue;
-            }
-
             if (ply > 0 && !in_check && !is_capture && played >= (6 + depth * depth) / (2 - improving))
             {
                 continue;
@@ -343,6 +339,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
 
             if (num_legal_moves > 0 && !in_check && !is_capture && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
             {
+                continue;
+            }
+
+            if (depth <= 4 && !in_check && !is_capture && get_history(thread, move, ply) < depth * -2048) {
                 continue;
             }
 
