@@ -101,6 +101,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
     const int tt_score = correct_score(entry.score, -ply);
+    const int type = GetEntryType(entry);
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
@@ -117,7 +118,6 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     }
 
     if (!is_pv && tt_hit) {
-        int type = GetEntryType(entry);
         if (type == EXACT)
             return tt_score;
         if (type == LOWER && tt_score >= beta)
@@ -127,7 +127,16 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     }
 
 
-    int best_score = tt_hit ? tt_score : static_eval;
+    int best_score = static_eval;
+    if (tt_hit)
+    {
+        if (type == EXACT)
+            best_score = tt_score;
+        if (type == LOWER && tt_score > static_eval)
+            best_score = tt_score;
+        if (type == UPPER && tt_score < static_eval)
+            best_score = tt_score;
+    }
     if( best_score >= beta )
         return best_score;
     if( best_score > alpha )
@@ -170,21 +179,21 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         }
     }
 
-    int type = EXACT;
+    int new_type = EXACT;
     if (best_score >= beta)
     {
-        type = LOWER;
+        new_type = LOWER;
     }
     else if (best_score < alpha)
     {
-        type = UPPER;
+        new_type = UPPER;
     }
 
     Entry new_entry = {
         .hash = board->zobrist_hash,
         .best_move = best_move,
         .score = (int16_t)correct_score(best_score, ply),
-        .depth_node_type = type | 0
+        .depth_node_type = new_type | 0
     };
     thread->tt.entries[tt_index] = new_entry;
     return best_score;
@@ -236,15 +245,15 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         if (tt_flag == UPPER && tt_score <= alpha)
             return tt_score;
     }
-    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnue_eval(thread, board, ply), ply);
+    int static_eval = in_check ? NEG_INF : correct_eval(thread, nnue_eval(thread, board, ply), ply);
     thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;
     if (in_check) {
         improving = false;
-    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != -NEG_INF) {
+    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != NEG_INF) {
         improving = static_eval > thread->ss[ply - 2].static_eval;
-    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != -NEG_INF) {
+    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != NEG_INF) {
         improving = static_eval > thread->ss[ply - 4].static_eval;
     }
 
