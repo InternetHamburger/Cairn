@@ -321,6 +321,26 @@ void remove_feature(nnue_t* nnue, Piece piece, int sq, bool w_flip, bool b_flip,
     }
 }
 
+void move_feature(nnue_t* nnue, Piece piece, int from, int to, bool w_flip, bool b_flip, int w_bucket, int b_bucket)
+{
+    int from_index = get_index(piece, from, w_flip, false);
+    int to_index = get_index(piece, to, w_flip, false);
+    int flipped_from_index = get_index(piece, from, b_flip, true);
+    int flipped_to_index = get_index(piece, to, b_flip, true);
+    for (int neuron = 0; neuron < HL_SIZE; neuron += FULL_VECTOR_SIZE / sizeof(int16_t)){
+        vfsi16 w_acc = *(vfsi16*)(nnue->white_accumulator + neuron);
+        vfsi16 b_acc = *(vfsi16*)(nnue->black_accumulator + neuron);
+
+        vfsi16 from_w_weights = *(vfsi16*)&parameters.feature_weights[w_bucket][from_index][neuron];
+        vfsi16 to_w_weights = *(vfsi16*)&parameters.feature_weights[w_bucket][to_index][neuron];
+        vfsi16 from_b_weights = *(vfsi16*)&parameters.feature_weights[b_bucket][flipped_from_index][neuron];
+        vfsi16 to_b_weights = *(vfsi16*)&parameters.feature_weights[b_bucket][flipped_to_index][neuron];
+
+        *(vfsi16*)(nnue->white_accumulator + neuron) = w_acc - from_w_weights + to_w_weights;
+        *(vfsi16*)(nnue->black_accumulator + neuron) = b_acc - from_b_weights + to_b_weights;
+    }
+}
+
 void update_accumulators(const Board* board, const Move move, nnue_t* nnue){
     const int start_square = StartSquare(move);
     const int target_square = TargetSquare(move);
@@ -335,8 +355,7 @@ void update_accumulators(const Board* board, const Move move, nnue_t* nnue){
     const bool w_flip = GetFile(w_king_sq) > 3;
     const bool b_flip = GetFile(b_king_sq) > 3;
 
-    add_feature(nnue, moved_piece, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
-    remove_feature(nnue, moved_piece, start_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
+    move_feature(nnue, moved_piece, start_square, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
 
     if (captured_piece){
         remove_feature(nnue, captured_piece, target_square, w_flip, b_flip, w_king_bucket, b_king_bucket);
