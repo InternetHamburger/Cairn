@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <x86gprintrin.h>
 
 #define sign(x) ((x > 0) - (x < 0))
 
@@ -103,6 +104,87 @@ uint64_t project_bits(uint64_t mask, uint64_t bits){
     return projected_bb;
 }
 
+#ifdef __BMI2__
+void fill_tables()
+{
+    for (int sq = 0; sq < 64; sq++)
+    {
+        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
+        rook_magics[sq].table = malloc(sizeof(uint64_t) * ent);
+
+        ent = 1ULL << (64 - bishop_magics[sq].shift);
+        bishop_magics[sq].table = malloc(sizeof(uint64_t) * ent);
+    }
+
+    for (int sq = 0; sq < 64; sq++){
+        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
+        memset(rook_magics[sq].table, 0, sizeof(uint64_t) * ent);
+        for (uint64_t i = 0; i < ent; i++){
+            uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
+            uint64_t idx = _pext_u64(blocker_bb, rook_magics[sq].mask);
+            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
+            rook_magics[sq].table[idx] = attacks;
+        }
+    }
+    for (int sq = 0; sq < 64; sq++){
+        uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
+        memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * ent);
+        for (uint64_t i = 0; i < ent; i++){
+            uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
+            uint64_t idx = _pext_u64(blocker_bb, bishop_magics[sq].mask);
+            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
+            bishop_magics[sq].table[idx] = attacks;
+        }
+    }
+}
+
+uint64_t rook_attack(uint64_t occ, int sq)
+{
+    occ &= rook_magics[sq].mask;
+    return rook_magics[sq].table[_pext_u64(occ, rook_magics[sq].mask)];
+}
+
+uint64_t bishop_attack(uint64_t occ, int sq)
+{
+    occ &= bishop_magics[sq].mask;
+    return bishop_magics[sq].table[_pext_u64(occ, bishop_magics[sq].mask)];
+}
+#else
+void fill_tables()
+{
+    for (int sq = 0; sq < 64; sq++)
+    {
+        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
+        rook_magics[sq].table = malloc(sizeof(uint64_t) * ent);
+
+        ent = 1ULL << (64 - bishop_magics[sq].shift);
+        bishop_magics[sq].table = malloc(sizeof(uint64_t) * ent);
+    }
+
+    for (int sq = 0; sq < 64; sq++){
+        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
+        memset(rook_magics[sq].table, 0, sizeof(uint64_t) * ent);
+        for (uint64_t i = 0; i < ent; i++){
+            uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
+            uint64_t idx = (rook_magic_numbers[sq] * blocker_bb) >> rook_magics[sq].shift;
+            uint64_t* entry = &rook_magics[sq].table[idx];
+            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
+            *entry = attacks;
+        }
+    }
+    for (int sq = 0; sq < 64; sq++){
+        uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
+        memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * ent);
+        for (uint64_t i = 0; i < ent; i++){
+            uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
+            uint64_t idx = (bishop_magic_numbers[sq] * blocker_bb) >> bishop_magics[sq].shift;
+            uint64_t* entry = &bishop_magics[sq].table[idx];
+            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
+            *entry = attacks;
+        }
+    }
+}
+
 uint64_t rook_attack(uint64_t occ, int sq)
 {
     occ &= rook_magics[sq].mask;
@@ -114,6 +196,7 @@ uint64_t bishop_attack(uint64_t occ, int sq)
     occ &= bishop_magics[sq].mask;
     return bishop_magics[sq].table[(occ * bishop_magic_numbers[sq]) >> bishop_magics[sq].shift];
 }
+#endif
 
 void find_magics(){
     uint64_t seed = 966479893026083835;
@@ -175,41 +258,6 @@ void find_magics(){
         printf("%lluULL, ", bishop_magics[i].magic);
     }
     printf("\n};\n\n");
-}
-
-void fill_tables()
-{
-    for (int sq = 0; sq < 64; sq++)
-    {
-        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
-        rook_magics[sq].table = malloc(sizeof(uint64_t) * ent);
-
-        ent = 1ULL << (64 - bishop_magics[sq].shift);
-        bishop_magics[sq].table = malloc(sizeof(uint64_t) * ent);
-    }
-
-    for (int sq = 0; sq < 64; sq++){
-        uint64_t ent = 1ULL << (64 - rook_magics[sq].shift);
-        memset(rook_magics[sq].table, 0, sizeof(uint64_t) * ent);
-        for (uint64_t i = 0; i < ent; i++){
-            uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
-            uint64_t idx = (rook_magic_numbers[sq] * blocker_bb) >> rook_magics[sq].shift;
-            uint64_t* entry = &rook_magics[sq].table[idx];
-            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
-            *entry = attacks;
-        }
-    }
-    for (int sq = 0; sq < 64; sq++){
-        uint64_t ent = 1ULL << (64 - bishop_magics[sq].shift);
-        memset(bishop_magics[sq].table, 0, sizeof(uint64_t) * ent);
-        for (uint64_t i = 0; i < ent; i++){
-            uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
-            uint64_t idx = (bishop_magic_numbers[sq] * blocker_bb) >> bishop_magics[sq].shift;
-            uint64_t* entry = &bishop_magics[sq].table[idx];
-            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
-            *entry = attacks;
-        }
-    }
 }
 
 void verify_magics()
@@ -437,5 +485,4 @@ static void init_table(void) {
     }
 
     fill_tables();
-    verify_magics();
 }

@@ -5,24 +5,32 @@ project(Cairn C)
 include(CheckCCompilerFlag)
 include(CheckCSourceRuns)
 
-check_c_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512)
 
-if(COMPILER_SUPPORTS_AVX512)
-    check_c_source_runs("
-        int main() {
-            __builtin_cpu_init();
-            return !(__builtin_cpu_supports(\"avx512f\")  &&
-                     __builtin_cpu_supports(\"avx512bw\") &&
-                     __builtin_cpu_supports(\"avx512vl\") &&
-                     __builtin_cpu_supports(\"avx512dq\"));
-        }
-    " HAS_AVX512)
-endif()
+check_c_source_runs("
+    int main() {
+        __builtin_cpu_init();
+        return !(__builtin_cpu_supports(\"avx512f\")  &&
+                 __builtin_cpu_supports(\"avx512bw\") &&
+                 __builtin_cpu_supports(\"avx512vl\") &&
+                 __builtin_cpu_supports(\"avx512dq\"));
+    }
+" HAS_AVX512)
+
+check_c_source_runs("
+    int main() {
+        __builtin_cpu_init();
+        return !__builtin_cpu_supports(\"bmi2\");
+    }
+" HAS_BMI2)
 
 add_compile_options(-mavx2)
 if(HAS_AVX512)
     add_compile_options(-mavx512f -mavx512bw -mavx512vl -mavx512dq)
-    message("avx512 yeaaaaaah")
+    message("avx512 detected")
+endif()
+if (HAS_BMI2)
+    add_compile_options(-mbmi2)
+    message("bmi2 detected")
 endif()
 
 set(NETWORK_NAME "net21")
