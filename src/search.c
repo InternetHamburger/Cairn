@@ -180,13 +180,8 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         type = UPPER;
     }
 
-    Entry new_entry = {
-        .hash = board->zobrist_hash,
-        .best_move = best_move,
-        .score = (int16_t)correct_score(best_score, ply),
-        .depth_node_type = type | 0
-    };
-    thread->tt.entries[tt_index] = new_entry;
+    StoreTT(entry, tt_index, correct_score(best_score, ply), best_move, 0, type, thread);
+
     return best_score;
 }
 
@@ -457,14 +452,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
 
     if (!is_singular)
     {
-        Entry new_entry = {
-            .hash = board->zobrist_hash,
-            .best_move = tt_hit && new_flag == UPPER ? tt_move : best_move,
-            .score = (int16_t)correct_score(best_score, ply),
-            .depth_node_type = new_flag | depth
-        };
-
-        thread->tt.entries[tt_index] = new_entry;
+        StoreTT(entry, tt_index, correct_score(best_score, ply), best_move, depth, new_flag, thread);
 
         const bool is_capture = board->squares[TargetSquare(best_move)] != None;
         if (!in_check && (best_move.value == 0 || !is_capture) && (
