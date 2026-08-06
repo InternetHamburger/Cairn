@@ -1,9 +1,9 @@
 EXE ?= Cairn
 
 CC=gcc
-CMAKE := cmake.exe
+CMAKE := cmake
 BUILD_TYPE := Release
-C_COMPILER := C:/msys64/mingw64/bin/gcc.exe
+C_COMPILER := gcc
 SOURCE_DIR := $(CURDIR)
 BUILD_DIR := $(SOURCE_DIR)/cmake-build-release
 
