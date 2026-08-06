@@ -14,7 +14,7 @@ configure:
 		-DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
 		-DCMAKE_C_COMPILER=$(C_COMPILER) \
 		-DEXE_NAME=$(EXE) \
-		-G "MinGW Makefiles" \
+		-G "Ninja" \
 		-S "$(SOURCE_DIR)" \
 		-B "$(BUILD_DIR)"
 
