@@ -7,7 +7,7 @@
 #include "utility.h"
 #include "incbin/incbin.h"
 
-#define CLAMP(x, a, b) __min(__max(x, a), b)
+#define CLAMP(x, a, b) MAX(MIN(x, a), b)
 
 INCBIN(quant, NETWORK);
 

@@ -191,7 +191,7 @@ int eval(const Board *board) {
     }
 
     // Interpolate based on number of pieces
-    phase = __min(24, phase);
+    phase = MIN(24, phase);
     int eval = (mg_eval * phase + eg_eval * (24 - phase)) / 24;
 
     return eval * (board->white_to_move ? 1 : -1);

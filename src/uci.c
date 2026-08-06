@@ -200,8 +200,8 @@ void GoCommand(char* line, Thread *thread) {
     thread->node_limit = nodes;
     thread->depth_limit = depth;
     thread->soft_node_limit = softnodes;
-    thread->time_limit = __min(hard_time_limit, movetime);
-    thread->soft_time_limit = __min(soft_time_limit, movetime);
+    thread->time_limit = MIN(hard_time_limit, movetime);
+    thread->soft_time_limit = MIN(soft_time_limit, movetime);
     search(thread);
 }
 

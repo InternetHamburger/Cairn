@@ -28,10 +28,14 @@ endif()
 set(NETWORK_NAME "net21")
 set(NETWORK "${CMAKE_SOURCE_DIR}/${NETWORK_NAME}.bin")
 
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -flto -Wall -Wextra -Wl,--stack,16777216")
+if(WIN32)
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -Wl,--stack,16777216")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wl,--stack,16777216")
+endif()
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -DNDEBUG -flto -Wall -Wextra")
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0 -Wall -Wextra -Wl,--stack,16777216")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0 -Wall -Wextra")
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -g")
 
 add_executable(Cairn
@@ -54,6 +58,7 @@ add_executable(Cairn
 )
 
 target_compile_definitions(Cairn PRIVATE NETWORK="${NETWORK}")
+target_link_libraries(Cairn PRIVATE m)
 
 set(EXE_NAME "Cairn" CACHE STRING "Output executable name")
 set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_SOURCE_DIR})

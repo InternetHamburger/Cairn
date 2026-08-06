@@ -14,7 +14,7 @@
 #include <math.h>
 #include <string.h>
 
-#define CLAMP(x, a, b) __min(__max(x, a), b)
+#define CLAMP(x, a, b) MIN(MAX(x, a), b)
 
 constexpr int ASP_MIN_DEPTH = 5;
 
@@ -276,7 +276,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
     int extension = 0;
     if (ply > 0 && depth >= 7 && !is_singular && tt_depth >= depth - 3 && tt_flag != UPPER && tt_hit)
     {
-        const int singular_beta = __max(NEG_INF + 1, tt_score - depth);
+        const int singular_beta = MAX(NEG_INF + 1, tt_score - depth);
         const int singular_depth = depth / 2;
 
         thread->ss[ply].excluded = tt_move;
@@ -381,7 +381,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
             r -= thread->killer_moves[ply].value == move.value;
             r -= improving;
             r += 2 * cutnode;
-            r = __max(r, 0);
+            r = MAX(r, 0);
             score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth - r, ply + 1, true, &lpv);
             if (score > alpha && is_pv)
             {
@@ -535,8 +535,8 @@ SearchResult search(Thread *thread) {
         if (depth >= ASP_MIN_DEPTH)
         {
             int delta = 20;
-            alpha = __max(best_score - delta, NEG_INF);
-            beta = __min(best_score + delta, -NEG_INF);
+            alpha = MAX(best_score - delta, NEG_INF);
+            beta = MIN(best_score + delta, -NEG_INF);
             while (1)
             {
                 if (thread->nodes >= thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes >= thread->node_limit) {
@@ -547,11 +547,11 @@ SearchResult search(Thread *thread) {
                 if (score <= alpha)
                 {
                     beta = (alpha + beta) / 2;
-                    alpha = __max(best_score - delta, NEG_INF);
+                    alpha = MAX(best_score - delta, NEG_INF);
                 }
                 else if (score >= beta)
                 {
-                    beta = __min(best_score + delta, -NEG_INF);
+                    beta = MIN(best_score + delta, -NEG_INF);
                 }
                 else
                 {

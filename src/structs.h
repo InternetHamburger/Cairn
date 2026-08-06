@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
 #define INPUT_SIZE 768
 #define HL_SIZE 1024
 #define NUM_INPUT_BUCKETS 4
