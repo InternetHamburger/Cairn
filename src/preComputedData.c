@@ -42,50 +42,74 @@ uint64_t antiDiagMask(int sq) {
     return diag >= 0 ? maindia >> diag*8 : maindia << -diag*8;
 }
 
-uint64_t diagonalAttacks(uint64_t occ, int sq) {
-    uint64_t forward, reverse;
-    forward = occ & masks[sq].diagonalMaskEx;
-    reverse  = _byteswap_uint64(forward);
-    forward -= masks[sq].bitMask;
-    reverse -= _byteswap_uint64(masks[sq].bitMask);
-    forward ^= _byteswap_uint64(reverse);
-    forward &= masks[sq].diagonalMaskEx;
-    return forward;
-}
-
-uint64_t antiDiagAttacks(uint64_t occ, int sq) {
-    uint64_t forward, reverse;
-    forward  = occ & masks[sq].antidiagMaskEx;
-    reverse  = _byteswap_uint64(forward);
-    forward -= masks[sq].bitMask;
-    reverse -= _byteswap_uint64(masks[sq].bitMask);
-    forward ^= _byteswap_uint64(reverse);
-    forward &= masks[sq].antidiagMaskEx;
-    return forward;
-}
-
-uint64_t fileAttacks(uint64_t occ, int sq) {
-    uint64_t forward, reverse;
-    forward  = occ & masks[sq].fileMaskEx;
-    reverse  = _byteswap_uint64(forward);
-    forward -= masks[sq].bitMask;
-    reverse -= _byteswap_uint64(masks[sq].bitMask);
-    forward ^= _byteswap_uint64(reverse);
-    forward &= masks[sq].fileMaskEx;
-    return forward;
-}
-
-uint64_t rankAttacks(uint64_t occ, int sq)
+uint64_t loop_rook_attacks(uint64_t occ, int sq)
 {
-    return rank_attacks[occ >> (8 * (sq >> 3)) & 0b11111111][sq & 7] << (8 * (sq >> 3));
+    uint64_t attacks = 0;
+
+    // Right, left, up, down
+    const int rank_changes[] = {0, 0, -1, 1};
+    const int file_changes[] = {1, -1, 0, 0};
+
+    for (int direction = 0; direction < 4; direction++)
+    {
+        int file = GetFile(sq);
+        int rank = GetRank(sq);
+        while (1)
+        {
+            file += file_changes[direction];
+            rank += rank_changes[direction];
+            if (!(file >= 0 && file < 8 && rank >= 0 && rank < 8))
+            {
+                break;
+            }
+            int new_sq = 8 * rank + file;
+            attacks |= 1ull << new_sq;
+            if (1ull << new_sq & occ)
+            {
+                break;
+            }
+        }
+    }
+
+    return attacks;
+}
+
+uint64_t loop_bishop_attacks(uint64_t occ, int sq)
+{
+    uint64_t attacks = 0;
+
+    // right-up, left-up, right-down, left-down
+    const int rank_changes[] = {-1, -1, 1, 1};
+    const int file_changes[] = {-1, 1, -1, 1};
+
+    for (int direction = 0; direction < 4; direction++)
+    {
+        int file = GetFile(sq);
+        int rank = GetRank(sq);
+        while (1)
+        {
+            file += file_changes[direction];
+            rank += rank_changes[direction];
+            if (!(file >= 0 && file < 8 && rank >= 0 && rank < 8))
+            {
+                break;
+            }
+            int new_sq = 8 * rank + file;
+            attacks |= 1ull << new_sq;
+            if (1ull << new_sq & occ)
+            {
+                break;
+            }
+        }
+    }
+
+    return attacks;
 }
 
 uint64_t allAttacks(uint64_t occ, int sq)
 {
-    return diagonalAttacks(occ, sq) +
-           antiDiagAttacks(occ, sq) +
-           fileAttacks(occ, sq) +
-           rankAttacks(occ, sq);
+    return loop_bishop_attacks(occ, sq) +
+           loop_rook_attacks(occ, sq);
 }
 
 uint64_t project_bits(uint64_t mask, uint64_t bits){
@@ -126,7 +150,7 @@ void find_magics(){
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
             uint64_t* entry = &rook_magics[sq].table[idx];
-            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
+            uint64_t attacks = loop_rook_attacks(blocker_bb, sq);
 
             if (*entry != 0 && *entry != attacks)
             {
@@ -148,7 +172,7 @@ void find_magics(){
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
             uint64_t* entry = &bishop_magics[sq].table[idx];
-            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
+            uint64_t attacks = loop_bishop_attacks(blocker_bb, sq);
 
             if (*entry != 0 && *entry != attacks)
             {
@@ -195,7 +219,7 @@ void fill_tables()
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (rook_magic_numbers[sq] * blocker_bb) >> rook_magics[sq].shift;
             uint64_t* entry = &rook_magics[sq].table[idx];
-            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
+            uint64_t attacks = loop_rook_attacks(blocker_bb, sq);
             *entry = attacks;
         }
     }
@@ -206,7 +230,7 @@ void fill_tables()
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (bishop_magic_numbers[sq] * blocker_bb) >> bishop_magics[sq].shift;
             uint64_t* entry = &bishop_magics[sq].table[idx];
-            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
+            uint64_t attacks = loop_bishop_attacks(blocker_bb, sq);
             *entry = attacks;
         }
     }
@@ -222,7 +246,7 @@ void verify_magics()
         {
             uint64_t blocker_bb = project_bits(rook_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> rook_magics[sq].shift;
-            uint64_t attacks = rankAttacks(blocker_bb, sq) + fileAttacks(blocker_bb, sq);
+            uint64_t attacks = loop_rook_attacks(blocker_bb, sq);
             if (rook_magics[sq].table[idx] != attacks)
             {
                 printf("hmm\n");
@@ -238,7 +262,7 @@ void verify_magics()
         {
             uint64_t blocker_bb = project_bits(bishop_magics[sq].mask, i);
             uint64_t idx = (magic * blocker_bb) >> bishop_magics[sq].shift;
-            uint64_t attacks = diagonalAttacks(blocker_bb, sq) + antiDiagAttacks(blocker_bb, sq);
+            uint64_t attacks = loop_bishop_attacks(blocker_bb, sq);
             if (bishop_magics[sq].table[idx] != attacks)
             {
                 printf("hmm");
@@ -409,8 +433,8 @@ static void init_table(void) {
     for (int sq = 0; sq < 64; sq++){
         const int file = sq % 8;
         const int rank = sq / 8;
-        uint64_t rook_attacks = fileAttacks(0, sq) + rankAttacks(0, sq);
-        uint64_t bishop_attacks = diagonalAttacks(0, sq) + antiDiagAttacks(0, sq);
+        uint64_t rook_attacks = loop_rook_attacks(0, sq);;
+        uint64_t bishop_attacks = loop_bishop_attacks(0, sq);;
 
         if (file > 0){
             rook_attacks &= ~a_file;
