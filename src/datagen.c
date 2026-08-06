@@ -1,7 +1,10 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <pthread.h>
-#include <windows.h>
+
+#ifdef _WIN64
+    #include <windows.h>
+#endif
 
 #include "nnue.h"
 #include "board.h"
