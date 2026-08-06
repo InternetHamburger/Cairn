@@ -205,7 +205,7 @@ void GoCommand(char* line, Thread *thread) {
     search(thread);
 }
 
-void RunDatagen(char* line, char* this_path){
+void RunDatagen(char* line){
     int num_threads;
     line += strlen("threads ");
     sscanf(line, "%d", &num_threads);
@@ -224,7 +224,7 @@ void RunDatagen(char* line, char* this_path){
     line += strlen("output ");
     line[strlen(line) - 1] = '\0';
 
-    Datagen(line, this_path, num_threads, seed);
+    Datagen(line, num_threads, seed);
 }
 
 void SetOption(char* line, Thread* thread){
@@ -304,7 +304,7 @@ void PerftSuite(){
     printf("nodes %llu nps %llu\n", total_nodes, total_nodes * 1000 / (clock() - start));
 }
 
-void ReceiveCommand(char* line, char* this_path, Thread *thread) {
+void ReceiveCommand(char* line, Thread *thread) {
     char* token;
     const char delimiter[] = " ";
     token = strtok(line, delimiter);
@@ -334,7 +334,7 @@ void ReceiveCommand(char* line, char* this_path, Thread *thread) {
     }
     else if (strncmp(token, "datagen", 7) == 0){
         line += 8;
-        RunDatagen(line, this_path);
+        RunDatagen(line);
     }
     else if (strncmp(token, "d", 1) == 0){
         PrintBoard(&thread->board);

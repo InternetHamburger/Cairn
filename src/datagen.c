@@ -2,10 +2,6 @@
 #include <assert.h>
 #include <pthread.h>
 
-#ifdef _WIN64
-    #include <windows.h>
-#endif
-
 #include "nnue.h"
 #include "board.h"
 #include "search.h"
@@ -13,6 +9,8 @@
 #include "utility.h"
 #include "zobrist.h"
 #include "moveGeneration.h"
+
+pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 Piece ConvertPiece(Piece piece) {
     return piece == 0 ? 0 : ((piece & 0b0111) - 1) | (piece & 0b1000);
@@ -121,7 +119,7 @@ uint64_t GetViriOccupied(Board *board) {
 }
 
 Board PrepareGame(DatagenInfo *this, Thread* thread) {
-    uint64_t* seed = &this->thread_id;
+    uint64_t* seed = &this->seed;
     PseudorandomNumber(seed);
     Board rand_pos = GenerateRandomPosition(seed);
     init_accumulator_stack(thread, &rand_pos, &thread->nnue);
@@ -215,7 +213,7 @@ double PlayGame(DatagenInfo *this, Thread* thread) {
     }
 
     this->game.ply = board->game_ply;
-    this->thread_id = PseudorandomNumber(&this->thread_id);
+    this->seed = PseudorandomNumber(&this->seed);
 
     return 0;
 }
@@ -240,60 +238,53 @@ void WriteGame(Game *game, FILE *file) {
     fflush(file);
 }
 
-void* GameLoop(DatagenInfo *this, Thread* thread) {
-
-    HANDLE hMutex = CreateMutex(NULL, FALSE, "Global\\DatagenFileMutex");
+void* GameLoop(void *arg) {
+    DatagenInfo* this = arg;
 
     while (1) {
-        PlayGame(this, thread);
-        WaitForSingleObject(hMutex, INFINITE);
+        PlayGame(this, this->thread);
+        pthread_mutex_lock(&data_mutex);
         WriteGame(&this->game, this->file);
-        ReleaseMutex(hMutex);
+        pthread_mutex_unlock(&data_mutex);
     }
     return NULL;
 }
 
-void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed) {
+void Datagen(char* file_path, int num_threads, uint64_t seed) {
+
+    FILE *file = fopen(file_path, "ab");
+
+    DatagenInfo infos[num_threads];
+
+    pthread_t threads[num_threads];
     for (int i = 0; i < num_threads; i++) {
+        Thread* thread = malloc(sizeof(Thread));
+         *thread = (Thread){
+            .depth_limit = 255,
+            .time_limit = INT64_MAX,
+            .soft_time_limit = INT64_MAX,
+            .ss = {0}
+        };
 
-        STARTUPINFO si;
-        PROCESS_INFORMATION pi;
+        int num_entries = 16 * 1000000 / sizeof(Entry);
+        Entry* entries = malloc(num_entries * sizeof(Entry));
+        thread->tt.num_entries = num_entries;
+        thread->tt.entries = entries;
+        ZeroTT(&thread->tt);
 
-        ZeroMemory(&si, sizeof(si));
-        si.cb = sizeof(si);
-        ZeroMemory(&pi, sizeof(pi));
+        infos[i].file = file;
+        infos[i].thread_id = i;
+        infos[i].seed = PseudorandomNumber(&seed) + PseudorandomNumber(&seed);
+        infos[i].thread = thread;
+    }
 
-        HANDLE hJob = CreateJobObject(NULL, NULL);
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {0};
-        jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli));
+    for (int i = 0; i < num_threads; i++)
+    {
+        pthread_create(&threads[i], nullptr, GameLoop, &infos[i]);
+    }
 
-        AssignProcessToJobObject(hJob, pi.hProcess);
-
-        char cmdLine[256];
-        uint64_t num_0 = PseudorandomNumber(&seed);
-        uint64_t num_1 = PseudorandomNumber(&seed);
-        seed += num_0 + num_1;
-        sprintf(cmdLine, "datagen seed %llu output %s", seed, file_path);
-        printf("%s this %s\n", cmdLine, this_path);
-        if (!CreateProcess(
-                this_path,       // path to executable
-                cmdLine,         // command line arguments (NULL if none)
-                nullptr,         // process security attributes
-                nullptr,         // thread security attributes
-                FALSE,           // inherit handles
-                0,               // creation flags
-                NULL,            // environment
-                nullptr,         // current directory
-                &si,
-                &pi
-        )) {
-            printf("CreateProcess failed (%lu).\n", GetLastError());
-            continue;
-        }
-
-        CloseHandle(pi.hThread);
-        CloseHandle(pi.hProcess);
-
+    for (int i = 0; i < num_threads; i++)
+    {
+        pthread_join(threads[i], nullptr);
     }
 }

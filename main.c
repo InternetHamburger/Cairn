@@ -10,7 +10,7 @@
 int main(int argc, char *args[]) {
 
     load_incbin();
-    Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    const Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     Thread thread = {
             .nodes = 0,
             .node_limit = INT64_MAX,
@@ -29,26 +29,11 @@ int main(int argc, char *args[]) {
     thread.tt.entries = entries;
     ZeroTT(&thread.tt);
 
-    int offset = argc > 1 && (strncmp(args[1], "datagen", strlen("datagen")) == 0) ? 1 : 0;
-
-    if (argc > 1 && (strncmp(args[offset], "datagen", strlen("datagen")) == 0)){
-        uint64_t seed;
-        sscanf(args[2 + offset], "%llu", &seed);
-        FILE *file = fopen(args[4 + offset], "ab");
-
-        DatagenInfo state = {
-                .thread_id = seed,
-                .file = file
-        };
-
-        GameLoop(&state, &thread);
-        return 0;
-    }
-    else if (argc > 1 && strncmp(args[1], "bench", 5) == 0){
+    if (argc > 1 && strncmp(args[1], "bench", 5) == 0){
         Bench(&thread);
         return 0;
     }
-    else if (argc > 1 && strncmp(args[1], "perftsuite", 10) == 0){
+    if (argc > 1 && strncmp(args[1], "perftsuite", 10) == 0){
         PerftSuite();
         return 0;
     }
@@ -63,7 +48,7 @@ int main(int argc, char *args[]) {
             input[i] = line[i];
         }
         input[strlen(line)] = '\0';
-        ReceiveCommand(input, args[0], &thread);
+        ReceiveCommand(input, &thread);
 
     }
     return 0;

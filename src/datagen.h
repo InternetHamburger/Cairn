@@ -24,12 +24,13 @@ typedef struct { // In viriformat: https://github.com/cosmobobak/viriformat
 
 typedef struct {
     Game game;
+    uint64_t seed;
     uint64_t thread_id;
     FILE *file;
+    Thread* thread;
 } DatagenInfo;
 
 Piece ConvertPiece(Piece piece);
-void Datagen(char* file_path, char* this_path, int num_threads, uint64_t seed);
-void* GameLoop(DatagenInfo *this, Thread* thread);
+void Datagen(char* file_path, int num_threads, uint64_t seed);
 
 #endif //CAIRN_DATAGEN_H

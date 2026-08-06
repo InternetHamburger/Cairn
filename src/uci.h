@@ -5,7 +5,7 @@
 
 void Bench(Thread* thread);
 void PerftSuite();
-void ReceiveCommand(char* line, char* this_path, Thread *thread);
+void ReceiveCommand(char* line, Thread *thread);
 
 
 #endif //CAIRN_UCI_H
