@@ -434,7 +434,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         *board = thread->ss[ply].board;
         thread->nnue = thread->nnue_stack.nnue_stack[ply];
 
-        if (is_time_up((thread))) {
+        if (is_time_up(thread)) {
             return NEG_INF;
         }
 
@@ -600,7 +600,7 @@ SearchResult search(Thread *thread) {
         {
             score = Negamax(thread, NEG_INF, -NEG_INF, depth, 0, false, &pv);
         }
-        best_move = pv.line[0];
+        best_move = pv.line[0].value ? pv.line[0] : best_move;
         if (score != NEG_INF){
             best_score = score;
             lpv = pv;
@@ -619,7 +619,6 @@ SearchResult search(Thread *thread) {
     Board* board = &thread->board;
 
     if (best_move.value == 0){
-
         Move moves[256];
         int num_moves = GetMoves(board, moves);
 
