@@ -91,6 +91,36 @@ int correct_score(int score, int ply){
     return score;
 }
 
+bool is_time_up(Thread* thread)
+{
+    if (thread->nodes >= thread->node_limit)
+    {
+        return true;
+    }
+    if (1000 * (clock() - thread->start_time) / CLOCKS_PER_SEC >= (double)thread->time_limit)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool is_soft_time_up(Thread* thread)
+{
+    if (is_time_up(thread))
+    {
+        return true;
+    }
+    if (thread->nodes >= thread->soft_node_limit)
+    {
+        return true;
+    }
+    if (1000 * (clock() - thread->start_time) / CLOCKS_PER_SEC >= (double)thread->soft_time_limit)
+    {
+        return true;
+    }
+    return false;
+}
+
 int qSearch(Thread *thread, int alpha, int beta, int ply){
     Board* board = &thread->board;
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
@@ -404,7 +434,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         *board = thread->ss[ply].board;
         thread->nnue = thread->nnue_stack.nnue_stack[ply];
 
-        if (thread->nodes >= thread->node_limit || clock() - thread->start_time > thread->time_limit) {
+        if (is_time_up((thread))) {
             return NEG_INF;
         }
 
@@ -502,7 +532,7 @@ void UCIReport(Thread *thread, PVariation *lpv, int depth, int score, int time_e
         printf(" score cp %d", score);
     }
     printf(" nodes %"PRIu64"", thread->nodes);
-    printf(" nps %"PRIu64"", thread->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
+    printf(" nps %"PRIu64"", thread->nodes * CLOCKS_PER_SEC / (time_elapsed == 0 ? 1 : time_elapsed));
     printf(" hashfull %d", CountHashFull(thread));
     printf(" time %d", time_elapsed);
 
@@ -540,7 +570,7 @@ SearchResult search(Thread *thread) {
             beta = MIN(best_score + delta, -NEG_INF);
             while (1)
             {
-                if (thread->nodes >= thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes >= thread->node_limit) {
+                if (is_soft_time_up(thread)) {
                     break;
                 }
                 score = Negamax(thread, alpha, beta, depth, 0, false, &pv);
@@ -576,12 +606,12 @@ SearchResult search(Thread *thread) {
             lpv = pv;
         }
 
-        const int time_elapsed = (int)(clock() - thread->start_time);
+        const int time_elapsed = (int)(1000 * (clock() - thread->start_time) / CLOCKS_PER_SEC);
         if (thread->print_info){
             UCIReport(thread, &lpv, depth, best_score, time_elapsed);
         }
         assert(lpv.line[0].value != 0);
-        if (thread->nodes >= thread->soft_node_limit || (clock() - thread->start_time) > thread->soft_time_limit || thread->nodes >= thread->node_limit) {
+        if (is_soft_time_up(thread)) {
             break;
         }
     }

@@ -5,9 +5,21 @@
 #include "src/nnue.h"
 #include <stdlib.h>
 #include <string.h>
+#ifdef __unix__
+    #include <sys/resource.h>
+#endif
 
 int main(int argc, char *args[]) {
-
+    #ifdef __unix__
+        struct rlimit rl;
+        getrlimit(RLIMIT_STACK, &rl);
+        rl.rlim_cur = 16 * 1024 * 1024;  // 16 MB
+        if (setrlimit(RLIMIT_STACK, &rl) != 0){
+            perror("Setting new stack limit failed");
+            return 1;
+        }
+    #endif
+    
     load_incbin();
     const Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     Thread thread = {

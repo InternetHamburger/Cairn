@@ -289,7 +289,7 @@ void Bench(Thread* thread){
         GoCommand(go, thread);
         total_nodes += thread->nodes;
     }
-    printf("%"PRIu64" nodes %"PRIu64" nps\n", total_nodes, total_nodes * 1000 / (clock() - start));
+    printf("%"PRIu64" nodes %"PRIu64" nps\n", total_nodes, total_nodes * CLOCKS_PER_SEC / (clock() - start));
     thread->print_info = true;
 }
 
@@ -301,7 +301,7 @@ void PerftSuite(){
         Board board = BoardConstructor(bench_positions[i]);
         total_nodes += perft(&board, 4);
     }
-    printf("nodes %"PRIu64" nps %"PRIu64"\n", total_nodes, total_nodes * 1000 / (clock() - start));
+    printf("nodes %"PRIu64" nps %"PRIu64"\n", total_nodes, total_nodes * CLOCKS_PER_SEC / (clock() - start));
 }
 
 void ReceiveCommand(char* line, Thread *thread) {
