@@ -532,7 +532,7 @@ void UCIReport(Thread *thread, PVariation *lpv, int depth, int score, int time_e
         printf(" score cp %d", score);
     }
     printf(" nodes %"PRIu64"", thread->nodes);
-    printf(" nps %"PRIu64"", thread->nodes * CLOCKS_PER_SEC / (time_elapsed == 0 ? 1 : time_elapsed));
+    printf(" nps %"PRIu64"", thread->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
     printf(" hashfull %d", CountHashFull(thread));
     printf(" time %d", time_elapsed);
 
