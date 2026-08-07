@@ -435,7 +435,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         thread->nnue = thread->nnue_stack.nnue_stack[ply];
 
         if (is_time_up(thread)) {
-            return NEG_INF;
+            return best_score;
         }
 
         if (score > best_score) {
@@ -600,8 +600,8 @@ SearchResult search(Thread *thread) {
         {
             score = Negamax(thread, NEG_INF, -NEG_INF, depth, 0, false, &pv);
         }
-        best_move = pv.line[0].value ? pv.line[0] : best_move;
-        if (score != NEG_INF){
+        if (pv.line[0].value){
+            best_move = pv.line[0];
             best_score = score;
             lpv = pv;
         }
@@ -625,6 +625,7 @@ SearchResult search(Thread *thread) {
         if (num_moves == 0) {
             printf("Can't search terminal position\n");
         }
+        printf("info string Choosing random move\n");
         uint64_t seed = num_moves;
         uint64_t rand_index = PseudorandomNumber(&seed) % num_moves;
         assert(moves[rand_index].value != 0);
