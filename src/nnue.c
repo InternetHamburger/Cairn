@@ -223,8 +223,8 @@ int inference(const nnue_t* nnue, const Board* board)
         sum = sum + nstm_results;
     }
     int output = 0;
-    int* arr = (int32_t*)&sum;
-    for (int i = 0; i < FULL_VECTOR_SIZE / sizeof(int32_t); i++)
+    const int* arr = (int32_t*)&sum;
+    for (size_t i = 0; i < FULL_VECTOR_SIZE / sizeof(int32_t); i++)
     {
         output += arr[i];
     }

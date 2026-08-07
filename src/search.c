@@ -13,6 +13,7 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include <inttypes.h>
 
 #define CLAMP(x, a, b) MIN(MAX(x, a), b)
 
@@ -500,8 +501,8 @@ void UCIReport(Thread *thread, PVariation *lpv, int depth, int score, int time_e
     {
         printf(" score cp %d", score);
     }
-    printf(" nodes %llu", thread->nodes);
-    printf(" nps %llu", thread->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
+    printf(" nodes %"PRIu64"", thread->nodes);
+    printf(" nps %"PRIu64"", thread->nodes * 1000 / (time_elapsed == 0 ? 1 : time_elapsed));
     printf(" hashfull %d", CountHashFull(thread));
     printf(" time %d", time_elapsed);
 
@@ -522,14 +523,14 @@ SearchResult search(Thread *thread) {
 
 
 
-    PVariation lpv;
+    PVariation lpv = {0};
 
     int alpha = NEG_INF;
     int beta = -NEG_INF;
 
     int depth;
     for (depth = 1; depth <= thread->depth_limit; depth++) {
-        PVariation pv;
+        PVariation pv = {0};
 
         int score = NEG_INF;
         if (depth >= ASP_MIN_DEPTH)

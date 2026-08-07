@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <inttypes.h>
 
 // Bench positions yoinked from Quanticade: https://github.com/Quanticade/Quanticade/blob/master/Source/uci.c
 char *bench_positions[] = {
@@ -151,15 +152,15 @@ void GoCommand(char* line, Thread *thread) {
     while (token){
         if (strncmp(token, "movetime", 8) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%llu", &movetime);
+            sscanf(token, "%"PRIu64"", &movetime);
         }
         else if (strncmp(token, "nodes", 5) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%llu", &nodes);
+            sscanf(token, "%"PRIu64"", &nodes);
         }
         else if (strncmp(token, "softnodes", 9) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%llu", &softnodes);
+            sscanf(token, "%"PRIu64"", &softnodes);
         }
         else if (strncmp(token, "depth", 5) == 0){
             token = strtok(NULL, delimiter);
@@ -167,11 +168,11 @@ void GoCommand(char* line, Thread *thread) {
         }
         else if (strncmp(token, "wtime", 5) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%llu", &wtime);
+            sscanf(token, "%"PRIu64"", &wtime);
         }
         else if (strncmp(token, "btime", 5) == 0){
             token = strtok(NULL, delimiter);
-            sscanf(token, "%llu", &btime);
+            sscanf(token, "%"PRIu64"", &btime);
         }
         else if (strncmp(token, "winc", 4) == 0){
             token = strtok(NULL, delimiter);
@@ -214,7 +215,7 @@ void RunDatagen(char* line){
 
     line += strlen("seed ");
     uint64_t seed;
-    sscanf(line, "%llu", &seed);
+    sscanf(line, "%"PRIu64"", &seed);
     while (1){
         if (line[0] != ' ') line++;
         else break;
@@ -238,7 +239,7 @@ void SetOption(char* line, Thread* thread){
         token = strtok(NULL, delimiter);
         token = strtok(NULL, delimiter);
         uint64_t hash_size;
-        sscanf(token, "%llu", &hash_size);
+        sscanf(token, "%"PRIu64"", &hash_size);
         free(thread->tt.entries);
         int num_entries = (int)(hash_size * 1000000 / sizeof(Entry));
         Entry* entries = malloc(num_entries * sizeof(Entry));
@@ -267,7 +268,6 @@ void Ucinewgame(Thread* thread){
             .time_limit = INT64_MAX,
             .soft_time_limit = INT64_MAX,
             .board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-            .ss = {0},
             .tt = thread->tt
     };
     *thread = new;
@@ -289,7 +289,7 @@ void Bench(Thread* thread){
         GoCommand(go, thread);
         total_nodes += thread->nodes;
     }
-    printf("%llu nodes %llu nps\n", total_nodes, total_nodes * 1000 / (clock() - start));
+    printf("%"PRIu64" nodes %"PRIu64" nps\n", total_nodes, total_nodes * 1000 / (clock() - start));
     thread->print_info = true;
 }
 
@@ -301,7 +301,7 @@ void PerftSuite(){
         Board board = BoardConstructor(bench_positions[i]);
         total_nodes += perft(&board, 4);
     }
-    printf("nodes %llu nps %llu\n", total_nodes, total_nodes * 1000 / (clock() - start));
+    printf("nodes %"PRIu64" nps %"PRIu64"\n", total_nodes, total_nodes * 1000 / (clock() - start));
 }
 
 void ReceiveCommand(char* line, Thread *thread) {
@@ -339,7 +339,7 @@ void ReceiveCommand(char* line, Thread *thread) {
     else if (strncmp(token, "d", 1) == 0){
         PrintBoard(&thread->board);
         printf("Fen: %s\n", BoardToFen(&thread->board));
-        printf("Key: %llu\n", thread->board.zobrist_hash);
+        printf("Key: %"PRIu64"\n", thread->board.zobrist_hash);
     }
     else if (strncmp(token, "eval", 4) == 0){
         int static_eval = eval(&thread->board);

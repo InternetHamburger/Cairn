@@ -19,7 +19,6 @@ int main(int argc, char *args[]) {
             .time_limit = INT64_MAX,
             .soft_time_limit = INT64_MAX,
             .board = board,
-            .ss = {0}
     };
 
     int num_entries = 16 * 1000000 / sizeof(Entry);

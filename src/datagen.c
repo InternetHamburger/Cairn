@@ -263,7 +263,6 @@ void Datagen(char* file_path, int num_threads, uint64_t seed) {
             .depth_limit = 255,
             .time_limit = INT64_MAX,
             .soft_time_limit = INT64_MAX,
-            .ss = {0}
         };
 
         int num_entries = 16 * 1000000 / sizeof(Entry);

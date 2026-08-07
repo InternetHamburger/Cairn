@@ -42,6 +42,7 @@ Move next_move(MovePicker* mp, Thread* thread, int ply){
             mp->stage = STAGE_GENERATE_MOVES;
             if (IsPseudoLegal(board, mp->tt_move))
                 return mp->tt_move;
+            // Fall through
 
         case STAGE_GENERATE_MOVES:
             mp->stage = STAGE_MOVES;
@@ -51,6 +52,7 @@ Move next_move(MovePicker* mp, Thread* thread, int ply){
             for (int i = 0; i < num_moves; i++){
                 mp->scores[i] = move_score(thread, mp->moves[i], mp->tt_move, ply);
             }
+            // Fall through
 
         case STAGE_MOVES:
             while (mp->move_num){
@@ -62,6 +64,7 @@ Move next_move(MovePicker* mp, Thread* thread, int ply){
                 }
                 return move;
             }
+            // Fall through
 
         default:
             return MoveConstructor(0, 0, 0);

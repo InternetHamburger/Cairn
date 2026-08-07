@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 #define sign(x) ((x > 0) - (x < 0))
 
@@ -189,14 +190,14 @@ void find_magics(){
     printf("uint64_t rook_magic_numbers[64] = {\n    ");
     for (int i = 0; i < 64; i++)
     {
-        printf("%lluULL, ", rook_magics[i].magic);
+        printf("%"PRIu64"ULL, ", rook_magics[i].magic);
     }
     printf("};\n\n");
 
     printf("uint64_t bishop_magic_numbers[64] = {\n    ");
     for (int i = 0; i < 64; i++)
     {
-        printf("%lluULL, ", bishop_magics[i].magic);
+        printf("%"PRIu64"ULL, ", bishop_magics[i].magic);
     }
     printf("\n};\n\n");
 }
