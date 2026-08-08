@@ -172,6 +172,8 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
+        thread->ss[ply].to_square = TargetSquare(moves[i]);
+        thread->ss[ply].moved_piece = piece_index(board->squares[StartSquare(moves[i])]);
 
         // Skip bad captures
         if (!staticExchangeEvaluation(board, moves[i], 0))
@@ -359,7 +361,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         if (thread->ss[ply].excluded.value == move.value) continue;
         const bool is_capture = board->squares[TargetSquare(move)] != None;
         thread->ss[ply].to_square = TargetSquare(move);
-        thread->ss[ply].moved_piece = board->squares[StartSquare(move)];
+        thread->ss[ply].moved_piece = piece_index(board->squares[StartSquare(move)]);
         // Move loop pruning
         if (best_score > CHECKMATE + 255)
         {

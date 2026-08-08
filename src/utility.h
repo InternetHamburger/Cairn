@@ -18,6 +18,7 @@ char* SquareToString(int square);
 int StringToSquare(char* square);
 char* MoveToString(Move move);
 PieceType GetType(Piece piece);
+int piece_index(Piece piece);
 int getlsb(uint64_t bb);
 int poplsb(uint64_t *bb);
 bool is_square_attacked(const Board* board, int sq);

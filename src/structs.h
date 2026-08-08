@@ -174,15 +174,15 @@ typedef struct {
     Stack ss[512];
     nnue_stack_t nnue_stack;
 
-    int quiet_history[BlackKing + 1][64][2][2];
-    int capture_history[BlackKing + 1][64][BlackKing + 1];
-    int cont_hist[BlackKing + 1][64][BlackKing + 1][64];
+    int quiet_history[12][64][2][2];
+    int capture_history[12][64][12];
+    int cont_hist[12][64][12][64];
     Move killer_moves[256];
 
     int16_t pawn_corr_hist[2][16384];
     int16_t minor_corr_hist[2][16384];
     int16_t non_pawn_corr_hist[2][2][16384];
-    int16_t cont_corr_hist[BlackKing + 1][64][BlackKing + 1][64];
+    int16_t cont_corr_hist[12][64][12][64];
 
     TT tt;
 } Thread;

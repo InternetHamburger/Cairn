@@ -23,7 +23,7 @@ void ZeroKillers(Thread* thread)
 
 void UpdateHistTable(Thread* thread, const int ply, const Move move, const int bonus)
 {
-    const Piece piece = thread->board.squares[StartSquare(move)];
+    const Piece piece = piece_index(thread->board.squares[StartSquare(move)]);
     const int from_square = StartSquare(move);
     const int to_square = TargetSquare(move);
 
@@ -42,7 +42,7 @@ void UpdateHistTable(Thread* thread, const int ply, const Move move, const int b
 
 void update_caphist(Thread* thread, const Move move, const int bonus)
 {
-    const Piece piece = thread->board.squares[StartSquare(move)];
+    const Piece piece = piece_index(thread->board.squares[StartSquare(move)]);
     const Piece captured = thread->board.squares[TargetSquare(move)];
     const int to_square = TargetSquare(move);
 
@@ -53,7 +53,7 @@ void update_caphist(Thread* thread, const Move move, const int bonus)
 
 int get_history(Thread* thread, const Move move, const int ply){
 
-    const Piece piece = thread->board.squares[StartSquare(move)];
+    const Piece piece = piece_index(thread->board.squares[StartSquare(move)]);
     const int from_square = StartSquare(move);
     const int to_square = TargetSquare(move);
 
@@ -73,7 +73,7 @@ void UpdateKillers(Thread* thread, const Move move, const int ply)
 
 int get_capture_score(Move move, Thread* thread)
 {
-    const Piece piece = thread->board.squares[StartSquare(move)];
+    const Piece piece = piece_index(thread->board.squares[StartSquare(move)]);
     const Piece captured = thread->board.squares[TargetSquare(move)];
     const int to_square = TargetSquare(move);
 

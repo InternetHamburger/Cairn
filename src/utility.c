@@ -250,6 +250,40 @@ PieceType GetType(Piece piece) {
     return piece & 0b0111;
 }
 
+int piece_index(Piece piece){
+    switch (piece) {
+    case WhitePawn:
+        return 0;
+    case WhiteKnight:
+        return 1;
+    case WhiteBishop:
+        return 2;
+    case WhiteRook:
+        return 3;
+    case WhiteQueen:
+        return 4;
+    case WhiteKing:
+        return 5;
+    case BlackPawn:
+        return 6;
+    case BlackKnight:
+        return 7;
+    case BlackBishop:
+        return 8;
+    case BlackRook:
+        return 9;
+    case BlackQueen:
+        return 10;
+    case BlackKing:
+        return 11;
+    case None:
+        return 0;
+    default:
+        printf("Invalid piece");
+        exit(-1);
+    }
+}
+
 int getlsb(uint64_t bb) {
     assert(bb);  // lsb(0) is undefined
     return __builtin_ctzll(bb);

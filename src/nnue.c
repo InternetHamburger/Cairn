@@ -56,38 +56,6 @@ int get_input_bucket(int sq)
     return BUCKET_LAYOUT[sq];
 }
 
-int piece_index(Piece piece){
-    switch (piece) {
-        case WhitePawn:
-            return 0;
-        case WhiteKnight:
-            return 1;
-        case WhiteBishop:
-            return 2;
-        case WhiteRook:
-            return 3;
-        case WhiteQueen:
-            return 4;
-        case WhiteKing:
-            return 5;
-        case BlackPawn:
-            return 6;
-        case BlackKnight:
-            return 7;
-        case BlackBishop:
-            return 8;
-        case BlackRook:
-            return 9;
-        case BlackQueen:
-            return 10;
-        case BlackKing:
-            return 11;
-        default:
-            printf("Invalid piece");
-            exit(-1);
-    }
-}
-
 int get_index(Piece piece, int square, bool flip, bool inverse){
     // As the weights are stored with a1=0 h8=63 and
     // my board is using a8=0 h1=63 we need to flip first
