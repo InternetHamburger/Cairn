@@ -173,6 +173,8 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     for (int i = 0; i < num_moves; i++) {
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
 
+        thread->ss[ply].to_square = TargetSquare(moves[i]);
+        thread->ss[ply].moved_piece = board->squares[StartSquare(moves[i])];
         // Skip bad captures
         if (!staticExchangeEvaluation(board, moves[i], 0))
         {
