@@ -168,19 +168,27 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
 
     Move moves[256];
     int num_moves = GetMoves(board, moves);
+
+    if (num_moves == 0)
+    {
+        return in_check ? CHECKMATE + ply : 0;
+    }
+
     OrderMoves(thread, moves, num_moves, ply, tt_move);
 
     thread->ss[ply].board = *board;
     Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
-        if (board->squares[TargetSquare(moves[i])] == 0 && best_score != NEG_INF) continue;
+        if (board->squares[TargetSquare(moves[i])] == 0 && !in_check) continue;
 
-        // Skip bad captures
-        if (!staticExchangeEvaluation(board, moves[i], 0))
+        if (best_score != NEG_INF)
         {
-            continue;
+            // Skip bad captures
+            if (!staticExchangeEvaluation(board, moves[i], 0))
+            {
+                continue;
+            }
         }
-
         update_nnue_stack(thread, moves[i], ply);
         MakeMove(board, moves[i]);
         thread->nodes++;
