@@ -133,6 +133,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
     const int tt_score = correct_score(entry.score, -ply);
+    const Move tt_move = entry.best_move;
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
@@ -167,7 +168,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
 
     Move moves[256];
     int num_moves = GetMoves(board, moves);
-    OrderCaptures(thread, moves, num_moves);
+    OrderMoves(thread, moves, num_moves, ply, tt_move);
 
     thread->ss[ply].board = *board;
     Move best_move = MoveConstructor(0, 0, 0);
