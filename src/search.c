@@ -40,6 +40,10 @@ bool is_mate_score(int score){
     return abs(score) > -(CHECKMATE + 255);
 }
 
+bool is_mated_score(int score){
+    return score <= CHECKMATE + 255;
+}
+
 void update_entry(int16_t* entry, int bonus){
     *entry += bonus - abs(bonus) * *entry / 4096;
 }
@@ -173,15 +177,17 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     {
         return in_check ? CHECKMATE + ply : 0;
     }
-
-    OrderMoves(thread, moves, num_moves, ply, tt_move);
+    if (in_check)
+        OrderMoves(thread, moves, num_moves, ply, tt_move);
+    else
+        OrderCaptures(thread, moves, num_moves);
 
     thread->ss[ply].board = *board;
     Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
-        if (board->squares[TargetSquare(moves[i])] == 0 && !in_check) continue;
+        if (board->squares[TargetSquare(moves[i])] == 0 && !is_mated_score(best_score)) continue;
 
-        if (best_score != NEG_INF)
+        if (!is_mated_score(best_score))
         {
             // Skip bad captures
             if (!staticExchangeEvaluation(board, moves[i], 0))
