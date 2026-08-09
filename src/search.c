@@ -126,7 +126,8 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    const int static_eval = correct_eval(thread, nnue_eval(thread, board, ply), ply);
+    const bool in_check = InCheck(board);
+    const int static_eval = in_check ? NEG_INF : correct_eval(thread, nnue_eval(thread, board, ply), ply);
 
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
@@ -171,7 +172,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     thread->ss[ply].board = *board;
     Move best_move = MoveConstructor(0, 0, 0);
     for (int i = 0; i < num_moves; i++) {
-        if (board->squares[TargetSquare(moves[i])] == 0) continue;
+        if (board->squares[TargetSquare(moves[i])] == 0 && best_score != NEG_INF) continue;
 
         // Skip bad captures
         if (!staticExchangeEvaluation(board, moves[i], 0))
