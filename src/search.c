@@ -610,7 +610,6 @@ SearchResult search(Thread *thread) {
         if (thread->print_info){
             UCIReport(thread, &lpv, depth, best_score, time_elapsed);
         }
-        assert(lpv.line[0].value != 0);
         if (is_soft_time_up(thread)) {
             break;
         }

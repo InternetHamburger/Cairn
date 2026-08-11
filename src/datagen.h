@@ -26,6 +26,9 @@ typedef struct {
     Game game;
     uint64_t seed;
     uint64_t thread_id;
+    uint64_t nodes;
+    uint64_t positions;
+    int games;
     FILE *file;
     Thread* thread;
 } DatagenInfo;
