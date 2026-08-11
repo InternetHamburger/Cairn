@@ -326,7 +326,7 @@ void Datagen(char* file_path, int num_threads, uint64_t seed) {
 
         infos[i].file = file;
         infos[i].thread_id = i;
-        infos[i].seed = 8283054456212245840;
+        infos[i].seed = PseudorandomNumber(&seed) + PseudorandomNumber(&seed);
         infos[i].thread = thread;
         infos[i].games = 0;
         infos[i].nodes = 0;
