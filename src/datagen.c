@@ -135,6 +135,11 @@ Board PrepareGame(DatagenInfo *this, Thread* thread) {
     // Try at most 100 different positions
     for (int i = 0; i < 100; i++){
         thread->board = rand_pos;
+        if (IsCheckmate(&rand_pos))
+        {
+            rand_pos = GenerateRandomPosition(seed);
+            continue;
+        }
         const SearchResult result = search(thread);
         if (abs(result.score) < 2000) break;
         rand_pos = GenerateRandomPosition(seed);
@@ -293,6 +298,7 @@ void PrintInfoLoop(int num_threads, DatagenInfo* infos)
         pthread_mutex_lock(&data_mutex);
         printf("\x1b[%dA", num_threads + 1);
         PrinfInfo(num_threads, infos, sleep_time);
+        fflush(stdout);
         pthread_mutex_unlock(&data_mutex);
     }
 }
@@ -320,7 +326,7 @@ void Datagen(char* file_path, int num_threads, uint64_t seed) {
 
         infos[i].file = file;
         infos[i].thread_id = i;
-        infos[i].seed = PseudorandomNumber(&seed) + PseudorandomNumber(&seed);
+        infos[i].seed = 8283054456212245840;
         infos[i].thread = thread;
         infos[i].games = 0;
         infos[i].nodes = 0;
