@@ -411,6 +411,8 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
             r -= is_capture * 2;
             r -= thread->killer_moves[ply].value == move.value;
             r -= improving;
+            if (!is_capture)
+                r -= get_history(thread, move, ply) / 8192;
             r += 2 * cutnode;
             r = MAX(r, 0);
             score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth - r, ply + 1, true, &lpv);

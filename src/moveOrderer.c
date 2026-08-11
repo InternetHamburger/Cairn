@@ -53,7 +53,7 @@ void update_caphist(Thread* thread, const Move move, const int bonus)
 
 int get_history(Thread* thread, const Move move, const int ply){
 
-    const Piece piece = thread->board.squares[StartSquare(move)];
+    const Piece piece = thread->ss[ply].board.squares[StartSquare(move)];
     const int from_square = StartSquare(move);
     const int to_square = TargetSquare(move);
 
