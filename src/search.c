@@ -57,7 +57,7 @@ void update_corrhist(Thread* thread, int ply, int depth, int bonus){
     update_entry(entry, bonus);
     entry = &thread->minor_corr_hist[color][thread->board.minor_key % 16384];
     update_entry(entry, bonus);
-    if (ply >= 2)
+    if (ply >= 2 && thread->ss[ply - 2].moved_piece && thread->ss[ply - 1].moved_piece)
     {
         entry = &thread->cont_corr_hist[thread->ss[ply - 2].moved_piece][thread->ss[ply - 2].to_square][thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square];
         update_entry(entry, bonus);
@@ -71,7 +71,9 @@ int correct_eval(Thread* thread, int eval, int ply){
     int s_non_pawn_entry = thread->non_pawn_corr_hist[0][color][thread->board.non_pawn_key[0] % 16384];
     int n_non_pawn_entry = thread->non_pawn_corr_hist[1][color][thread->board.non_pawn_key[1] % 16384];
     int minor_entry = thread->minor_corr_hist[color][thread->board.minor_key % 16384];
-    int cont_entry = ply < 2 ? 0 : thread->cont_corr_hist[thread->ss[ply - 2].moved_piece][thread->ss[ply - 2].to_square][thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square];
+    int cont_entry = 0;
+    if (ply >= 2 && thread->ss[ply - 2].moved_piece && thread->ss[ply - 1].moved_piece)
+        cont_entry = thread->cont_corr_hist[thread->ss[ply - 2].moved_piece][thread->ss[ply - 2].to_square][thread->ss[ply - 1].moved_piece][thread->ss[ply - 1].to_square];
 
     int correction = 0;
     correction += 256 * pawn_entry;
