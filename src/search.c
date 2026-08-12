@@ -370,7 +370,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
                 continue;
             }
 
-            if (num_legal_moves > 0 && !in_check && !is_capture && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
+            if (!in_check && !is_capture && depth <= 5 && static_eval + 125 + 200 * depth < alpha)
             {
                 continue;
             }
@@ -408,7 +408,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         }
         else if (depth >= 3 && played >= 2 + (ply == 0))
         {
-            int r = lmr_reduction[depth][num_legal_moves];
+            int r = lmr_reduction[depth][played];
             r -= is_pv;
             r -= is_capture * 2;
             r -= thread->killer_moves[ply].value == move.value;
