@@ -401,10 +401,10 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         num_legal_moves++;
 
         int score;
-        int lmr_depth = depth - 1 + extension;
+        int lmr_depth = depth - 1;
         if (played == 0)
         {
-            score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, false, &lpv);
+            score = -Negamax(thread, -beta, -alpha, lmr_depth + extension, ply + 1, false, &lpv);
         }
         else if (depth >= 3 && played >= 2 + (ply == 0))
         {
