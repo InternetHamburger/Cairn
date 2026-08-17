@@ -14,6 +14,7 @@ void ZeroHist(Thread* thread)
     memset(thread->pawn_corr_hist, 0, sizeof(thread->pawn_corr_hist));
     memset(thread->non_pawn_corr_hist, 0, sizeof(thread->non_pawn_corr_hist));
     memset(thread->minor_corr_hist, 0, sizeof(thread->minor_corr_hist));
+    memset(thread->cont_corr_hist, 0, sizeof(thread->cont_corr_hist));
 }
 
 void ZeroKillers(Thread* thread)
