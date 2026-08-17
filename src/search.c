@@ -358,7 +358,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
     while ((move = next_move(mp, thread, ply)).value != 0) {
         played++;
         if (thread->ss[ply].excluded.value == move.value) continue;
-        const bool is_capture = board->squares[TargetSquare(move)] != None;
+        const bool is_capture = board->squares[TargetSquare(move)] != None || GetFlag(move) == EnPassant;
         thread->ss[ply].to_square = TargetSquare(move);
         thread->ss[ply].moved_piece = board->squares[StartSquare(move)];
         // Move loop pruning
