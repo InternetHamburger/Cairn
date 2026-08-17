@@ -361,10 +361,12 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         const bool is_capture = board->squares[TargetSquare(move)] != None;
         thread->ss[ply].to_square = TargetSquare(move);
         thread->ss[ply].moved_piece = board->squares[StartSquare(move)];
+
         // Move loop pruning
+        const int lmr_depth = depth - 1 + (played == 0 ? extension : 0);
         if (best_score > CHECKMATE + 255)
         {
-            if (ply > 0 && !in_check && !is_capture && played >= (6 + depth * depth) / (2 - improving))
+            if (ply > 0 && !in_check && !is_capture && played >= (6 + lmr_depth * lmr_depth) / (2 - improving))
             {
                 continue;
             }
@@ -400,10 +402,9 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         num_legal_moves++;
 
         int score;
-        int lmr_depth = depth - 1;
         if (played == 0)
         {
-            score = -Negamax(thread, -beta, -alpha, lmr_depth + extension, ply + 1, is_pv, false, &lpv);
+            score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, is_pv, false, &lpv);
         }
         else if (depth >= 3 && played >= 2 + (ply == 0))
         {
