@@ -223,7 +223,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     return best_score;
 }
 
-int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnode, PVariation *pv) {
+int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv, bool cutnode, PVariation *pv) {
     Board* board = &thread->board;
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     MovePicker* mp = &thread->ss[ply].mp;
@@ -243,7 +243,6 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         return 0;
     }
     const bool is_singular = thread->ss[ply].excluded.value != 0;
-    const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
     const uint8_t tt_flag = GetEntryType(entry);
     const bool tt_hit = !is_singular && board->zobrist_hash == entry.hash;
@@ -299,7 +298,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         update_nnue_stack(thread, MoveConstructor(0, 0, 0), ply);
         MakeNullMove(board);
         PVariation null_pv;
-        int score = -Negamax(thread, -beta, -beta + 1, depth - r, ply + 1, !cutnode, &null_pv);
+        int score = -Negamax(thread, -beta, -beta + 1, depth - r, ply + 1, false, !cutnode, &null_pv);
         *board = thread->ss[ply].board;
         if (score >= beta){
             return score > -(CHECKMATE + 255) ? beta : score;
@@ -313,7 +312,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         const int singular_depth = depth / 2;
 
         thread->ss[ply].excluded = tt_move;
-        int score = Negamax(thread, singular_beta - 1, singular_beta, singular_depth, ply, cutnode, &lpv);
+        int score = Negamax(thread, singular_beta - 1, singular_beta, singular_depth, ply, false, cutnode, &lpv);
         thread->ss[ply].excluded.value = 0;
 
         if (score < singular_beta)
@@ -404,7 +403,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
         int lmr_depth = depth - 1;
         if (played == 0)
         {
-            score = -Negamax(thread, -beta, -alpha, lmr_depth + extension, ply + 1, false, &lpv);
+            score = -Negamax(thread, -beta, -alpha, lmr_depth + extension, ply + 1, is_pv, false, &lpv);
         }
         else if (depth >= 3 && played >= 2 + (ply == 0))
         {
@@ -415,22 +414,22 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool cutnod
             r -= improving;
             r += 2 * cutnode;
             r = MAX(r, 0);
-            score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth - r, ply + 1, true, &lpv);
+            score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth - r, ply + 1, false, true, &lpv);
             if (score > alpha && is_pv)
             {
-                score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth, ply + 1, !cutnode, &lpv);
+                score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth, ply + 1, false, !cutnode, &lpv);
             }
             if (score > alpha)
             {
-                score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, false, &lpv);
+                score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, is_pv, false, &lpv);
             }
         }
         else
         {
-            score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth, ply + 1, !cutnode, &lpv);
+            score = -Negamax(thread, -alpha - 1, -alpha, lmr_depth, ply + 1, false, !cutnode, &lpv);
             if (score > alpha && is_pv)
             {
-                score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, false, &lpv);
+                score = -Negamax(thread, -beta, -alpha, lmr_depth, ply + 1, is_pv, false, &lpv);
             }
         }
         *board = thread->ss[ply].board;
@@ -575,7 +574,7 @@ SearchResult search(Thread *thread) {
                 if (is_soft_time_up(thread)) {
                     break;
                 }
-                score = Negamax(thread, alpha, beta, depth, 0, false, &pv);
+                score = Negamax(thread, alpha, beta, depth, 0, true, false, &pv);
                 delta += delta;
                 if (score <= alpha)
                 {
@@ -600,7 +599,7 @@ SearchResult search(Thread *thread) {
         }
         else
         {
-            score = Negamax(thread, NEG_INF, -NEG_INF, depth, 0, false, &pv);
+            score = Negamax(thread, NEG_INF, -NEG_INF, depth, 0, true, false, &pv);
         }
         best_move = pv.line[0].value ? pv.line[0] : best_move;
         if (score != NEG_INF){
