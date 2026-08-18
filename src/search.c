@@ -601,9 +601,10 @@ SearchResult search(Thread *thread) {
         {
             score = Negamax(thread, NEG_INF, -NEG_INF, depth, 0, true, false, &pv);
         }
-        best_move = pv.line[0].value ? pv.line[0] : best_move;
-        if (score != NEG_INF){
+
+        if (pv.length){
             best_score = score;
+            best_move = pv.line[0];
             lpv = pv;
         }
 
