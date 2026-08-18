@@ -610,6 +610,7 @@ SearchResult search(Thread *thread) {
         const int time_elapsed = (int)(1000 * (clock() - thread->start_time) / CLOCKS_PER_SEC);
         if (thread->print_info){
             UCIReport(thread, &lpv, depth, best_score, time_elapsed);
+            thread->seldepth = 0;
         }
         if (is_soft_time_up(thread)) {
             break;
