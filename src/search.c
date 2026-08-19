@@ -408,7 +408,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         else if (depth >= 3 && played >= 2 + (ply == 0))
         {
             int r = lmr_reduction[depth][played];
-            r -= is_pv;
+            r += !is_pv;
             r -= is_capture * 2;
             r -= thread->killer_moves[ply].value == move.value;
             r -= improving;
