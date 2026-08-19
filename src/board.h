@@ -10,6 +10,7 @@ void MakeMove(Board *board, Move move);
 void MakeNullMove(Board *board);
 void PrintBoard(const Board* board);
 bool IsPseudoLegal(const Board* board, Move move);
+bool IsLegal(const Board* board, Move move);
 bool InCheck(const Board *board);
 Board BoardConstructor(const char* fen);
 bool IsRepetition(const uint64_t hashes[MAX_NUM_PLY], int idx);

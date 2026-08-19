@@ -13,7 +13,7 @@ int main(int argc, char *args[]) {
     #ifdef __unix__
         struct rlimit rl;
         getrlimit(RLIMIT_STACK, &rl);
-        rl.rlim_cur = 16 * 1024 * 1024;  // 16 MB
+        rl.rlim_cur = 18 * 1024 * 1024; // 18 MB
         if (setrlimit(RLIMIT_STACK, &rl) != 0){
             perror("Setting new stack limit failed");
             return 1;

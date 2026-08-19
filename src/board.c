@@ -563,6 +563,50 @@ bool IsPseudoLegal(const Board* board, const Move move){
     return true;
 }
 
+bool IsLegal(const Board* board, const Move move){
+    Board b = *board;
+    if (!IsPseudoLegal(board, move))
+    {
+        return false;
+    }
+
+    if (GetFlag(move) == Castle){
+        if (InCheck(board))
+        {
+            return false;
+        }
+        switch (TargetSquare(move))
+        {
+        case 62: // white short castle (g1)
+            if ((1ull << 61 | 1ull << 62) & b.threat_bb) { return false; }
+            break;
+        case 58: // white loing castle (c1)
+            if ((1ull << 58 | 1ull << 59) & b.threat_bb) { return false; }
+            break;
+        case 6: // black short castle (g8)
+            if ((1ull << 5 | 1ull << 6) & b.threat_bb) { return false; }
+            break;
+        case 2: // black long castle (c8)
+            if ((1ull << 2 | 1ull << 3) & b.threat_bb) { return false; }
+            break;
+        default:
+            printf("Invalid target castling square %d", TargetSquare(move));
+            exit(-1);
+        }
+    }
+
+    MakeMove(&b, move);
+    b.white_to_move = !b.white_to_move;
+
+    const int king_sq = board->white_to_move ? b.white_king_square : b.black_king_square;
+
+    if (1ull << king_sq & get_threat_bitboard(&b)) {
+        return false;
+    }
+
+    return true;
+}
+
 bool InCheck(const Board *board){
     int king_sq = board->white_to_move ? board->white_king_square : board->black_king_square;
     return 1ULL << king_sq & board->threat_bb;

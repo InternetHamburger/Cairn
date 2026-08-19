@@ -44,7 +44,7 @@ void UpdateHistTable(Thread* thread, const int ply, const Move move, const int b
 void update_caphist(Thread* thread, const Move move, const int bonus)
 {
     const Piece piece = thread->board.squares[StartSquare(move)];
-    const Piece captured = thread->board.squares[TargetSquare(move)];
+    const Piece captured = GetFlag(move) == EnPassant ? piece ^ 0b1000 : thread->board.squares[TargetSquare(move)];
     const int to_square = TargetSquare(move);
 
     int* entry = &thread->capture_history[piece][to_square][captured];
@@ -77,7 +77,7 @@ void UpdateKillers(Thread* thread, const Move move, const int ply)
 int get_capture_score(Move move, Thread* thread)
 {
     const Piece piece = thread->board.squares[StartSquare(move)];
-    const Piece captured = thread->board.squares[TargetSquare(move)];
+    const Piece captured = GetFlag(move) == EnPassant ? piece ^ 0b1000 : thread->board.squares[TargetSquare(move)];
     const int to_square = TargetSquare(move);
 
     int base_score = 40000 * piece_scores[GetType(captured)];
@@ -89,7 +89,7 @@ int move_score(Thread* thread, Move move, Move tt_move, int ply)
     if (move.value == tt_move.value){
         return 100000000;
     }
-    if (thread->board.squares[TargetSquare(move)] != None){
+    if (thread->board.squares[TargetSquare(move)] != None || GetFlag(move) == EnPassant){
         return get_capture_score(move, thread) - !staticExchangeEvaluation(&thread->board, move, 0) * 1000000000;
     }
     if (move.value == thread->killer_moves[ply].value){

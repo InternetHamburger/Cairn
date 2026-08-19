@@ -125,10 +125,10 @@ typedef struct{
 
 typedef struct{
     Move tt_move, killer;
-    Move moves[218];
+    Move captures[218], quiets[218];
     int stage;
-    int move_num;
-    int scores[218];
+    int num_captures, num_quiets;
+    int capture_scores[218], quiet_scores[218];
 } MovePicker;
 
 typedef struct{
