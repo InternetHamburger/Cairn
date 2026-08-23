@@ -206,26 +206,35 @@ void GoCommand(char* line, Thread *thread) {
     search(thread);
 }
 
-void RunDatagen(char* line){
+void RunDatagen(int argc, char* args[]){
     int num_threads;
-    line += strlen("threads ");
-    sscanf(line, "%d", &num_threads);
-
-    line += num_threads > 9 ? 3 : 2;
-
-    line += strlen("seed ");
     uint64_t seed;
-    sscanf(line, "%"PRIu64"", &seed);
-    while (1){
-        if (line[0] != ' ') line++;
-        else break;
+    char* output_path = args[argc - 1];
+    int i = 2;
+    argc -= 2;
+    while (argc)
+    {
+        if (strncmp(args[i], "threads", 7) == 0)
+        {
+            i++;
+            sscanf(args[i++], "%d", &num_threads);
+            argc -= 2;
+        }
+        else if (strncmp(args[i], "seed", 4) == 0)
+        {
+            i++;
+            sscanf(args[i++], "%"PRIu64"", &seed);
+            argc -= 2;
+        }
+        else if (strncmp(args[i], "output", 6) == 0)
+        {
+            i++;
+            output_path = args[i++];
+            argc -= 2;
+        }
     }
-    line++;
 
-    line += strlen("output ");
-    line[strlen(line) - 1] = '\0';
-
-    Datagen(line, num_threads, seed);
+    Datagen(output_path, num_threads, seed);
 }
 
 void SetOption(char* line, Thread* thread){
@@ -331,10 +340,6 @@ void ReceiveCommand(char* line, Thread *thread) {
                "option name Hash type spin default 16 min 1 max 33554432\n"
                "option name Threads type spin default 1 min 1 max 1\n"
                "uciok\n");
-    }
-    else if (strncmp(token, "datagen", 7) == 0){
-        line += 8;
-        RunDatagen(line);
     }
     else if (strncmp(token, "d", 1) == 0){
         PrintBoard(&thread->board);

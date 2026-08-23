@@ -47,6 +47,10 @@ int main(int argc, char *args[]) {
         PerftSuite();
         return 0;
     }
+    if (argc > 1 && strncmp(args[1], "datagen", 7) == 0){
+        RunDatagen(argc, args);
+        return 0;
+    }
 
 
     while (1) {
