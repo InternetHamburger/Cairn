@@ -148,7 +148,7 @@ typedef struct{
 typedef struct{
     uint64_t hash;
     Move best_move;
-    int16_t score;
+    int16_t score, static_eval;
     uint8_t depth_node_type; // ttdddddd  t - type (0-exact, 1-upper bound, 2-lower bound)  d - depth
 } Entry;
 

@@ -128,7 +128,8 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    const int static_eval = correct_eval(thread, nnue_eval(thread, board, ply), ply);
+    const int raw_eval = nnue_eval(thread, board, ply);
+    const int static_eval = correct_eval(thread, raw_eval, ply);
 
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
@@ -217,6 +218,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         .hash = board->zobrist_hash,
         .best_move = best_move,
         .score = (int16_t)correct_score(best_score, ply),
+        .static_eval = (int16_t)raw_eval,
         .depth_node_type = type | 0
     };
     thread->tt.entries[tt_index] = new_entry;
@@ -268,15 +270,32 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         if (tt_flag == UPPER && tt_score <= alpha)
             return tt_score;
     }
-    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnue_eval(thread, board, ply), ply);
+
+    int static_eval;
+    int raw_eval;
+    if (in_check)
+    {
+        raw_eval = NEG_INF;
+        static_eval = NEG_INF;
+    }
+    else if (tt_hit)
+    {
+        raw_eval = entry.static_eval;
+        static_eval = correct_eval(thread, raw_eval, ply);
+    }
+    else
+    {
+        raw_eval = nnue_eval(thread, board, ply);
+        static_eval = correct_eval(thread, raw_eval, ply);
+    }
     thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;
     if (in_check) {
         improving = false;
-    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != -NEG_INF) {
+    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != NEG_INF) {
         improving = static_eval > thread->ss[ply - 2].static_eval;
-    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != -NEG_INF) {
+    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != NEG_INF) {
         improving = static_eval > thread->ss[ply - 4].static_eval;
     }
 
@@ -493,6 +512,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
             .hash = board->zobrist_hash,
             .best_move = tt_hit && new_flag == UPPER ? tt_move : best_move,
             .score = (int16_t)correct_score(best_score, ply),
+            .static_eval = (int16_t)raw_eval,
             .depth_node_type = new_flag | depth
         };
 
