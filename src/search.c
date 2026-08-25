@@ -134,6 +134,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
     const int tt_score = correct_score(entry.score, -ply);
+    const int tt_type = GetEntryType(entry);
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
@@ -150,12 +151,11 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     }
 
     if (!is_pv && tt_hit) {
-        int type = GetEntryType(entry);
-        if (type == EXACT)
+        if (tt_type == EXACT)
             return tt_score;
-        if (type == LOWER && tt_score >= beta)
+        if (tt_type == LOWER && tt_score >= beta)
             return tt_score;
-        if (type == UPPER && tt_score <= alpha)
+        if (tt_type == UPPER && tt_score <= alpha)
             return tt_score;
     }
 
@@ -176,7 +176,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
 
         // Skip bad captures
-        if (!staticExchangeEvaluation(board, moves[i], 0))
+        if (!staticExchangeEvaluation(board, moves[i], -100))
         {
             continue;
         }
