@@ -128,9 +128,6 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    const int raw_eval = nnue_eval(thread, board, ply);
-    const int static_eval = correct_eval(thread, raw_eval, ply);
-
     const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
@@ -138,6 +135,19 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
+    }
+
+    int static_eval;
+    int raw_eval;
+    if (tt_hit)
+    {
+        raw_eval = entry.static_eval;
+        static_eval = correct_eval(thread, raw_eval, ply);
+    }
+    else
+    {
+        raw_eval = nnue_eval(thread, board, ply);
+        static_eval = correct_eval(thread, raw_eval, ply);
     }
 
     if (ply >= 255)
