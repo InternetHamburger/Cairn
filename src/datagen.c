@@ -269,6 +269,9 @@ void* GameLoop(void *arg) {
 
 void PrintInfoLoop(int num_threads, DatagenInfo* infos)
 {
+    uint64_t nodes[num_threads];
+    float games[num_threads];
+    uint64_t positions[num_threads];
     const int time_ms = 5000;
     uint64_t global_pos = 0;
     uint64_t global_games = 0;
@@ -277,28 +280,35 @@ void PrintInfoLoop(int num_threads, DatagenInfo* infos)
     while (true)
     {
         pthread_mutex_lock(&data_mutex);
-        printf("\x1b[%dA", num_threads + 4);
         uint64_t total_nodes = 0;
         uint64_t total_positions = 0;
         int total_games = 0;
         for (int i = 0; i < num_threads; i++)
         {
-            printf("\x1b[2KThread %"PRIu64": nodes/sec %"PRIu64" pos/sec %"PRIu64" games/sec %d\n", infos[i].thread_id, infos[i].nodes * 1000 / time_ms, infos[i].positions * 1000 / time_ms, infos[i].games * 1000 / time_ms);
             total_nodes += infos[i].nodes;
             total_games += infos[i].games;
             total_positions += infos[i].positions;
+            nodes[i] = infos[i].nodes;
+            games[i] = (float)infos[i].games;
+            positions[i] = infos[i].positions;
             infos[i].nodes = 0;
             infos[i].games = 0;
             infos[i].positions = 0;
+        }
+        pthread_mutex_unlock(&data_mutex);
+        printf("\x1b[%dA", num_threads + 4);
+
+        for (int i = 0; i < num_threads; i++)
+        {
+            printf("\x1b[2KThread %"PRIu64": nodes/sec %"PRIu64" pos/sec %"PRIu64" games/sec %.2f\n", infos[i].thread_id, nodes[i] * 1000 / time_ms, positions[i] * 1000 / time_ms, games[i] * 1000 / (float)time_ms);
         }
         global_pos += total_positions;
         global_games += total_games;
         uint64_t elapsed = (uint64_t)(clock() - start);
         printf("\n\x1b[2KTotal: nodes/sec %"PRIu64"  pos/sec %"PRIu64" games/sec %d\n", total_nodes * 1000 / time_ms, total_positions * 1000 / time_ms, total_games * 1000 / time_ms);
-        printf("\x1b[2KGlobal speed: pos/sec %"PRIu64" games/sec %"PRIu64"\n", global_pos * CLOCKS_PER_SEC / elapsed, global_games * CLOCKS_PER_SEC / elapsed);
+        printf("\x1b[2KGlobal speed: pos/sec %"PRIu64" games/sec %.2f\n", global_pos * CLOCKS_PER_SEC / elapsed, (float)global_games * CLOCKS_PER_SEC / (float)elapsed);
         printf("\x1b[2KGlobal total: pos %"PRIu64" games %"PRIu64" time %"PRIu64"s\n", global_pos, global_games, elapsed / CLOCKS_PER_SEC);
         fflush(stdout);
-        pthread_mutex_unlock(&data_mutex);
         sleep_ms(time_ms);
     }
 }
