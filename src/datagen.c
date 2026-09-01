@@ -86,32 +86,40 @@ bool IsCheckmate(Board* board){
     return num_moves == 0;
 }
 
-Board GenerateRandomPosition(uint64_t *seed) {
-    Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    Board prev_copy = board;
-    int num_rand_moves = ((*seed >> 43) & 1ULL) == 1 ? 8 : 9;
-    for (int num_deep = 0; num_deep < num_rand_moves; num_deep++) {
-        Move moves[256];
-        int num_moves = GetMoves(&board, moves);
-
-        if (num_moves == 0) {
-            board = prev_copy;
-            num_deep--;
-            PseudorandomNumber(seed);
-        }
-        else {
-            uint64_t rand_index = *seed % num_moves;
-            PseudorandomNumber(seed);
-            assert(moves[rand_index].value != 0);
-            MakeMove(&board, moves[rand_index]);
-        }
-        prev_copy = board;
-        if (IsCheckmate(&board)){
-            board = prev_copy;
-            num_deep--;
-            PseudorandomNumber(seed);
-        }
+void GenerateRandomPosition(Board* board, uint64_t* seed, int depth)
+{
+    if (depth == 0)
+    {
+        return;
     }
+
+    Move moves[256];
+    int num_moves = GetMoves(board, moves);
+
+    uint64_t rand_index = *seed % num_moves;
+    PseudorandomNumber(seed);
+    const Board copy = *board;
+    while (1)
+    {
+        MakeMove(board, moves[rand_index]);
+
+        if (IsCheckmate(board))
+        {
+            *board = copy;
+            rand_index = *seed % num_moves;
+            PseudorandomNumber(seed);
+            continue;
+        }
+
+        GenerateRandomPosition(board, seed, depth - 1);
+        return;
+    }
+}
+
+Board GetRandomPosition(uint64_t *seed) {
+    Board board = BoardConstructor("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    int num_rand_moves = ((*seed >> 43) & 1ULL) == 1 ? 8 : 9;
+    GenerateRandomPosition(&board, seed, num_rand_moves);
     return board;
 }
 
@@ -130,19 +138,19 @@ uint64_t GetViriOccupied(Board *board) {
 Board PrepareGame(DatagenInfo *this, Thread* thread) {
     uint64_t* seed = &this->seed;
     PseudorandomNumber(seed);
-    Board rand_pos = GenerateRandomPosition(seed);
+    Board rand_pos = GetRandomPosition(seed);
     init_accumulator_stack(thread, &rand_pos, &thread->nnue);
     // Try at most 100 different positions
     for (int i = 0; i < 100; i++){
         thread->board = rand_pos;
         if (IsCheckmate(&rand_pos))
         {
-            rand_pos = GenerateRandomPosition(seed);
+            rand_pos = GetRandomPosition(seed);
             continue;
         }
         const SearchResult result = search(thread);
         if (abs(result.score) < 2000) break;
-        rand_pos = GenerateRandomPosition(seed);
+        rand_pos = GetRandomPosition(seed);
     }
     this->game.occupied = GetViriOccupied(&rand_pos);
 
