@@ -25,7 +25,7 @@ if(HAS_AVX512)
     message("avx512 yeaaaaaah")
 endif()
 
-set(NETWORK_NAME "net22")
+set(NETWORK_NAME "net23")
 set(NETWORK "${CMAKE_SOURCE_DIR}/${NETWORK_NAME}.bin")
 
 if(WIN32)

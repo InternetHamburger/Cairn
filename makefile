@@ -7,7 +7,7 @@ C_COMPILER := gcc
 SOURCE_DIR := $(CURDIR)
 BUILD_DIR := $(SOURCE_DIR)/cmake-build-release
 
-NETWORK_NAME = net22.bin
+NETWORK_NAME = net23.bin
 NETWORK := $(SOURCE_DIR)/$(NETWORK_NAME)
 
 NNUE_URL := https://raw.githubusercontent.com/InternetHamburger/Networks/main/$(NETWORK_NAME)
@@ -18,7 +18,6 @@ WGET := $(shell command -v wget 2>/dev/null)
 .PHONY: configure build
 
 download:
-	@echo "NNUE network '$(NETWORK_NAME)' not found."
 	@if [ -n "$(CURL)" ]; then \
 		echo "Downloading with curl..."; \
 		curl -L --fail -o $(NETWORK_NAME) $(NNUE_URL); \
