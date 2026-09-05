@@ -7,7 +7,7 @@ C_COMPILER := gcc
 SOURCE_DIR := $(CURDIR)
 BUILD_DIR := $(SOURCE_DIR)/cmake-build-release
 
-NETWORK_NAME = net23.bin
+NETWORK_NAME = net24.bin
 NETWORK := $(SOURCE_DIR)/$(NETWORK_NAME)
 
 NNUE_URL := https://raw.githubusercontent.com/InternetHamburger/Networks/main/$(NETWORK_NAME)
