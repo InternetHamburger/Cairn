@@ -235,13 +235,15 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
     pv->length = 0;
     thread->killer_moves[ply + 1].value = 0;
 
-    if (in_check)
-        depth++;
-    if (depth <= 0) return qSearch(thread, alpha, beta, ply);
     thread->hashes[board->game_ply] = board->zobrist_hash;
     if (IsDraw(thread->hashes, board) && ply > 0){
         return 0;
     }
+
+    if (in_check)
+        depth++;
+    if (depth <= 0) return qSearch(thread, alpha, beta, ply);
+
     const bool is_singular = thread->ss[ply].excluded.value != 0;
     const Entry entry = thread->tt.entries[tt_index];
     const uint8_t tt_flag = GetEntryType(entry);
