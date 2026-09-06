@@ -8,5 +8,4 @@ void PerftSuite();
 void RunDatagen(int argc, char* args[]);
 void ReceiveCommand(char* line, Thread *thread);
 
-
 #endif //CAIRN_UCI_H
