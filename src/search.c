@@ -581,11 +581,11 @@ SearchResult search(Thread *thread) {
                 if (score <= alpha)
                 {
                     beta = (alpha + beta) / 2;
-                    alpha = MAX(best_score - delta, NEG_INF);
+                    alpha = MAX(score - delta, NEG_INF);
                 }
                 else if (score >= beta)
                 {
-                    beta = MIN(best_score + delta, -NEG_INF);
+                    beta = MIN(score + delta, -NEG_INF);
                 }
                 else
                 {
