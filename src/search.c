@@ -554,6 +554,7 @@ SearchResult search(Thread *thread) {
     int best_score = NEG_INF;
     thread->start_time = clock();
 
+    uint64_t prev_nodes = 0;
 
 
     PVariation lpv = {0};
@@ -615,10 +616,9 @@ SearchResult search(Thread *thread) {
             UCIReport(thread, &lpv, depth, best_score, time_elapsed);
             thread->seldepth = 0;
         }
-        curr_nodes = thread->nodes - curr_nodes;
-        if (curr_nodes >= thread->nodes * 192 / 256 && depth >= 6)
+        if (thread->nodes >= curr_nodes * 512 / 256 && depth >= 6)
         {
-            depth -= 2;
+            depth -= 1;
         }
         if (is_soft_time_up(thread)) {
             break;
