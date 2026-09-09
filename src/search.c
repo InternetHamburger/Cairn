@@ -616,9 +616,9 @@ SearchResult search(Thread *thread) {
             thread->seldepth = 0;
         }
         curr_nodes = thread->nodes - curr_nodes;
-        if (curr_nodes >= thread->nodes * 192 / 256)
+        if (curr_nodes >= thread->nodes * 192 / 256 && depth >= 6)
         {
-            depth = 1;
+            depth -= 2;
         }
         if (is_soft_time_up(thread)) {
             break;
