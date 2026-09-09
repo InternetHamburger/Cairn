@@ -618,7 +618,7 @@ SearchResult search(Thread *thread) {
         }
         if (thread->nodes >= curr_nodes * 512 / 256 && depth >= 6)
         {
-            depth -= 1;
+            depth -= 3;
         }
         if (is_soft_time_up(thread)) {
             break;
