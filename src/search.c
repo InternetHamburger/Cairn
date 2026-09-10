@@ -613,9 +613,9 @@ SearchResult search(Thread *thread) {
             UCIReport(thread, &lpv, depth, best_score, time_elapsed);
             thread->seldepth = 0;
         }
-        if (thread->nodes >= curr_nodes * 512 / 256)
+        if (thread->nodes >= curr_nodes * 512 / 256 && depth >= 3)
         {
-            depth -= 1;
+            depth -= MAX(1, (int)(thread->nodes / (2 * curr_nodes)));
         }
         if (is_soft_time_up(thread)) {
             break;
