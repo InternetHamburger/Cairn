@@ -287,7 +287,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         return static_eval;
     }
 
-    if (!is_mate_score(beta) && !is_singular && depth <= 7 && static_eval >= beta + 60 * depth && !in_check && !is_pv)
+    if (!is_mate_score(beta) && !is_singular && depth <= 7 && static_eval >= beta + 60 * (depth - improving) && !in_check && !is_pv)
     {
         return static_eval;
     }
