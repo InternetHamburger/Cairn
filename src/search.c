@@ -123,14 +123,13 @@ bool is_soft_time_up(Thread* thread)
     return false;
 }
 
-int qSearch(Thread *thread, int alpha, int beta, int ply){
+int qSearch(Thread *thread, int alpha, int beta, int ply, bool is_pv){
     Board* board = &thread->board;
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
     const int static_eval = correct_eval(thread, nnue_eval(thread, board, ply), ply);
 
-    const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
     const int tt_score = correct_score(entry.score, -ply);
@@ -176,7 +175,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
 
         // Skip bad captures
-        if (!staticExchangeEvaluation(board, moves[i], 0))
+        if (!is_pv && !staticExchangeEvaluation(board, moves[i], 0))
         {
             continue;
         }
@@ -185,7 +184,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         MakeMove(board, moves[i]);
         thread->nodes++;
 
-        const int score = -qSearch(thread, -beta, -alpha, ply + 1);
+        const int score = -qSearch(thread, -beta, -alpha, ply + 1, is_pv);
 
         *board = thread->ss[ply].board;
         thread->nnue = thread->nnue_stack.nnue_stack[ply];
@@ -242,7 +241,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
 
     if (in_check)
         depth++;
-    if (depth <= 0) return qSearch(thread, alpha, beta, ply);
+    if (depth <= 0) return qSearch(thread, alpha, beta, ply, is_pv);
 
     const bool is_singular = thread->ss[ply].excluded.value != 0;
     const Entry entry = thread->tt.entries[tt_index];
