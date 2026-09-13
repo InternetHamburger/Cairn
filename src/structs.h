@@ -132,7 +132,7 @@ typedef struct{
 } MovePicker;
 
 typedef struct{
-    int static_eval, to_square;
+    int static_eval, eval, to_square;
     Piece moved_piece;
     MovePicker mp;
     Move excluded;

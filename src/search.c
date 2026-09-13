@@ -271,25 +271,31 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
             return tt_score;
     }
     int raw_eval = NEG_INF;
-    int static_eval = NEG_INF;
-    int tt_corrected_eval = NEG_INF;
     if (in_check)
     {
+        thread->ss[ply].static_eval = NEG_INF;
+        thread->ss[ply].eval = NEG_INF;
+    }
+    else if (tt_hit)
+    {
+        raw_eval = nnue_eval(thread, board, ply);
+        thread->ss[ply].eval = thread->ss[ply].static_eval = correct_eval(thread, raw_eval, ply);
+        if (!is_mate_score(tt_score) &&
+            (tt_flag == EXACT ||
+            (tt_flag == LOWER && tt_score > thread->ss[ply].static_eval) ||
+            (tt_flag == UPPER && tt_score < thread->ss[ply].static_eval)))
+        {
+            thread->ss[ply].eval = tt_score;
+        }
     }
     else
     {
         raw_eval = nnue_eval(thread, board, ply);
-        tt_corrected_eval = static_eval = correct_eval(thread, raw_eval, ply);
-        if (tt_hit && !is_mate_score(tt_score) &&
-            (tt_flag == EXACT ||
-            (tt_flag == LOWER && tt_score > static_eval) ||
-            (tt_flag == UPPER && tt_score < static_eval)))
-        {
-            tt_corrected_eval = tt_score;
-        }
+        thread->ss[ply].eval = thread->ss[ply].static_eval = correct_eval(thread, raw_eval, ply);
     }
 
-    thread->ss[ply].static_eval = static_eval;
+    int static_eval = thread->ss[ply].static_eval;
+    int tt_corrected_eval = thread->ss[ply].eval;
 
     bool improving = false;
     if (in_check) {
@@ -305,13 +311,13 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         return static_eval;
     }
 
-    if (!is_mate_score(beta) && !is_singular && depth <= 7 && tt_corrected_eval >= beta + 60 * depth && !in_check && !is_pv)
+    if (!is_mate_score(beta) && !is_singular && depth <= 7 && static_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
         return static_eval;
     }
 
     thread->ss[ply].board = *board;
-    if (!is_mate_score(beta) && !is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && static_eval >= beta){
+    if (!is_mate_score(beta) && !is_singular && !is_pv && !in_check && depth >= 3 && HasNonPawnKing(board) && tt_corrected_eval >= beta){
         int r = 3 + depth / 4 + improving;
         thread->ss[ply].to_square = 0;
         thread->ss[ply].moved_piece = None;
