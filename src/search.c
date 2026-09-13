@@ -279,7 +279,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
     else
     {
         raw_eval = nnue_eval(thread, board, ply);
-        static_eval = correct_eval(thread, raw_eval, ply);
+        tt_corrected_eval = static_eval = correct_eval(thread, raw_eval, ply);
         if (tt_hit && !is_mate_score(tt_score) &&
             (tt_flag == EXACT ||
             (tt_flag == LOWER && tt_score > static_eval) ||
