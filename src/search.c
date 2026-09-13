@@ -270,15 +270,33 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         if (tt_flag == UPPER && tt_score <= alpha)
             return tt_score;
     }
-    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnue_eval(thread, board, ply), ply);
+    int raw_eval = NEG_INF;
+    int static_eval = NEG_INF;
+    int tt_corrected_eval = NEG_INF;
+    if (in_check)
+    {
+    }
+    else
+    {
+        raw_eval = nnue_eval(thread, board, ply);
+        static_eval = correct_eval(thread, raw_eval, ply);
+        if (tt_hit && !is_mate_score(tt_score) &&
+            (tt_flag == EXACT ||
+            (tt_flag == LOWER && tt_score > static_eval) ||
+            (tt_flag == UPPER && tt_score < static_eval)))
+        {
+            tt_corrected_eval = tt_score;
+        }
+    }
+
     thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;
     if (in_check) {
         improving = false;
-    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != -NEG_INF) {
+    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != NEG_INF) {
         improving = static_eval > thread->ss[ply - 2].static_eval;
-    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != -NEG_INF) {
+    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != NEG_INF) {
         improving = static_eval > thread->ss[ply - 4].static_eval;
     }
 
@@ -287,7 +305,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         return static_eval;
     }
 
-    if (!is_mate_score(beta) && !is_singular && depth <= 7 && static_eval >= beta + 60 * depth && !in_check && !is_pv)
+    if (!is_mate_score(beta) && !is_singular && depth <= 7 && tt_corrected_eval >= beta + 60 * depth && !in_check && !is_pv)
     {
         return static_eval;
     }
