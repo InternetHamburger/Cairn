@@ -172,6 +172,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
 
     thread->ss[ply].board = *board;
     Move best_move = MoveConstructor(0, 0, 0);
+    int type = UPPER;
     for (int i = 0; i < num_moves; i++) {
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
 
@@ -193,29 +194,21 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         if (score > best_score) {
             best_score = score;
             if (score > alpha){
+                type = EXACT;
                 best_move = moves[i];
                 alpha = score;
             }
         }
 
         if (score >= beta) {
+            type = LOWER;
             break;
         }
     }
 
-    int type = EXACT;
-    if (best_score >= beta)
-    {
-        type = LOWER;
-    }
-    else if (best_score < alpha)
-    {
-        type = UPPER;
-    }
-
     Entry new_entry = {
         .hash = board->zobrist_hash,
-        .best_move = best_move,
+        .best_move = tt_hit && type == UPPER ? entry.best_move : best_move,
         .score = (int16_t)correct_score(best_score, ply),
         .depth_node_type = type | 0
     };
