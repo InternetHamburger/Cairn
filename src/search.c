@@ -123,20 +123,31 @@ bool is_soft_time_up(Thread* thread)
     return false;
 }
 
-int qSearch(Thread *thread, int alpha, int beta, int ply){
+int qSearch(Thread *thread, int alpha, int beta, int ply, bool is_pv){
     Board* board = &thread->board;
     const uint64_t tt_index = board->zobrist_hash % thread->tt.num_entries;
     __builtin_prefetch(&thread->tt.entries[tt_index]);
 
-    const int static_eval = correct_eval(thread, nnue_eval(thread, board, ply), ply);
 
-    const bool is_pv = beta - alpha > 1;
     const Entry entry = thread->tt.entries[tt_index];
     const bool tt_hit = board->zobrist_hash == entry.hash;
     const int tt_score = correct_score(entry.score, -ply);
 
     if (is_pv && ply > thread->seldepth){
         thread->seldepth = ply;
+    }
+
+    int static_eval;
+    int raw_eval;
+    if (tt_hit)
+    {
+        raw_eval = entry.static_eval;
+        static_eval = correct_eval(thread, raw_eval, ply);
+    }
+    else
+    {
+        raw_eval = nnue_eval(thread, board, ply);
+        static_eval = correct_eval(thread, raw_eval, ply);
     }
 
     if (ply >= 255)
@@ -172,11 +183,12 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
 
     thread->ss[ply].board = *board;
     Move best_move = MoveConstructor(0, 0, 0);
+    int type = UPPER;
     for (int i = 0; i < num_moves; i++) {
         if (board->squares[TargetSquare(moves[i])] == 0) continue;
 
         // Skip bad captures
-        if (!staticExchangeEvaluation(board, moves[i], 0))
+        if (!is_pv && !staticExchangeEvaluation(board, moves[i], -100))
         {
             continue;
         }
@@ -185,7 +197,7 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         MakeMove(board, moves[i]);
         thread->nodes++;
 
-        const int score = -qSearch(thread, -beta, -alpha, ply + 1);
+        const int score = -qSearch(thread, -beta, -alpha, ply + 1, is_pv);
 
         *board = thread->ss[ply].board;
         thread->nnue = thread->nnue_stack.nnue_stack[ply];
@@ -193,30 +205,23 @@ int qSearch(Thread *thread, int alpha, int beta, int ply){
         if (score > best_score) {
             best_score = score;
             if (score > alpha){
+                type = EXACT;
                 best_move = moves[i];
                 alpha = score;
             }
         }
 
         if (score >= beta) {
+            type = LOWER;
             break;
         }
     }
 
-    int type = EXACT;
-    if (best_score >= beta)
-    {
-        type = LOWER;
-    }
-    else if (best_score < alpha)
-    {
-        type = UPPER;
-    }
-
     Entry new_entry = {
         .hash = board->zobrist_hash,
-        .best_move = best_move,
+        .best_move = tt_hit && type == UPPER ? entry.best_move : best_move,
         .score = (int16_t)correct_score(best_score, ply),
+        .static_eval = (int16_t)raw_eval,
         .depth_node_type = type | 0
     };
     thread->tt.entries[tt_index] = new_entry;
@@ -242,7 +247,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
 
     if (in_check)
         depth++;
-    if (depth <= 0) return qSearch(thread, alpha, beta, ply);
+    if (depth <= 0) return qSearch(thread, alpha, beta, ply, is_pv);
 
     const bool is_singular = thread->ss[ply].excluded.value != 0;
     const Entry entry = thread->tt.entries[tt_index];
@@ -270,15 +275,32 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         if (tt_flag == UPPER && tt_score <= alpha)
             return tt_score;
     }
-    int static_eval = in_check ? -NEG_INF : correct_eval(thread, nnue_eval(thread, board, ply), ply);
+
+    int static_eval;
+    int raw_eval;
+    if (in_check)
+    {
+        raw_eval = NEG_INF;
+        static_eval = NEG_INF;
+    }
+    else if (tt_hit)
+    {
+        raw_eval = entry.static_eval;
+        static_eval = correct_eval(thread, raw_eval, ply);
+    }
+    else
+    {
+        raw_eval = nnue_eval(thread, board, ply);
+        static_eval = correct_eval(thread, raw_eval, ply);
+    }
     thread->ss[ply].static_eval = static_eval;
 
     bool improving = false;
     if (in_check) {
         improving = false;
-    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != -NEG_INF) {
+    } else if (ply >= 2 && thread->ss[ply - 2].static_eval != NEG_INF) {
         improving = static_eval > thread->ss[ply - 2].static_eval;
-    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != -NEG_INF) {
+    } else if (ply >= 4 && thread->ss[ply - 4].static_eval != NEG_INF) {
         improving = static_eval > thread->ss[ply - 4].static_eval;
     }
 
@@ -361,12 +383,13 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
         played++;
         if (thread->ss[ply].excluded.value == move.value) continue;
         const bool is_capture = board->squares[TargetSquare(move)] != None;
+        const bool is_killer = thread->killer_moves[ply].value == move.value;
         thread->ss[ply].to_square = TargetSquare(move);
         thread->ss[ply].moved_piece = board->squares[StartSquare(move)];
         // Move loop pruning
         if (best_score > CHECKMATE + 255)
         {
-            if (ply > 0 && !in_check && !is_capture && played >= (6 + depth * depth) / (2 - improving))
+            if (ply > 0 && !in_check && !is_killer && !is_capture && played >= (6 + depth * depth) / (2 - improving))
             {
                 continue;
             }
@@ -412,7 +435,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
             int r = lmr_reduction[depth][played];
             r -= is_pv;
             r -= is_capture * 2;
-            r -= thread->killer_moves[ply].value == move.value;
+            r -= is_killer;
             r -= improving;
             r += 2 * cutnode;
             r = MAX(r, 0);
@@ -495,6 +518,7 @@ int Negamax(Thread *thread, int alpha, int beta, int depth, int ply, bool is_pv,
             .hash = board->zobrist_hash,
             .best_move = tt_hit && new_flag == UPPER ? tt_move : best_move,
             .score = (int16_t)correct_score(best_score, ply),
+            .static_eval = (int16_t)raw_eval,
             .depth_node_type = new_flag | depth
         };
 
