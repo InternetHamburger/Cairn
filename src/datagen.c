@@ -212,7 +212,10 @@ double PlayGame(DatagenInfo *this, Thread* thread) {
         thread->hashes[board->game_ply] = board->zobrist_hash;
 
         if (IsCheckmate(board)){
-            this->game.result = board->white_to_move ? 0 : 2;
+            if (InCheck(board))
+                this->game.result = board->white_to_move ? 0 : 2;
+            else
+                this->game.result = 1;
             break;
         }
         if (IsDraw(thread->hashes, board) || board->game_ply > 512){ // Hard limit on length
